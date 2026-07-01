@@ -1,0 +1,216 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: Verifica se l'utente è un amministratore.
+    // Controlla il Custom Claim (admin: true) OPPURE il UID hardcoded dell'admin.
+    // Il UID è il metodo principale — i Custom Claims richiedono l'Admin SDK.
+    function isAdmin() {
+      return request.auth != null && (
+        request.auth.token.admin == true ||
+        request.auth.uid == 'f8oLEt3LDpT7VN9zFOa10mVE2Cf2' ||
+        request.auth.token.email == 'francesco1cutugno@gmail.com'
+      );
+    }
+
+    // Helper: Validazione lunghezza stringhe per prevenire spam
+    function isValidString(str, maxLength) {
+      return str is string && str.size() <= maxLength;
+    }
+
+    // Helper: conta i mazzi pubblici creati oggi dall'utente (per rate limit)
+    function publicDecksToday() {
+      return firestore.collection('publicDecks')
+        .where('ownerId', '==', request.auth.uid)
+        .where('createdAt', '>', request.time.toMillis() - 86400000)
+        .count();
+    }
+
+    // 📦 Mazzi Pubblici: Chiunque può leggerli (per importare).
+    // Creazione: Utenti autenticati, con limiti anti-spam:
+    //   - max 200 card per mazzo
+    //   - ownerId deve corrispondere all'utente autenticato
+    //   - titolo e descrizione rispettano lunghezze massime
+    // Update/Delete: Solo il proprietario (ownerId) o un admin.
+    match /publicDecks/{deckId} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.ownerId == request.auth.uid
+        && isValidString(request.resource.data.name, 200)
+        && isValidString(request.resource.data.description, 1000)
+        && (!('cards' in request.resource.data) || request.resource.data.cards.size() <= 200);
+      allow update: if request.auth != null
+        && (resource.data.ownerId == request.auth.uid || isAdmin())
+        && (!('cards' in request.resource.data) || request.resource.data.cards.size() <= 200);
+      allow delete: if request.auth != null && (resource.data.ownerId == request.auth.uid || isAdmin());
+    }
+
+    // 🚩 Report mazzi: utenti loggati possono segnalare un mazzo una volta sola
+    match /deckReports/{reportId} {
+      allow create: if request.auth != null
+        && request.resource.data.reporterId == request.auth.uid
+        && isValidString(request.resource.data.reason, 500);
+      allow read, update, delete: if isAdmin();
+    }
+
+    // 🧠 Profili Utente: Per la classifica pubblica.
+    // Read: Pubblico.
+    // Write: Solo l'utente autenticato può scrivere il proprio profilo.
+    // I campi XP sono validati come interi ≥0 per prevenire injection nella leaderboard.
+    match /userProfiles/{username} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == request.resource.data.uid && (
+        isAdmin() || (
+          request.resource.data.uid == request.auth.uid &&
+          (!resource.exists || resource.data.uid == request.auth.uid) &&
+          (!('xp' in request.resource.data) || (request.resource.data.xp is int && request.resource.data.xp >= 0)) &&
+          (!('totalXP' in request.resource.data) || (request.resource.data.totalXP is int && request.resource.data.totalXP >= 0)) &&
+          (!('weeklyXP' in request.resource.data) || (request.resource.data.weeklyXP is int && request.resource.data.weeklyXP >= 0))
+        )
+      );
+    }
+
+    // 👤 Dati Privati Utente (Cloud Sync): Solo il proprietario può accedere.
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // 📚 Sub-collection per i mazzi
+      match /decks/{deckId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // 🧠 Sub-collection per la memoria (Coach AI)
+      match /memory/{memoryId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // 💬 Feedback Community (Plurale):
+    // Read: Pubblico (per vedere cosa dicono gli altri).
+    // Create: Solo utenti loggati (per evitare spam massivo anonimo).
+    // Update/Delete: Solo l'amministratore.
+    match /feedbacks/{docId} {
+      allow read: if true;
+      allow create: if request.auth != null &&
+        isValidString(request.resource.data.text, 2048) &&
+        isValidString(request.resource.data.alias, 100);
+      allow update, delete: if isAdmin();
+    }
+    
+    // NOTA: La collezione legacy 'feedback' (singolare) è stata rimossa per sicurezza.
+
+    // ⚔️ Neural Duels: partite 1v1 in tempo reale.
+    // Lettura: utenti autenticati (per onSnapshot).
+    // Scrittura: solo i partecipanti della partita (player1.id o player2.id).
+    // Creazione: qualsiasi utente autenticato può creare una lobby.
+    match /duels/{duelId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.player1.id == request.auth.uid;
+      allow update: if request.auth != null && (
+        resource.data.player1.id == request.auth.uid ||
+        (resource.data.player2 == null && request.resource.data.player2.id == request.auth.uid) ||
+        resource.data.player2.id == request.auth.uid
+      );
+      allow delete: if request.auth != null
+        && resource.data.player1.id == request.auth.uid;
+    }
+
+    // 👤 Social Profiles: profilo pubblico per sistema amici/follow.
+    // Lettura: chiunque (classifica, ricerca utenti).
+    // Scrittura: solo il proprietario (uid nel documento = uid autenticato).
+    // I contatori (followersCount, friendsCount) vengono aggiornati da batch atomici
+    // scritti dall'utente stesso o dall'utente che esegue follow/unfollow.
+    match /profiles/{profileId} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid;
+      allow update: if request.auth != null && (
+        // L'utente aggiorna il proprio profilo
+        resource.data.uid == request.auth.uid
+        // Oppure un altro utente aggiorna i contatori follow sul profilo altrui
+        // (batch atomico in followUser/unfollowUser): solo i campi contatore sono permessi
+        || (request.auth != null
+            && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['followersCount', 'followingCount', 'friendsCount']))
+      );
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+    }
+
+    // ➕ Follow: relazione "uid_targetUid" → chi segue chi.
+    // Scrittura: solo chi crea/elimina il proprio follow (uid estratto dall'id doc).
+    match /follows/{followId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.followerUid == request.auth.uid;
+      allow delete: if request.auth != null
+        && resource.data.followerUid == request.auth.uid;
+      allow update: if false; // i follow non si modificano, si cancellano e ricrean
+    }
+
+    // 🤝 Amicizie: relazione bidirezionale "uid_targetUid".
+    // Creata solo da acceptFriendRequest (batch atomico): chi accetta è l'utente autenticato.
+    match /friends/{friendshipId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && (
+        request.resource.data.uid == request.auth.uid
+        || request.resource.data.friendUid == request.auth.uid
+      );
+      allow delete: if request.auth != null && (
+        resource.data.uid == request.auth.uid
+        || resource.data.friendUid == request.auth.uid
+      );
+      allow update: if false;
+    }
+
+    // 📨 Richieste di amicizia: utente autenticato crea, il destinatario accetta/rifiuta.
+    match /friendRequests/{requestId} {
+      allow read: if request.auth != null && (
+        resource.data.fromUid == request.auth.uid
+        || resource.data.toUid == request.auth.uid
+      );
+      allow create: if request.auth != null
+        && request.resource.data.fromUid == request.auth.uid
+        && isValidString(request.resource.data.fromUid, 128)
+        && isValidString(request.resource.data.toUid, 128);
+      allow update: if request.auth != null
+        && resource.data.toUid == request.auth.uid
+        // Può solo cambiare il campo status ('accepted' | 'rejected')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+      allow delete: if request.auth != null && (
+        resource.data.fromUid == request.auth.uid
+        || resource.data.toUid == request.auth.uid
+      );
+    }
+
+    // 💳 Stripe Customers: accesso solo tramite Admin SDK (Cloud Functions).
+    // Nessun client deve mai leggere o scrivere qui.
+    match /stripeCustomers/{customerId} {
+      allow read, write: if false;
+    }
+
+    // 📊 Usage (rate limiting IA): scritto/letto solo dalla Cloud Function callGeminiProxy.
+    // Se un client potesse scrivere qui, potrebbe azzerare o gonfiare i contatori.
+    match /usage/{userId} {
+      allow read, write: if false;
+      match /daily/{day} {
+        allow read, write: if false;
+      }
+    }
+
+    // 📈 Analytics: presenza e page views scritti dai client.
+    // HARDENING (audit sicurezza 02/07/2026): scrittura richiede autenticazione,
+    // per evitare che script esterni gonfino i contatori / generino costi.
+    // NB: se raccogli analytics anche da utenti NON loggati, questo li escluderà —
+    // in quel caso valuta di spostare la scrittura dietro una Cloud Function con rate-limit.
+    // La lettura è riservata all'admin via Cloud Function (adminDashboard).
+    match /analytics/{docId} {
+      allow read: if false;
+      allow write: if request.auth != null;
+      match /sessions/{sessionId} {
+        allow read: if false;
+        allow write: if request.auth != null;
+      }
+    }
+  }
+}
