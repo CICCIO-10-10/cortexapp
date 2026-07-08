@@ -1,0 +1,291 @@
+/**
+ * modules/visualGraph.js — Visual Knowledge Graph v2
+ * Grafo 2D force-directed con etichette sempre visibili, colori per mazzo,
+ * e NLP migliorato che estrae i concetti più frequenti da domande + risposte.
+ */
+
+let _deps = { state: null, showToast: null };
+export function init(deps) { Object.assign(_deps, deps); }
+
+let activeGraph = null;
+
+// ── Stopwords italiane + comuni ───────────────────────────────────────────────
+const STOPWORDS = new Set([
+    'il','la','le','gli','un','una','uno','di','da','in','con','su','per','tra','fra',
+    'che','è','e','a','o','ma','non','si','lo','ne','se','al','del','dei','delle',
+    'dalla','dallo','agli','dai','nelle','nella','nel','nei','come','cosa','questo',
+    'questa','questi','queste','anche','più','tutto','tutti','però','dopo','prima',
+    'quando','dove','perché','poi','già','ancora','sempre','mai','ogni','molto','poco',
+    'troppo','bene','male','fare','avere','essere','stai','sono','sei','siamo',
+    'hanno','ha','hai','aveva','era','negli','suo','sua','suoi','sue','mio','mia',
+    'tuoi','noi','voi','loro','lui','lei','quale','quella','quello','viene','viene',
+    'può','deve','sono','stato','stati','stata','essere','aveva','hanno','avere',
+    'the','and','for','are','was','with','that','this','from','they','have','which',
+    'their','what','will','when','there','been','than','then','some','would','other',
+    'into','more','also','your','about','these','those','such','each',
+]);
+
+// ── Estrazione keyword NLP ───────────────────────────────────────────────────
+function extractKeywords(cards, maxKeywords = 8) {
+    const freq = {};
+    cards.forEach(card => {
+        const text = ((card.q || '') + ' ' + (card.a || '')).toLowerCase();
+        const words = text.match(/\b[a-zA-ZàèéìíîòóùúÀÈÉÌÍÎÒÓÙÚ]{4,}\b/g) || [];
+        words.forEach(w => {
+            if (!STOPWORDS.has(w)) freq[w] = (freq[w] || 0) + 1;
+        });
+    });
+    return Object.entries(freq)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, maxKeywords)
+        .map(([word, count]) => ({ word, count }));
+}
+
+// ── Costruzione grafo ────────────────────────────────────────────────────────
+function buildGraphData() {
+    const decks = (_deps.state && _deps.state.decks) ? _deps.state.decks : [];
+    const nodes = [];
+    const links = [];
+    const conceptMap = new Map(); // keyword → nodeId
+
+    // Palette per i mazzi
+    const deckColors = ['#7c6af7','#10b981','#f59e0b','#ec4899','#06b6d4','#ef4444','#8b5cf6','#f97316'];
+
+    decks.forEach((deck, dIdx) => {
+        if (!deck.cards || deck.cards.length === 0) return;
+
+        const deckColor = deckColors[dIdx % deckColors.length];
+        const deckNodeId = `deck_${deck.id || dIdx}`;
+
+        nodes.push({
+            id: deckNodeId,
+            name: deck.name,
+            type: 'deck',
+            color: deckColor,
+            val: 28,
+        });
+
+        const keywords = extractKeywords(deck.cards, 10);
+
+        keywords.forEach(({ word, count }) => {
+            let conceptNodeId;
+            if (conceptMap.has(word)) {
+                conceptNodeId = conceptMap.get(word);
+                // Aumenta il val se il concetto appare in più mazzi
+                const existingNode = nodes.find(n => n.id === conceptNodeId);
+                if (existingNode) existingNode.val = Math.min(existingNode.val + 4, 20);
+            } else {
+                conceptNodeId = `concept_${word}`;
+                conceptMap.set(word, conceptNodeId);
+                nodes.push({
+                    id: conceptNodeId,
+                    name: word,
+                    type: 'concept',
+                    color: deckColor + 'cc', // Stesso colore del mazzo, leggermente trasparente
+                    val: 10 + Math.min(count * 2, 10),
+                });
+            }
+
+            // Evita link duplicati tra stesso mazzo e stesso concetto
+            const linkExists = links.some(l => l.source === deckNodeId && l.target === conceptNodeId);
+            if (!linkExists) {
+                links.push({ source: deckNodeId, target: conceptNodeId, strength: count });
+            }
+        });
+    });
+
+    return { nodes, links };
+}
+
+// ── Init grafo 2D ────────────────────────────────────────────────────────────
+function initGraph() {
+    let overlay = document.getElementById('visual-graph-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'visual-graph-overlay';
+        overlay.style.cssText = `
+            position: fixed; inset: 0; z-index: 9999;
+            background: #080810;
+            display: flex; flex-direction: column;
+        `;
+
+        // Header
+        const header = document.createElement('div');
+        header.style.cssText = `
+            position: absolute; top: 0; left: 0; right: 0; z-index: 10000;
+            padding: 18px 24px 0;
+            pointer-events: none;
+        `;
+        header.innerHTML = `
+            <div style="font-size:1.3rem; font-weight:900; color:white; font-family:'Outfit',sans-serif; letter-spacing:-0.02em;">
+                🌌 Knowledge Graph
+            </div>
+            <div style="color:rgba(255,255,255,0.35); font-size:0.78rem; margin-top:3px;">
+                Trascina · Scroll per zoom · Click per dettagli
+            </div>
+        `;
+
+        // Chiudi
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = '✕ Chiudi';
+        closeBtn.style.cssText = `
+            position: absolute; top: 18px; right: 20px; z-index: 10001;
+            background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14);
+            color: white; padding: 9px 18px; border-radius: 100px;
+            cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 0.85rem;
+        `;
+        closeBtn.onclick = () => { overlay.style.display = 'none'; };
+
+        // Tooltip
+        const tooltip = document.createElement('div');
+        tooltip.id = 'vg-tooltip';
+        tooltip.style.cssText = `
+            position: absolute; z-index: 10002; pointer-events: none;
+            background: rgba(20,20,35,0.92); border: 1px solid rgba(255,255,255,0.12);
+            color: white; padding: 8px 14px; border-radius: 12px;
+            font-family: 'Outfit',sans-serif; font-size: 0.85rem; font-weight: 600;
+            opacity: 0; transition: opacity 0.15s;
+        `;
+        document.body.appendChild(tooltip);
+
+        // Container grafo
+        const container = document.createElement('div');
+        container.id = 'vg-container';
+        container.style.cssText = 'flex:1; width:100%; height:100%;';
+
+        overlay.appendChild(header);
+        overlay.appendChild(closeBtn);
+        overlay.appendChild(container);
+        document.body.appendChild(overlay);
+    }
+
+    overlay.style.display = 'flex';
+
+    const graphData = buildGraphData();
+    if (graphData.nodes.length === 0) {
+        const toast = _deps.showToast || window.showToast;
+        if (toast) toast('Non hai ancora carte sufficienti per il grafo.', 'info');
+        overlay.style.display = 'none';
+        return;
+    }
+
+    // Distruggi grafo precedente
+    if (activeGraph) {
+        try { activeGraph._destructor(); } catch(e) {}
+        activeGraph = null;
+    }
+
+    const elem = document.getElementById('vg-container');
+    const tooltip = document.getElementById('vg-tooltip');
+
+    activeGraph = ForceGraph()(elem)
+        .graphData(graphData)
+        .backgroundColor('#080810')
+        .nodeColor(n => n.color || '#7c6af7')
+        .nodeVal(n => n.val || 10)
+        .nodeLabel(() => '') // no tooltip nativo, usiamo il nostro
+        .linkColor(() => 'rgba(255,255,255,0.08)')
+        .linkWidth(l => Math.min((l.strength || 1) * 0.5 + 0.5, 3))
+        .linkDirectionalParticles(2)
+        .linkDirectionalParticleWidth(1.5)
+        .linkDirectionalParticleColor(l => {
+            // Colore particelle = colore del nodo sorgente
+            const srcId = typeof l.source === 'object' ? l.source.id : l.source;
+            const srcNode = graphData.nodes.find(n => n.id === srcId);
+            return srcNode ? srcNode.color : '#7c6af7';
+        })
+        .d3VelocityDecay(0.3)
+        .d3AlphaDecay(0.008)
+        // Etichette sempre visibili via canvas
+        .nodeCanvasObjectMode(() => 'after')
+        .nodeCanvasObject((node, ctx, globalScale) => {
+            const label = node.name;
+            const isDeck = node.type === 'deck';
+            const fontSize = isDeck
+                ? Math.max(14 / globalScale, 9)
+                : Math.max(11 / globalScale, 7);
+
+            ctx.font = `${isDeck ? '800' : '600'} ${fontSize}px Outfit, Inter, sans-serif`;
+
+            const textWidth  = ctx.measureText(label).width;
+            const bgPad      = fontSize * 0.35;
+            const bx         = node.x - textWidth / 2 - bgPad;
+            const by         = node.y + Math.sqrt(node.val || 10) * 2.5 + fontSize * 0.3;
+            const bw         = textWidth + bgPad * 2;
+            const bh         = fontSize + bgPad * 1.5;
+
+            // Background etichetta
+            ctx.fillStyle = 'rgba(8,8,16,0.75)';
+            ctx.beginPath();
+            ctx.roundRect(bx, by, bw, bh, bh / 2);
+            ctx.fill();
+
+            // Testo etichetta
+            ctx.fillStyle = isDeck ? '#ffffff' : 'rgba(255,255,255,0.82)';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(label, node.x, by + bh / 2);
+        })
+        .onNodeHover(node => {
+            if (!tooltip) return;
+            if (node) {
+                const label = node.type === 'deck'
+                    ? `📚 ${node.name}`
+                    : `🔑 ${node.name}`;
+                tooltip.textContent = label;
+                tooltip.style.opacity = '1';
+            } else {
+                tooltip.style.opacity = '0';
+            }
+        })
+        .onNodeClick(node => {
+            if (!node) return;
+            activeGraph.centerAt(node.x, node.y, 600);
+            activeGraph.zoom(3, 600);
+        });
+
+    // Aumenta repulsione e distanza link per spread nodi
+    try {
+        activeGraph.d3Force('charge').strength(-350);
+        activeGraph.d3Force('link').distance(120);
+        activeGraph.d3ReheatSimulation();
+    } catch(e) {}
+
+    // Muovi tooltip con il mouse
+    elem.addEventListener('mousemove', e => {
+        if (!tooltip) return;
+        tooltip.style.left = (e.clientX + 14) + 'px';
+        tooltip.style.top  = (e.clientY - 10) + 'px';
+    });
+}
+
+// ── Caricamento libreria 2D ───────────────────────────────────────────────────
+export async function openVisualGraph() {
+    const toast = _deps.showToast || window.showToast;
+
+    if (typeof ForceGraph === 'undefined') {
+        if (toast) toast('⏳ Caricamento Knowledge Graph...', 'info');
+
+        const _load = src => new Promise((res, rej) => {
+            const s = document.createElement('script');
+            s.src = src; s.onload = res; s.onerror = rej;
+            document.head.appendChild(s);
+        });
+
+        const CDNS = [
+            'https://cdn.jsdelivr.net/npm/force-graph/dist/force-graph.min.js',
+            'https://unpkg.com/force-graph/dist/force-graph.min.js',
+        ];
+
+        for (let i = 0; i < CDNS.length; i++) {
+            try { await _load(CDNS[i]); initGraph(); return; } catch (_) {}
+        }
+        if (toast) toast('❌ Impossibile caricare il grafo. Controlla la connessione.', 'error');
+    } else {
+        initGraph();
+    }
+}
+
+export function registerVisualGraphGlobals(registry) {
+    registry('openVisualGraph', openVisualGraph);
+}

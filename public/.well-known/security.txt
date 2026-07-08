@@ -1,0 +1,4 @@
+Contact: mailto:security@cortexapp.it
+Expires: 2027-05-10T00:00:00.000Z
+Preferred-Languages: it, en
+Policy: https://cortexapp.it/privacy

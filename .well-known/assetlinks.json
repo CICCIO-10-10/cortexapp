@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.web.cortex_app.twa",
+        "sha256_cert_fingerprints": ["36:44:3A:F6:BE:F8:B9:EF:FD:46:63:A6:C5:DB:EC:87:4E:76:17:15:B5:9E:BE:ED:41:C4:E4:44:06:8E:93:83"]
+      }
+    }]

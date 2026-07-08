@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "cortex-74a4e"
+  },
+  "targets": {
+    "cortex-74a4e": {
+      "hosting": {
+        "cortex": [
+          "cortex-app"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

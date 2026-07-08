@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>Cortex — Onboarding</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+:root {
+  --bg: #080808;
+  --surface: #111111;
+  --surface-2: #181818;
+  --border: rgba(255,255,255,0.07);
+  --border-hover: rgba(255,255,255,0.14);
+  --text: #FFFFFF;
+  --text-2: rgba(255,255,255,0.55);
+  --text-3: rgba(255,255,255,0.28);
+  --accent: #8B5CF6;
+  --accent-dim: rgba(139,92,246,0.08);
+  --accent-border: rgba(139,92,246,0.2);
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+.phone {
+  max-width: 390px;
+  height: 100vh;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ─── PROGRESS ─── */
+.progress-bar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--border);
+  z-index: 10;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 0 2px 2px 0;
+  transition: width 0.5s cubic-bezier(.4,0,.2,1);
+}
+
+/* ─── SCREENS ─── */
+.screens {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0 28px;
+  opacity: 0;
+  transform: translateX(40px);
+  transition: all .45s cubic-bezier(.4,0,.2,1);
+  pointer-events: none;
+}
+
+.screen.active {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: all;
+}
+
+.screen.exit {
+  opacity: 0;
+  transform: translateX(-40px);
+}
+
+/* ─── SCREEN 0 — WELCOME ─── */
+#s0 { justify-content: flex-end; padding-bottom: 0; }
+
+.wordmark-top {
+  position: absolute;
+  top: 52px;
+  left: 28px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.welcome-body {
+  padding-bottom: 48px;
+}
+
+.welcome-eyebrow {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.eyebrow-line {
+  flex: 1;
+  max-width: 40px;
+  height: 1px;
+  background: var(--accent);
+  opacity: 0.5;
+}
+
+.welcome-title {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: 52px;
+  line-height: 1.05;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+
+.welcome-title em {
+  font-style: italic;
+  color: rgba(255,255,255,0.75);
+}
+
+.welcome-sub {
+  font-size: 15px;
+  color: var(--text-2);
+  line-height: 1.6;
+  font-weight: 400;
+  margin-bottom: 40px;
+  max-width: 280px;
+}
+
+.pill-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 40px;
+}
+
+.pill {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-3);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: 5px 12px;
+  letter-spacing: 0.02em;
+}
+
+/* ─── SCREEN 1 — AUTH ─── */
+#s1 { justify-content: center; }
+
+.auth-tag {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: 24px;
+}
+
+.auth-title {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: 38px;
+  line-height: 1.1;
+  font-weight: 400;
+  margin-bottom: 8px;
+}
+
+.auth-sub {
+  font-size: 14px;
+  color: var(--text-2);
+  font-weight: 400;
+  margin-bottom: 40px;
+  line-height: 1.5;
+}
+
+.google-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border-hover);
+  border-radius: 14px;
+  padding: 16px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-bottom: 10px;
+}
+
+.google-btn:hover {
+  background: var(--surface-2);
+  border-color: rgba(255,255,255,0.2);
+}
+
+.google-btn:active { transform: scale(0.98); }
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 20px 0;
+  font-size: 12px;
+  color: var(--text-3);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.divider::before, .divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.email-input {
+  width: 100%;
+  padding: 15px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  font-size: 15px;
+  font-family: 'Inter', sans-serif;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.2s;
+  margin-bottom: 10px;
+  caret-color: var(--accent);
+}
+
+.email-input:focus {
+  border-color: rgba(255,255,255,0.2);
+}
+
+.email-input::placeholder { color: var(--text-3); }
+
+.terms {
+  font-size: 11px;
+  color: var(--text-3);
+  text-align: center;
+  line-height: 1.6;
+  margin-top: 16px;
+}
+
+.terms a { color: var(--text-2); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+
+/* ─── SCREEN 2 — API KEY ─── */
+#s2 { justify-content: center; }
+
+.api-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 28px;
+}
+
+.api-icon svg {
+  width: 24px;
+  height: 24px;
+  stroke: var(--accent);
+  stroke-width: 1.6;
+  fill: none;
+}
+
+.step-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 28px 0;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.step-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.step-row:last-child { border-bottom: none; }
+
+.step-n {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--border-hover);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-3);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.step-text {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+
+.step-text strong { color: var(--text); font-weight: 600; }
+
+.api-input-wrap {
+  position: relative;
+  margin-bottom: 10px;
+}
+
+.api-input {
+  width: 100%;
+  padding: 15px 48px 15px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  font-size: 14px;
+  font-family: 'Inter', monospace;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.2s;
+  letter-spacing: 0.02em;
+  caret-color: var(--accent);
+}
+
+.api-input:focus { border-color: rgba(255,255,255,0.2); }
+.api-input::placeholder { color: var(--text-3); letter-spacing: 0; }
+
+.eye-btn {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: var(--text-3);
+  background: none;
+  border: none;
+  display: flex;
+}
+
+.eye-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+
+.get-key-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: none;
+  margin-top: 6px;
+}
+
+.get-key-link svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+/* ─── BOTTOM ACTIONS ─── */
+.bottom {
+  flex-shrink: 0;
+  padding: 16px 28px 44px;
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 17px;
+  background: var(--text);
+  color: var(--bg);
+  border: none;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s;
+  letter-spacing: -0.01em;
+}
+
+.btn-primary:hover { background: rgba(255,255,255,0.92); }
+.btn-primary:active { transform: scale(0.98); }
+
+.btn-primary svg { width: 16px; height: 16px; stroke: var(--bg); fill: none; stroke-width: 2.5; }
+
+.login-hint {
+  text-align: center;
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--text-3);
+  font-weight: 400;
+}
+
+.login-hint a {
+  color: var(--text-2);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+</style>
+</head>
+<body>
+<div class="phone">
+
+  <!-- PROGRESS -->
+  <div class="progress-bar">
+    <div class="progress-fill" id="prog" style="width: 5%"></div>
+  </div>
+
+  <!-- SCREENS -->
+  <div class="screens">
+
+    <!-- S0: WELCOME -->
+    <div class="screen active" id="s0">
+      <div class="wordmark-top">Cortex</div>
+      <div class="welcome-body">
+        <div class="welcome-eyebrow">
+          <div class="eyebrow-line"></div>
+          Studia in modo intelligente
+        </div>
+        <div class="welcome-title">Il tuo cervello<br/><em>potenziato</em><br/>dall'AI.</div>
+        <div class="welcome-sub">Tutor personalizzato, flashcard adattive e sessioni di focus. Tutto in una PWA.</div>
+        <div class="pill-row">
+          <div class="pill">AI Tutor</div>
+          <div class="pill">Flashcard</div>
+          <div class="pill">PDF Analyzer</div>
+          <div class="pill">Deep Focus</div>
+          <div class="pill">Community</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- S1: AUTH -->
+    <div class="screen" id="s1">
+      <div class="auth-tag">Accedi</div>
+      <div class="auth-title">Bentornato,<br/>Francesco.</div>
+      <div class="auth-sub">Usa il tuo account Google oppure entra con email.</div>
+      <button class="google-btn" onclick="go(2)">
+        <svg width="18" height="18" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+        </svg>
+        Continua con Google
+      </button>
+      <div class="divider">oppure</div>
+      <input class="email-input" type="email" placeholder="email@esempio.com"/>
+      <div class="terms">Proseguendo accetti i <a>Termini di Servizio</a> e la <a>Privacy Policy</a></div>
+    </div>
+
+    <!-- S2: API KEY -->
+    <div class="screen" id="s2">
+      <div class="api-icon">
+        <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z"/></svg>
+      </div>
+      <div class="auth-tag" style="margin-bottom: 8px">API Key</div>
+      <div class="auth-title" style="font-size: 32px; margin-bottom: 8px">La tua chiave AI</div>
+      <div class="auth-sub" style="margin-bottom: 0">Cortex usa la tua chiave Gemini. Rimane solo sul tuo dispositivo, non la vediamo mai.</div>
+      <div class="step-list">
+        <div class="step-row">
+          <div class="step-n">1</div>
+          <div class="step-text">Vai su <strong>aistudio.google.com</strong></div>
+        </div>
+        <div class="step-row">
+          <div class="step-n">2</div>
+          <div class="step-text">Crea progetto → <strong>Get API Key</strong></div>
+        </div>
+        <div class="step-row">
+          <div class="step-n">3</div>
+          <div class="step-text">Incolla qui sotto</div>
+        </div>
+      </div>
+      <div class="api-input-wrap">
+        <input class="api-input" type="password" placeholder="AIzaSy…"/>
+        <button class="eye-btn">
+          <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+      <a class="get-key-link">
+        <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        Ottieni la chiave da Google AI Studio
+      </a>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM -->
+  <div class="bottom">
+    <button class="btn-primary" id="cta" onclick="next()">
+      <span id="cta-text">Inizia gratis</span>
+      <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </button>
+    <div class="login-hint" id="hint">Hai già un account? <a onclick="go(1)">Accedi</a></div>
+  </div>
+
+</div>
+
+<script>
+let cur = 0;
+const labels = ['Inizia gratis', 'Continua con email', 'Accendi l\'AI'];
+const progs = ['5%', '40%', '85%'];
+
+function go(n) {
+  const c = document.getElementById('s' + cur);
+  c.classList.add('exit');
+  c.classList.remove('active');
+  setTimeout(() => c.classList.remove('exit'), 450);
+  cur = n;
+  document.getElementById('s' + cur).classList.add('active');
+  document.getElementById('prog').style.width = progs[cur];
+  document.getElementById('cta-text').textContent = labels[cur];
+  document.getElementById('hint').style.opacity = cur === 0 ? '1' : '0';
+  if (cur === 2) {
+    document.getElementById('cta-text').textContent = '🚀 Accendi l\'AI';
+  }
+}
+
+function next() {
+  if (cur < 2) go(cur + 1);
+}
+
+// Eye toggle
+document.querySelector('.eye-btn').addEventListener('click', () => {
+  const inp = document.querySelector('.api-input');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+});
+
+// Enter on email
+document.querySelector('.email-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') go(2);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,1861 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8" />
+    <link rel="preconnect" href="https://firebasestorage.googleapis.com">
+    <link rel="preconnect" href="https://firestore.googleapis.com">
+    <link rel="preconnect" href="https://identitytoolkit.googleapis.com">
+    <link rel="dns-prefetch" href="https://generativelanguage.googleapis.com">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Cortex — Portale Studio 🧠</title>
+    <!-- FCP Observer — deve stare QUI, prima di qualsiasi altro script/stile -->
+    <script>
+        window.__fcpStart = Date.now();
+        // Flag per ignorare entry bufferizzate da navigazioni precedenti (bug FCP stale)
+        window.__fcpThisNav = true;
+        if ('PerformanceObserver' in window) {
+            try {
+                new PerformanceObserver(function(list) {
+                    // Ignora se il flag non è di questa navigazione
+                    if (!window.__fcpThisNav) return;
+                    window.__fcpThisNav = false; // consuma il flag
+                    var entry = list.getEntriesByName('first-contentful-paint')[0];
+                    if (entry) {
+                        // entry.startTime è DOMHighResTimeStamp dalla navigation start
+                        window.__fcpMs = Math.round(entry.startTime);
+                        console.log('[Perf] FCP:', window.__fcpMs + 'ms (from navigation start)');
+                    }
+                }).observe({ type: 'paint', buffered: true });
+            } catch(e) {}
+        }
+    </script>
+    <!-- SEO & App Metadata -->
+    <meta name="description" content="Accedi al tuo secondo cervello. Gestisci mazzi, sessioni SRS e AI Tutor." />
+    <meta property="og:title" content="Cortex App" />
+    <meta property="og:description" content="Il tuo ambiente di studio intelligente." />
+    <meta property="og:image" content="/pwa-512x512.png" />
+    <meta property="og:url" content="https://cortexapp.it/app" />
+    <meta property="og:type" content="website" />
+    
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="theme.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js" defer></script>
+
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="icon" href="./favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./pwa-192x192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="./pwa-512x512.png" />
+    <meta name="theme-color" content="#8b5cf6" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Cortex" />
+    <link rel="apple-touch-icon" sizes="192x192" href="./pwa-192x192.png" />
+    <link rel="apple-touch-icon" sizes="512x512" href="./pwa-512x512.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap"
+        rel="stylesheet" />
+    
+    <style>
+        /* ── Skeleton Screen (FCP fix) ─────────────────────────────────────────── */
+        #cortex-skeleton {
+            position: fixed;
+            inset: 0;
+            z-index: 9000;
+            background: #0a0a0f;
+            display: flex;
+            flex-direction: column;
+            transition: opacity 0.4s ease;
+        }
+        #cortex-skeleton.sk-hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .sk-nav {
+            height: 64px;
+            background: rgba(255,255,255,0.03);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            gap: 16px;
+        }
+        .sk-logo {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: rgba(124,106,247,0.3);
+        }
+        .sk-tabs {
+            display: flex;
+            gap: 8px;
+            flex: 1;
+            padding: 0 16px;
+        }
+        .sk-tab {
+            width: 70px;
+            height: 28px;
+            border-radius: 100px;
+            background: rgba(255,255,255,0.06);
+        }
+        .sk-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            padding: 40px 24px;
+        }
+        .sk-title {
+            width: min(320px, 80%);
+            height: 32px;
+            border-radius: 12px;
+        }
+        .sk-subtitle {
+            width: min(220px, 60%);
+            height: 18px;
+            border-radius: 8px;
+        }
+        .sk-cards {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 700px;
+            width: 100%;
+        }
+        .sk-card {
+            width: 200px;
+            height: 120px;
+            border-radius: 20px;
+        }
+        .sk-btn {
+            width: 160px;
+            height: 44px;
+            border-radius: 100px;
+        }
+        /* Shimmer animation */
+        .sk-logo, .sk-tab, .sk-title, .sk-subtitle, .sk-card, .sk-btn {
+            background: linear-gradient(
+                90deg,
+                rgba(255,255,255,0.04) 25%,
+                rgba(255,255,255,0.09) 50%,
+                rgba(255,255,255,0.04) 75%
+            );
+            background-size: 400% 100%;
+            animation: sk-shimmer 1.6s ease-in-out infinite;
+        }
+        @keyframes sk-shimmer {
+            0%   { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        /* ── Offline badge ── */
+        #offline-badge {
+            display: none;
+            position: fixed;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 5000;
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 100px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 10px 20px rgba(239, 68, 68, 0.3);
+            animation: slideInDown 0.3s ease, pulse-red 2s infinite;
+        }
+        @keyframes slideInDown { from { transform: translate(-50%, -20px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+        @keyframes pulse-red { 0%, 100% { box-shadow: 0 10px 20px rgba(239, 68, 68, 0.3); } 50% { box-shadow: 0 10px 30px rgba(239, 68, 68, 0.6); } }
+        @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+        @keyframes slideUp { from{transform:translateY(100%);opacity:0} to{transform:translateY(0);opacity:1} }
+    </style>
+    <!-- Phase 6: rimosso il caricamento duplicato di pdf.js v3.11.174 (era sovrascritto da v3.4.120 in fondo alla pagina) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" integrity="sha384-GJqSu7vueQ9qN0E9yLPb3Wtpd7OrgK8KmYzC8T1IysG1bcvxvIO4qtYR/D3A991F" crossorigin="anonymous" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js" integrity="sha384-xuasJXVcyv3hZq0eYpelEkBC8l4yufatZXDsKuyCU2rqfhDCb+ftuE/mSfZAteiK" crossorigin="anonymous" defer></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- FIREBASE SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js" integrity="sha384-4gq9w/AGf72FXdNQ3Kn3EqWP7633NbCMjpYHt8YCZyXf23o2opcuAr4cif41tLrC" crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js" integrity="sha384-xtdq4MQqPj1dB5DQsuw9O7dh4kHhMP/Wp5u8O1jiaWiou13ZfJIgiccjtVK2pBhL" crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js" integrity="sha384-Qgqc/HETq5lqJnRDqWnV1AZGw3pgMYNUVaqLLN1W/55XuWK94epwbCQrOvdoh1Zo" crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js" integrity="sha384-yTXgVdKIoM5XuQZ1AGw9zFUgmu45OeHYpGDbbWtXHu/qOJxneVAXbw5Rh5CGninE" crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-functions-compat.js" crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js" crossorigin="anonymous"></script>
+    <!-- App Check rimosso: enforcement Firestore/Functions disabilitato in Console.
+         Il reCAPTCHA v3 bloccava client-side tutte le chiamate Firebase (Functions incluse).
+         Da riabilitare solo dopo aver risolto il token reCAPTCHA Enterprise. -->
+
+    <link rel="stylesheet" href="theme.css">
+    <script>try { console.log("Cortex Version: " + CURRENT_VERSION); } catch(e) {}</script>
+</head>
+
+<body class="dark">
+    <!-- SKELETON SCREEN — visibile prima del bundle JS (FCP fix) -->
+    <div id="cortex-skeleton" role="progressbar" aria-label="Cortex in caricamento...">
+        <div class="sk-nav">
+            <div class="sk-logo"></div>
+            <div class="sk-tabs">
+                <div class="sk-tab"></div>
+                <div class="sk-tab"></div>
+                <div class="sk-tab"></div>
+                <div class="sk-tab"></div>
+            </div>
+        </div>
+        <div class="sk-body">
+            <div class="sk-title"></div>
+            <div class="sk-subtitle"></div>
+            <div class="sk-cards">
+                <div class="sk-card"></div>
+                <div class="sk-card"></div>
+                <div class="sk-card"></div>
+            </div>
+            <div class="sk-btn"></div>
+        </div>
+    </div>
+    <div class="noise-overlay"></div>
+    <div class="nebula-bg-container">
+        <div class="nebula-glow nebula-1"></div>
+        <div class="nebula-glow nebula-2"></div>
+        <div class="nebula-glow nebula-3"></div>
+    </div>
+
+    <!-- AUTH OVERLAY — Landing page, unico punto di ingresso -->
+    <div id="auth-overlay" class="hidden" style="
+        position: fixed; inset: 0; z-index: 20000;
+        background:
+            radial-gradient(ellipse 80% 60% at 20% 20%, rgba(139,92,246,0.22) 0%, transparent 60%),
+            radial-gradient(ellipse 60% 50% at 80% 70%, rgba(6,182,212,0.14) 0%, transparent 55%),
+            radial-gradient(ellipse 70% 50% at 50% 100%, rgba(217,70,239,0.12) 0%, transparent 50%),
+            #030305;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        padding: 32px 20px; text-align: center; overflow: hidden;
+    ">
+        <!-- Orb decorativi -->
+        <div style="position:absolute;width:600px;height:600px;border-radius:50%;background:rgba(139,92,246,0.06);filter:blur(120px);top:-200px;left:-200px;pointer-events:none;"></div>
+        <div style="position:absolute;width:400px;height:400px;border-radius:50%;background:rgba(6,182,212,0.06);filter:blur(90px);bottom:-150px;right:-100px;pointer-events:none;"></div>
+
+        <div style="position:relative;z-index:2;max-width:480px;width:100%;">
+            <!-- Logo -->
+            <img src="LOGO_PREMIUM.png" alt="Cortex" style="width:72px;height:72px;border-radius:20px;margin-bottom:32px;box-shadow:0 0 40px rgba(139,92,246,0.4);">
+
+            <!-- Titolo -->
+            <h1 style="font-family:'Outfit',sans-serif;font-size:clamp(2.8rem,10vw,4.5rem);font-weight:900;line-height:1;letter-spacing:-0.04em;margin-bottom:12px;background:linear-gradient(135deg,#fff 0%,rgba(255,255,255,0.7) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+                CORTEX
+            </h1>
+            <p style="font-size:0.75rem;font-weight:800;letter-spacing:0.3em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:24px;">Neural Study Engine</p>
+
+            <!-- Tagline -->
+            <p style="font-size:1.05rem;color:rgba(255,255,255,0.6);line-height:1.65;max-width:360px;margin:0 auto 48px;font-weight:400;">
+                Il tuo <strong style="color:rgba(255,255,255,0.85);font-weight:700;">secondo cervello</strong> potenziato dall'intelligenza artificiale. Studia meno, ricorda di più.
+            </p>
+
+            <!-- CTA principale -->
+            <button data-fn="loginWithGoogle" id="btn-prova-ora" style="
+                display: inline-flex; align-items: center; justify-content: center; gap: 12px;
+                width: 100%; max-width: 340px;
+                padding: 18px 36px;
+                border-radius: 100px;
+                border: none; cursor: pointer;
+                font-family: 'Outfit', sans-serif;
+                font-size: 1.1rem; font-weight: 800; letter-spacing: 0.02em;
+                color: #fff;
+                background: linear-gradient(135deg, #8b5cf6, #d946ef, #3b82f6);
+                box-shadow: 0 16px 48px rgba(139,92,246,0.45), 0 4px 12px rgba(0,0,0,0.4);
+                transition: transform 0.15s, box-shadow 0.15s;
+            "
+            onmouseover="this.style.transform='scale(1.03)';this.style.boxShadow='0 20px 60px rgba(139,92,246,0.55),0 4px 12px rgba(0,0,0,0.4)'"
+            onmouseout="this.style.transform='';this.style.boxShadow='0 16px 48px rgba(139,92,246,0.45),0 4px 12px rgba(0,0,0,0.4)'"
+            onclick="(function(){if(typeof window.loginWithGoogle==='function'){window.loginWithGoogle();}else if(typeof firebase!=='undefined'&&firebase.apps.length){var p=new firebase.auth.GoogleAuthProvider();p.addScope('email');p.setCustomParameters({prompt:'select_account'});var isMobile=/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);if(isMobile){localStorage.setItem('cortex_redirect_pending','1');localStorage.setItem('cortex_redirect_ts',Date.now().toString());firebase.auth().signInWithRedirect(p).catch(function(e){alert('Errore: '+e.message);});}else{firebase.auth().signInWithPopup(p).then(function(r){if(r&&r.user)window.location.href='/app.html';}).catch(function(e){if(e.code==='auth/popup-closed-by-user'||e.code==='auth/popup-cancelled-by-user'){localStorage.setItem('cortex_redirect_pending','1');localStorage.setItem('cortex_redirect_ts',Date.now().toString());firebase.auth().signInWithRedirect(p);}else{alert('Errore: '+e.message);}});}}else{alert('App non ancora pronta. Ricarica la pagina.');};})()">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="22" height="22" alt="" style="border-radius:3px;">
+                Prova Ora
+            </button>
+
+            <!-- Footer -->
+            <p style="margin-top:24px;font-size:0.75rem;color:rgba(255,255,255,0.22);line-height:1.6;">
+                Gratuito · I tuoi dati rimangono privati<br>
+                Accedi con Google per sincronizzare su tutti i tuoi dispositivi
+            </p>
+        </div>
+    </div>
+
+    <!-- NAV -->
+    <nav>
+        <div class="nav-logo">
+            <img src="LOGO_PREMIUM.png" alt="Cortex Logo" class="logo-img">
+        </div>
+        <div class="nav-tabs">
+            <!-- Phase 6: onclick→data-fn (event delegation via core/eventBus.js) -->
+            <button aria-label="Vai alla Home" class="nav-tab active" data-fn="showPage" data-params='["home"]' id="tab-home"><span class="icon">🏠</span> <span
+                    class="label" data-i18n="nav_home">Home</span></button>
+            <button aria-label="Scopri le tecniche di memoria" class="nav-tab" data-fn="showPage" data-params='["tecniche"]' id="tab-tecniche"><span class="icon">💡</span> <span
+                    class="label" data-i18n="nav_tech">Tecniche</span></button>
+            <button aria-label="Gestisci i tuoi materiali di studio" class="nav-tab" data-fn="showPage" data-params='["materiale"]' id="tab-materiale"><span class="icon">📚</span>
+                <span class="label" data-i18n="nav_material">Materiale</span></button>
+            <button aria-label="Accedi al network e alle statistiche" class="nav-tab" data-fn="showCommunity" id="tab-community"><span class="icon">🌍</span>
+                <span class="label">Network & Stats</span></button>
+            <button aria-label="Ascolta le tue lezioni" class="nav-tab" data-fn="showAudio" id="tab-audio"><span
+                    class="icon">🎙️</span>
+                <span class="label">Lezioni</span></button>
+        </div>
+        <div class="nav-actions">
+            <!-- USER PROFILE -->
+            <div id="user-profile-wrap" style="display:none; align-items:center; margin-right:8px;">
+                <div class="user-profile-btn" data-fn="openSettings">
+                    <div class="user-avatar" id="user-initials">
+                        <!-- foto Google iniettata da updateUserUI -->
+                    </div>
+                    <span style="display:none;" id="user-display-name">Guest</span>
+                </div>
+            </div>
+
+
+            <button aria-label="Avvia sessione di Focus Pomodoro" class="nav-action-btn focus-trigger" data-fn="openPomodoro" id="trigger-focus">
+                <span class="icon">🍅</span>
+                <span class="label">Focus</span>
+            </button>
+            <button aria-label="Apri impostazioni" class="nav-action-btn" data-fn="openSettings" id="tab-config">
+                <span class="icon">⚙️</span>
+            </button>
+            <div class="lang-selector-wrap" style="position:relative;">
+                <button class="nav-action-btn" data-fn="toggleLangMenu" id="lang-btn" aria-label="Cambia lingua" title="Cambia lingua"
+                    style="padding: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; border-radius: 50%;">
+                    <img src="https://flagcdn.com/w40/it.png" alt="IT"
+                        style="width: 100%; height: 100%; object-fit: cover;">
+                </button>
+                <div class="lang-dropdown" id="lang-menu">
+                    <button class="lang-option" data-fn="changeLanguage" data-params='["it"]' aria-label="Seleziona Italiano" title="Italiano"><img
+                            src="https://flagcdn.com/w20/it.png" style="width:24px; border-radius:2px;"></button>
+                    <button class="lang-option" data-fn="changeLanguage" data-params='["en"]' aria-label="Select English" title="English"><img
+                            src="https://flagcdn.com/w20/gb.png" style="width:24px; border-radius:2px;"></button>
+                    <button class="lang-option" data-fn="changeLanguage" data-params='["es"]' aria-label="Seleccionar Español" title="Español"><img
+                            src="https://flagcdn.com/w20/es.png" style="width:24px; border-radius:2px;"></button>
+                    <button class="lang-option" data-fn="changeLanguage" data-params='["fr"]' aria-label="Sélectionner Français" title="Français"><img
+                            src="https://flagcdn.com/w20/fr.png" style="width:24px; border-radius:2px;"></button>
+                    <button class="lang-option" data-fn="changeLanguage" data-params='["de"]' aria-label="Deutsch auswählen" title="Deutsch"><img
+                            src="https://flagcdn.com/w20/de.png" style="width:24px; border-radius:2px;"></button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div id="offline-badge">⚠️ Modalità Offline — Accesso ai dati locali attivo</div>
+
+    <input type="file" id="quick-snap-input" accept="image/*" capture="environment" style="display:none;" onchange="if(window.quickSnapAndAnalyze) window.quickSnapAndAnalyze(this.files[0])">
+
+    <div id="quick-analysis-overlay" class="glass" style="display:none;">
+        <div class="analysis-content">
+            <div class="analysis-spinner"></div>
+            <h2 class="analysis-title">Analisi appunti in corso...</h2>
+            <p class="analysis-text">Gemini Vision sta trasformando i tuoi scatti in flashcard strutturate.</p>
+        </div>
+    </div>
+
+
+
+    <!-- POMODORO MODAL -->
+    <div id="pomo-overlay" style="display:none;">
+        <div class="pomo-modal">
+            <button class="pomo-close" data-fn="closePomodoro">✕</button>
+            <div class="pomo-header">
+                <h2 id="pomo-mode-label">🍅 Sessione di Studio</h2>
+                <p id="pomo-session-count" style="font-size:0.82rem;color:var(--text-muted);">Sessione 1</p>
+            </div>
+            <div class="pomo-ring-wrap">
+                <svg class="pomo-svg" viewBox="0 0 120 120">
+                    <circle cx="60" cy="60" r="52" fill="none" stroke="var(--surface3)" stroke-width="8" />
+                    <circle id="pomo-ring" cx="60" cy="60" r="52" fill="none" stroke="var(--accent)" stroke-width="8"
+                        stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="0"
+                        transform="rotate(-90 60 60)" style="transition:stroke-dashoffset 1s linear;" />
+                </svg>
+                <div class="pomo-time" id="pomo-time">25:00</div>
+            </div>
+
+            <!-- SOUNDSCAPES -->
+            <div style="margin: 24px 0; text-align:center;">
+                <label
+                    style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:12px; text-transform:uppercase; letter-spacing:0.1em; font-weight:700;">Soundscape</label>
+                <div class="sound-grid" id="sound-grid">
+                    <button class="sound-item active" data-sound="none" data-fn="setSoundscape" data-params='["none"]'>
+                        <span class="icon">🔇</span>
+                        <span class="name">Off</span>
+                    </button>
+                    <button class="sound-item" data-sound="lofi" data-fn="setSoundscape" data-params='["lofi"]'>
+                        <span class="icon">🎧</span>
+                        <span class="name">Lofi</span>
+                    </button>
+                    <button class="sound-item" data-sound="rain" data-fn="setSoundscape" data-params='["rain"]'>
+                        <span class="icon">🌧️</span>
+                        <span class="name">Rain</span>
+                    </button>
+                    <button class="sound-item" data-sound="forest" data-fn="setSoundscape" data-params='["forest"]'>
+                        <span class="icon">🌲</span>
+                        <span class="name">Forest</span>
+                    </button>
+                    <button class="sound-item" data-sound="waves" data-fn="setSoundscape" data-params='["waves"]'>
+                        <span class="icon">🌊</span>
+                        <span class="name">Waves</span>
+                    </button>
+                    <button class="sound-item" data-sound="custom" data-fn="setSoundscape" data-params='["custom"]'>
+                        <span class="icon">▶️</span>
+                        <span class="name">YouTube</span>
+                    </button>
+                </div>
+                <!-- Input YouTube custom -->
+                <div id="pomo-yt-input-wrap" style="display:none; margin-top:12px; gap:8px; align-items:center; justify-content:center;">
+                    <input id="pomo-yt-url" type="url" placeholder="Incolla link YouTube..."
+                        style="flex:1; max-width:260px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-size:0.85rem; outline:none;" />
+                    <button data-fn="applyYouTubeLink"
+                        style="background:var(--accent); color:#fff; border:none; border-radius:8px; padding:8px 14px; font-size:0.85rem; font-weight:700; cursor:pointer;">
+                        ▶ Play
+                    </button>
+                </div>
+            </div>
+
+            <!-- BIO-BREAK REMINDER -->
+            <div id="bio-break-msg"
+                style="display:none; background:rgba(245,158,11,0.1); border:1px solid var(--gold); border-radius:8px; padding:8px; margin-bottom:15px; text-align:center; font-size:0.8rem; color:var(--gold);">
+                💧 È ora di un Bio-Break! Bevi un bicchiere d'acqua.
+            </div>
+
+            <!-- MOTIVATIONAL QUOTES -->
+            <div id="pomo-quote-container"
+                style="margin: 20px 0; min-height: 80px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 30px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); transition: opacity 0.5s;">
+                <p id="pomo-quote"
+                    style="font-style: italic; color: var(--text-muted); font-size: 0.85rem; line-height: 1.5; font-weight: 500;">
+                </p>
+            </div>
+
+            <div class="pomo-controls">
+                <button aria-label="Avvia o metti in pausa il timer" class="pomo-btn" data-fn="pomodoroToggle" id="pomo-play-btn">▶ Inizia</button>
+                <button class="pomo-btn pomo-btn-sm" data-fn="pomodoroReset"
+                    style="background:rgba(255,255,255,0.05); border:1px solid var(--border);">↺ Reset</button>
+            </div>
+            <div style="margin-top:40px;">
+                <button class="btn btn-outline" data-fn="closePomodoro"
+                    style="border-color:rgba(239,68,68,0.4); color:var(--red); padding:12px 32px; border-radius:100px;">Esci
+                    dalla Sessione ✕</button>
+            </div>
+            <div class="pomo-phases" style="margin-top:40px;">
+                <button class="pomo-phase active" data-fn="setPomoMode" data-params='["work"]' id="phase-work">🍅 Lavoro (25')</button>
+                <button class="pomo-phase" data-fn="setPomoMode" data-params='["short"]' id="phase-short">☕ Pausa (5')</button>
+                <button class="pomo-phase" data-fn="setPomoMode" data-params='["long"]' id="phase-long">🌿 Pausa lunga (15')</button>
+            </div>
+            <p style="font-size:0.78rem;color:var(--text-muted);text-align:center;margin-top:12px;">Dopo 4 pomodori, fai
+                una pausa lunga 🧠</p>
+        </div>
+    </div>
+
+    <!-- FULLSCREEN SETTINGS -->
+    <div id="settings-overlay" class="settings-fullscreen">
+        <div class="settings-header" style="justify-content: flex-end;">
+            <button aria-label="Chiudi impostazioni" class="btn-close-large" data-fn="closeSettings">✕</button>
+        </div>
+
+        <div class="settings-body">
+        <div class="settings-container">
+            <!-- SECTION: ADMIN ── prima sezione, visibile solo all'admin via JS ── -->
+            <div class="settings-section" id="admin-settings-section" style="display:none;">
+                <h3 class="settings-section-title" id="admin-section-title" style="color:#f59e0b;">👑 Modalità Admin</h3>
+
+                <div class="settings-row" style="background:rgba(245,158,11,0.06); border:1px solid rgba(245,158,11,0.2); border-radius:16px; padding:16px;">
+                    <div class="settings-row-info">
+                        <span class="settings-row-title" style="color:#f59e0b;" id="admin-toggle-title">👑 Modalità Admin</span>
+                        <span class="settings-row-desc" id="admin-toggle-desc">Attiva per usare i poteri admin (Fissa, Elimina, Rispondi). Disattiva per vedere l'app come la vedono gli studenti.</span>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="check-admin-preview"
+                               aria-label="Attiva/disattiva modalità admin"
+                               onchange="toggleAdminPreview()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="settings-row" id="admin-uid-row" style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.05);">
+                    <div class="settings-row-info">
+                        <span class="settings-row-title" style="font-size:0.8rem; color:var(--text-muted);">UID Admin</span>
+                        <span class="settings-row-desc" id="admin-uid-display" style="font-family:monospace; font-size:0.75rem; color:var(--accent); opacity:0.6;"></span>
+                    </div>
+                </div>
+
+                <!-- REGISTRAZIONI -->
+                <div style="margin-top:16px; padding-top:16px; border-top:1px solid rgba(255,255,255,0.05);">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+                        <span style="font-size:0.85rem; font-weight:700; color:#f59e0b;">👥 Registrazioni</span>
+                        <button onclick="loadAdminRegStats()" style="background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.3); color:#f59e0b; padding:4px 10px; border-radius:8px; font-size:0.72rem; cursor:pointer;">↻ Aggiorna</button>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;" id="admin-reg-grid">
+                        <div style="background:rgba(245,158,11,0.07); border:1px solid rgba(245,158,11,0.18); border-radius:14px; padding:14px; text-align:center;">
+                            <div id="admin-reg-today" style="font-size:1.8rem; font-weight:900; color:#f59e0b; line-height:1;">—</div>
+                            <div style="font-size:0.7rem; color:rgba(255,255,255,0.45); margin-top:4px;">oggi</div>
+                        </div>
+                        <div style="background:rgba(124,58,237,0.07); border:1px solid rgba(124,58,237,0.18); border-radius:14px; padding:14px; text-align:center;">
+                            <div id="admin-reg-total" style="font-size:1.8rem; font-weight:900; color:#a855f7; line-height:1;">—</div>
+                            <div style="font-size:0.7rem; color:rgba(255,255,255,0.45); margin-top:4px;">totale</div>
+                        </div>
+                    </div>
+                    <div id="admin-reg-status" style="font-size:0.68rem; color:rgba(255,255,255,0.3); margin-top:8px; text-align:center;"></div>
+                </div>
+            </div>
+
+            <!-- SECTION: IL TUO PIANO -->
+            <div class="settings-section">
+                <h3 class="settings-section-title">💳 Il tuo Piano</h3>
+                <div id="plan-display-container"></div>
+            </div>
+
+            <!-- SECTION: INSTALLATION -->
+            <div class="settings-section">
+                <h3 class="settings-section-title">📱 App per Telefono</h3>
+                <div class="settings-row"
+                    style="background:rgba(124,106,247,0.1); border:1px solid rgba(124,106,247,0.3); padding:16px; border-radius:16px;">
+                    <div class="settings-row-info">
+                        <span class="settings-row-title" style="color:var(--accent);">Installa Cortex</span>
+                        <span class="settings-row-desc">Aggiungi l'app alla Home del tuo telefono per usarla anche
+                            offline.</span>
+                    </div>
+                    <div class="settings-row-control">
+                        <button class="btn btn-primary btn-sm" data-fn="installPWA"
+                            style="box-shadow:0 0 15px var(--accent-glow);">Installa Ora ⚡</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION: EXPERIENCE -->
+            <div class="settings-section">
+                <h3 class="settings-section-title">✨ Personalizzazione</h3>
+
+                <!-- LINGUA — sempre visibile (su mobile è l'unico posto) -->
+                <div class="settings-row">
+                    <div class="settings-row-info">
+                        <span class="settings-row-title">🌍 Lingua</span>
+                        <span class="settings-row-desc">Cambia la lingua dell'interfaccia.</span>
+                    </div>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <button data-fn="changeLanguage" data-params='["it"]' title="Italiano"
+                            style="background:none; border:none; cursor:pointer; padding:2px; border-radius:50%; opacity:0.7; transition:opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7">
+                            <img src="https://flagcdn.com/w20/it.png" style="width:24px; border-radius:2px;" alt="IT">
+                        </button>
+                        <button data-fn="changeLanguage" data-params='["en"]' title="English"
+                            style="background:none; border:none; cursor:pointer; padding:2px; border-radius:50%; opacity:0.7; transition:opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7">
+                            <img src="https://flagcdn.com/w20/gb.png" style="width:24px; border-radius:2px;" alt="EN">
+                        </button>
+                        <button data-fn="changeLanguage" data-params='["es"]' title="Español"
+                            style="background:none; border:none; cursor:pointer; padding:2px; border-radius:50%; opacity:0.7; transition:opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7">
+                            <img src="https://flagcdn.com/w20/es.png" style="width:24px; border-radius:2px;" alt="ES">
+                        </button>
+                        <button data-fn="changeLanguage" data-params='["fr"]' title="Français"
+                            style="background:none; border:none; cursor:pointer; padding:2px; border-radius:50%; opacity:0.7; transition:opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7">
+                            <img src="https://flagcdn.com/w20/fr.png" style="width:24px; border-radius:2px;" alt="FR">
+                        </button>
+                        <button data-fn="changeLanguage" data-params='["de"]' title="Deutsch"
+                            style="background:none; border:none; cursor:pointer; padding:2px; border-radius:50%; opacity:0.7; transition:opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7">
+                            <img src="https://flagcdn.com/w20/de.png" style="width:24px; border-radius:2px;" alt="DE">
+                        </button>
+                    </div>
+                </div>
+
+
+
+                <!-- LEGGIBILITÀ -->
+                <div class="settings-row">
+                    <div class="settings-row-info">
+                        <span class="settings-row-title" data-i18n="settings_readability">Alta Leggibilità</span>
+                        <span class="settings-row-desc" data-i18n="settings_readability_hint">Font più grande e chiaro
+                            per sessioni prolungate.</span>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="check-readability" aria-label="Attiva alta leggibilità" onchange="toggleReadability()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="settings-row">
+                    <div class="settings-row-info">
+                        <span class="settings-row-title" data-i18n="settings_zen">Zen Mode</span>
+                        <span class="settings-row-desc" data-i18n="settings_zen_hint">Nasconde XP e gamification per il
+                            massimo focus.</span>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="check-zen" aria-label="Attiva modalità zen" onchange="toggleZenMode()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="settings-row" style="flex-direction:column; align-items:flex-start; gap:10px;">
+                    <div class="settings-row-info">
+                        <span class="settings-row-title">🎯 Obiettivo di studio</span>
+                        <span class="settings-row-desc">Personalizza l'esperienza e i consigli AI in base al tuo percorso.</span>
+                    </div>
+                    <select id="settings-study-goal" onchange="window._saveStudyGoal(this.value)"
+                        style="width:100%; background:var(--bg-secondary,#2a2a3e); border:1px solid rgba(255,255,255,0.1);
+                               border-radius:12px; padding:10px 14px; color:var(--text-primary,#fff);
+                               font-family:inherit; font-size:0.88rem; cursor:pointer;">
+                        <option value="">— Seleziona —</option>
+                        <option value="maturita">🏫 Scuola superiore</option>
+                        <option value="university">🎓 Università</option>
+                        <option value="medicina">🩺 Medicina &amp; Professioni sanitarie</option>
+                        <option value="exam">📝 Esame specifico</option>
+                        <option value="language">🌍 Lingua straniera</option>
+                        <option value="competence">💡 Skill tecnica / professionale</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- SECTION: ADMIN spostato in prima posizione — vedi sopra -->
+
+            <!-- SECTION: AUDIO & AI -->
+            <div class="settings-section">
+                <h3 class="settings-section-title">🤖 Intelligenza & Voce</h3>
+
+                <div class="settings-row" style="display:block;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                        <div class="settings-row-info">
+                            <span class="settings-row-title" data-i18n="settings_voice">Voce Coach AI</span>
+                            <span class="settings-row-desc" data-i18n="settings_voice_hint">Personalizza il tono e la
+                                velocità del simulatore.</span>
+                        </div>
+                    </div>
+
+                    <!-- Scelta rapida gratuita: Uomo / Donna -->
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;">
+                        <button id="voice-gender-male" data-fn="selectVoiceGender" data-params='["male"]'
+                            style="padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); color:#fff; cursor:pointer; font-family:inherit; font-weight:700; font-size:0.9rem; transition:all 0.2s;">
+                            👨 Uomo
+                        </button>
+                        <button id="voice-gender-female" data-fn="selectVoiceGender" data-params='["female"]'
+                            style="padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); color:#fff; cursor:pointer; font-family:inherit; font-weight:700; font-size:0.9rem; transition:all 0.2s;">
+                            👩 Donna
+                        </button>
+                    </div>
+
+                    <!-- Controllo granulare (voce esatta, tono, velocità) — solo abbonati -->
+                    <div id="voice-advanced-controls" style="display:none;">
+                        <select id="select-voice" onchange="updateVoicePreference()" aria-label="Seleziona voce coach AI"
+                            style="background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:12px; padding:12px; font-size:0.9rem; cursor:pointer; width:100%; margin-bottom:16px;">
+                            <option value="default">Default System</option>
+                        </select>
+
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+                            <div>
+                                <label style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:8px;"
+                                    data-i18n="settings_voice_pitch">Tono</label>
+                                <input type="range" id="voice-pitch" aria-label="Tono voce coach AI" min="0.5" max="2" step="0.1" value="1"
+                                    style="width:100%; height:4px; accent-color:var(--accent);"
+                                    oninput="updateVoicePreference()">
+                            </div>
+                            <div>
+                                <label style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:8px;"
+                                    data-i18n="settings_voice_speed">Velocità</label>
+                                <input type="range" id="voice-rate" aria-label="Velocità voce coach AI" min="0.5" max="2" step="0.1" value="1"
+                                    style="width:100%; height:4px; accent-color:var(--accent);"
+                                    oninput="updateVoicePreference()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lock per i non-abbonati -->
+                    <div id="voice-advanced-lock" style="display:none; text-align:center; padding:16px; border-radius:12px; background:rgba(139,92,246,0.06); border:1px dashed rgba(139,92,246,0.3);">
+                        <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:10px;">🔒 Scegli la voce esatta, il tono e la velocità — solo per abbonati.</div>
+                        <button class="btn-nebula-main" onclick="showPaywall('voice')" style="padding:10px 20px; border-radius:10px; font-weight:700; border:none; cursor:pointer;">⚡ Sblocca con Premium</button>
+                    </div>
+                </div>
+
+                <div class="settings-row" style="display:block;">
+                    <div class="settings-row-info" style="margin-bottom:16px;">
+                        <span class="settings-row-title">🤖 Trascrizione Audio</span>
+                        <span class="settings-row-desc">Scegli la qualità e la modalità di sbobinatura.</span>
+                    </div>
+
+                    <select id="select-stt-mode" onchange="updateAISettings()" aria-label="Modalità trascrizione audio"
+                        style="background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:12px; padding:12px; font-size:0.9rem; cursor:pointer; width:100%; margin-bottom:16px;">
+                        <option value="local">Interna (Più lenta, Privacy 100%)</option>
+                        <option value="gemini">Gemini Cloud (Alta Qualità, File Grandi)</option>
+                    </select>
+
+                    <!-- Gemini key container nascosto: l'AI usa la chiave condivisa di Cortex -->
+                    <div id="gemini-key-container" style="display:none; margin-bottom: 24px;">
+                        <input type="password" id="input-gemini-key" aria-label="Chiave API Gemini" oninput="updateAISettings()" placeholder="Chiave API personale (opzionale)" style="display:none;" />
+                        <div id="proxy-status-badge" style="display:none;"></div>
+                    </div>
+
+                    <!-- AI TUNING SECTION -->
+                    <div id="ai-tuning-container" style="border-top: 1px solid var(--border); padding-top: 24px;">
+                        <div class="settings-row-info" style="margin-bottom:20px;">
+                            <span class="settings-row-title">🎭 Comportamento del Coach</span>
+                            <span class="settings-row-desc">Come ti parla e ti valuta il coach AI durante le sessioni.</span>
+                        </div>
+
+                        <div style="display:grid; gap:20px;">
+                            <div>
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                    <label style="font-size:0.75rem; color:var(--text-muted);">Severità valutazione</label>
+                                    <span id="label-ai-severity" style="font-size:0.8rem; font-weight:700; color:var(--accent);">50%</span>
+                                </div>
+                                <input type="range" id="input-ai-severity" aria-label="Severità valutazione IA" min="0" max="100" step="5" value="50"
+                                    style="width:100%; height:4px; accent-color:var(--accent);"
+                                    oninput="updateAISettings()">
+                                <div style="display:flex; justify-content:space-between; font-size:0.65rem; color:var(--text-muted); margin-top:6px;">
+                                    <span>😊 Supportivo</span>
+                                    <span>🎯 Preciso</span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:8px;">Personalità Coach</label>
+                                <select id="select-ai-style" onchange="updateAISettings()" aria-label="Stile feedback IA"
+                                    style="background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:12px; padding:10px; font-size:0.85rem; width:100%;">
+                                    <option value="standard">⚖️ Bilanciato</option>
+                                    <option value="encouraging">🔥 Motivatore</option>
+                                    <option value="guru">🧘 Filosofico</option>
+                                    <option value="strictly">💀 Senza pietà</option>
+                                    <option value="sarcastic">😏 Ironico</option>
+                                </select>
+                            </div>
+                        </div>
+                        <!-- Temperatura nascosta ma mantenuta funzionante per il codice che la legge -->
+                        <input type="hidden" id="input-ai-temp" value="0.7">
+                        <span id="label-ai-temp" style="display:none;">0.7</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION: CLOUD SYNC -->
+            <div class="settings-section">
+                <h3 class="settings-section-title">☁️ Account & Sincronizzazione</h3>
+
+                <div class="settings-row" style="display:block;">
+                    <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:16px;">
+                        Accedi con Google per sincronizzare i tuoi mazzi su tutti i dispositivi e non perdere mai i progressi.
+                    </p>
+                    <button class="btn btn-primary"
+                        style="width:100%; padding:14px; font-size:0.95rem; border-radius:12px; font-weight:700;"
+                        data-fn="loginWithGoogle">
+                        <span style="margin-right:8px;">🔐</span> Accedi con Google
+                    </button>
+                    <!-- Campi tecnici Firebase nascosti — non servono agli utenti -->
+                    <input type="hidden" id="fb-api-key">
+                    <input type="hidden" id="fb-auth-domain">
+                    <input type="hidden" id="fb-project-id">
+                </div>
+            </div>
+
+            <!-- SECTION: POMODORO -->
+            <div class="settings-section">
+                <h3 class="settings-section-title">⏲️ Timer Pomodoro</h3>
+
+                <div class="settings-row" style="display:block;">
+                    <div class="settings-row-info" style="margin-bottom:20px;">
+                        <span class="settings-row-title"></span>
+                        <span class="settings-row-desc">Definisci le durate (in minuti) per il tuo metodo di
+                            studio.</span>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap:12px;">
+                        <div
+                            style="background:var(--bg); padding:16px; border-radius:16px; border:1px solid var(--border);">
+                            <label
+                                style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:8px;">Lavoro</label>
+                            <input type="number" id="pomo-work-mins" aria-label="Durata lavoro Pomodoro in minuti" min="1" max="90" value="25"
+                                style="width:100%; background:transparent; color:var(--text); border:none; font-size:1.2rem; font-weight:700; outline:none;"
+                                onchange="saveTimerSettings()">
+                        </div>
+                        <div
+                            style="background:var(--bg); padding:16px; border-radius:16px; border:1px solid var(--border);">
+                            <label
+                                style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:8px;">Pausa
+                                Breve</label>
+                            <input type="number" id="pomo-short-mins" aria-label="Durata pausa breve Pomodoro in minuti" min="1" max="30" value="5"
+                                style="width:100%; background:transparent; color:var(--text); border:none; font-size:1.2rem; font-weight:700; outline:none;"
+                                onchange="saveTimerSettings()">
+                        </div>
+                        <div
+                            style="background:var(--bg); padding:16px; border-radius:16px; border:1px solid var(--border);">
+                            <label
+                                style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:8px;">Pausa
+                                Lunga</label>
+                            <input type="number" id="pomo-long-mins" aria-label="Durata pausa lunga Pomodoro in minuti" min="1" max="60" value="15"
+                                style="width:100%; background:transparent; color:var(--text); border:none; font-size:1.2rem; font-weight:700; outline:none;"
+                                onchange="saveTimerSettings()">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION: NOTIFICATIONS -->
+            <div class="settings-section">
+                <h3 class="settings-section-title">🔔 Notifiche</h3>
+                <div class="settings-row">
+                    <div class="settings-row-info">
+                        <span class="settings-row-title" data-i18n="settings_notif">Notifiche Ripasso</span>
+                        <span class="settings-row-desc" data-i18n="settings_notif_hint">Avvisi push per le schede in
+                            scadenza.</span>
+                    </div>
+                    <button class="btn btn-outline btn-sm" data-fn="requestNotifications"
+                        data-i18n="settings_notif_btn">Attiva</button>
+                </div>
+            </div>
+
+            <!-- SECTION: ABBONAMENTO -->
+            <div class="settings-section">
+                <h3 class="settings-section-title">💳 Gestione Abbonamento</h3>
+                <div class="settings-row">
+                    <div class="settings-row-info">
+                        <span class="settings-row-title">Portale Stripe</span>
+                        <span class="settings-row-desc">Modifica, sospendi o cancella il tuo abbonamento Pro direttamente su Stripe.</span>
+                    </div>
+                    <button class="btn btn-outline btn-sm" data-fn="openStripePortal">
+                        Gestisci ↗
+                    </button>
+                </div>
+            </div>
+
+            <!-- SECTION: REFERRAL -->
+            <div class="settings-section">
+                <h3 class="settings-section-title">🎁 Invita un amico</h3>
+                <div class="settings-row" style="flex-direction:column; align-items:flex-start; gap:10px;">
+                    <div class="settings-row-info">
+                        <span class="settings-row-title">7 giorni Student gratis per te e per chi inviti</span>
+                        <span class="settings-row-desc">Condividi il tuo link personale. Quando un amico si registra e crea il suo primo mazzo, entrambi ricevete 7 giorni di accesso Student gratuito.</span>
+                    </div>
+                    <div style="display:flex; gap:8px; width:100%; flex-wrap:wrap;">
+                        <input id="referral-link-input" readonly
+                            value="Caricamento..."
+                            style="flex:1; min-width:0; background:var(--bg-secondary,#2a2a3e); border:1px solid rgba(255,255,255,0.1);
+                                   border-radius:10px; padding:10px 14px; color:var(--text-primary,#fff);
+                                   font-size:0.82rem; font-family:monospace; cursor:pointer;"
+                            onclick="this.select()" />
+                        <button class="btn btn-outline btn-sm" onclick="window._copyReferralLink()" style="white-space:nowrap; flex-shrink:0;">
+                            📋 Copia link
+                        </button>
+                    </div>
+                    <div id="referral-stats" style="font-size:0.8rem; color:var(--text-secondary,rgba(255,255,255,0.5));"></div>
+                </div>
+            </div>
+
+            <!-- SECTION: PRIVACY & GDPR -->
+            <div class="settings-section">
+                <h3 class="settings-section-title">🔒 Privacy & GDPR</h3>
+
+                <div class="settings-row">
+                    <div class="settings-row-info">
+                        <span class="settings-row-title">Esporta i tuoi dati</span>
+                        <span class="settings-row-desc">Scarica tutti i tuoi mazzi, sessioni e impostazioni in formato JSON. (GDPR Art. 20)</span>
+                    </div>
+                    <button class="btn btn-outline btn-sm" data-fn="exportUserData">
+                        📦 Esporta
+                    </button>
+                </div>
+
+                <div class="settings-row">
+                    <div class="settings-row-info">
+                        <span class="settings-row-title">Privacy Policy</span>
+                        <span class="settings-row-desc">Leggi come raccogliamo e trattiamo i tuoi dati.</span>
+                    </div>
+                    <a href="https://cortexapp.it/privacy" target="_blank" rel="noopener"
+                        class="btn btn-outline btn-sm" style="text-decoration:none;">
+                        Leggi ↗
+                    </a>
+                </div>
+
+                <div class="settings-row" style="border-color:rgba(239,68,68,0.15);">
+                    <div class="settings-row-info">
+                        <span class="settings-row-title" style="color:rgb(239,68,68);">Elimina Account</span>
+                        <span class="settings-row-desc">Cancella definitivamente il tuo account e tutti i dati associati. Azione irreversibile.</span>
+                    </div>
+                    <button class="btn btn-sm" data-fn="openDeleteAccountModal"
+                        style="border:1px solid rgba(239,68,68,0.4); color:rgb(239,68,68);
+                               background:rgba(239,68,68,0.06); border-radius:10px; padding:8px 14px;">
+                        🗑️ Elimina
+                    </button>
+                </div>
+            </div>
+
+            <div style="padding: 40px 0; border-top: 1px solid var(--border); text-align: center;">
+                <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:20px;">
+                    <p style="font-size:0.85rem; color:var(--text-muted); margin:0;">Cortex v9.84 — Neural Study Engine 🧠</p>
+                    <button onclick="window.showChangelog?.()"
+                        style="font-size:0.75rem;padding:4px 10px;background:rgba(124,106,247,0.12);
+                            border:1px solid rgba(124,106,247,0.3);border-radius:20px;color:var(--accent);
+                            cursor:pointer;font-family:inherit;font-weight:600;">
+                        ✦ Novità
+                    </button>
+                </div>
+                <button aria-label="Effettua il logout" class="btn btn-outline"
+                    style="border-color:rgba(239,68,68,0.3); color:rgb(239,68,68); font-size:0.85rem; padding: 12px 24px; border-radius: 12px;"
+                    data-fn="logout">
+                    🚪 Disconnettiti dall'Account
+                </button>
+
+                <!-- Nota: il bottone Elimina Account è nella sezione Privacy qui sopra -->
+            </div>
+        </div>
+        </div><!-- /settings-body -->
+
+        <div class="settings-footer">
+            <button aria-label="Chiudi impostazioni" class="btn btn-outline" style="padding: 16px 40px; font-size: 1.1rem; border-radius: 100px;"
+                data-fn="closeSettings">
+                Annulla
+            </button>
+            <button aria-label="Salva tutte le modifiche alle impostazioni" id="btn-save-settings" class="btn btn-primary"
+                style="padding: 16px 60px; font-size: 1.1rem; border-radius: 100px; box-shadow: 0 10px 30px var(--accent-glow);"
+                data-fn="saveAllSettings">
+                Salva Modifiche
+            </button>
+        </div>
+    </div>
+
+
+
+    <!-- TOAST -->
+    <div id="toast"></div>
+
+    <!-- STUDY OVERLAY -->
+    <div id="study-overlay" class="glass"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:2000; flex-direction:column; align-items:center; justify-content:center; padding:24px; background:rgba(0,0,0,0.8); backdrop-filter:blur(20px);">
+        <div class="study-box" style="width:100%; max-width:600px; position:relative;">
+            <button class="study-close" data-fn="closeStudy" aria-label="Chiudi sessione di studio"
+                style="position:absolute; top:-40px; right:0; background:none; border:none; color:#fff; font-size:2rem; cursor:pointer;">✕</button>
+            <div id="study-session" class="glass"
+                style="padding:32px; border-radius:32px; border:1px solid rgba(255,255,255,0.1); text-align:center; background:rgba(255,255,255,0.03);">
+                <div id="study-streak" style="text-align:center; font-size:0.85rem; color:var(--accent); min-height:20px; margin-bottom:4px;"></div>
+                <div id="study-progress"
+                    style="font-size:0.8rem; color:var(--accent); font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:16px;">
+                    Carta 1 di 10</div>
+                <div class="progress-bar"
+                    style="height:6px; background:rgba(255,255,255,0.05); border-radius:100px; margin-bottom:32px; overflow:hidden;">
+                    <div id="progress-fill"
+                        style="width:0%; height:100%; background:var(--accent); transition:width 0.3s ease;"></div>
+                </div>
+
+                <div class="flip-card" id="flip-card" data-fn="flipCard"
+                    style="perspective:1000px; margin-bottom:32px; cursor:pointer;">
+                    <div class="flip-inner" id="flip-inner"
+                        style="position:relative; width:100%; height:300px; transition:transform 0.6s; transform-style:preserve-3d;">
+                        <div class="flip-front glass"
+                            style="position:absolute; width:100%; height:100%; backface-visibility:hidden; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px; border-radius:24px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.05);">
+                            <div
+                                style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:2px; margin-bottom:12px;">
+                                Domanda</div>
+                            <div id="card-question" style="font-size:1.4rem; font-weight:600; line-height:1.4;">—</div>
+                            <div style="margin-top:auto; font-size:0.8rem; color:var(--accent); font-weight:600;">Clicca
+                                per girare 🔄</div>
+                        </div>
+                        <div class="flip-back glass"
+                            style="position:absolute; width:100%; height:100%; backface-visibility:hidden; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px; border-radius:24px; border:1px solid rgba(255,255,255,0.1); background:rgba(124,106,247,0.1); transform:rotateY(180deg);">
+                            <div
+                                style="font-size:0.75rem; color:var(--accent); text-transform:uppercase; letter-spacing:2px; margin-bottom:12px;">
+                                Risposta</div>
+                            <div id="card-answer" style="font-size:1.4rem; font-weight:600; line-height:1.4;">—</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="rating-buttons" id="rating-buttons"
+                    style="display:grid; grid-template-columns:repeat(auto-fit, minmax(90px, 1fr)); gap:10px; opacity:0; pointer-events:none; transition:0.3s; margin-top:24px;">
+                    <!-- Phase 6: data-fn event delegation -->
+                    <button class="rating-btn btn-fail" data-fn="rateCard" data-params="[0]"
+                        style="padding:16px; border-radius:16px; font-weight:700; cursor:pointer;">😰 No</button>
+                    <button class="rating-btn btn-hard" data-fn="rateCard" data-params="[1]"
+                        style="padding:16px; border-radius:16px; font-weight:700; cursor:pointer;">🤔 Così</button>
+                    <button class="rating-btn btn-good" data-fn="rateCard" data-params="[2]"
+                        style="padding:16px; border-radius:16px; font-weight:700; cursor:pointer;">✅ Sì!</button>
+                </div>
+            </div>
+
+            <div class="session-done glass" id="session-done"
+                style="display:none; padding:48px; border-radius:32px; border:1px solid rgba(255,255,255,0.1); text-align:center; background:rgba(255,255,255,0.03);">
+                <div style="font-size:4rem; margin-bottom:24px;">🎉</div>
+                <h3 style="font-size:1.8rem; margin-bottom:12px;">Grande Sessione!</h3>
+                <p style="color:var(--text-muted); margin-bottom:32px;">La tua memoria sta diventando d'acciaio.</p>
+                <div id="session-stats" style="display:flex; justify-content:center; gap:24px; margin-bottom:32px;">
+                </div>
+                <button class="btn btn-primary" data-fn="closeStudy"
+                    style="padding:12px 48px; border-radius:100px;">Continua 🚀</button>
+                <div style="margin-top:20px;">
+                    <a href="javascript:void(0)" onclick="if(window.requestNotifications) window.requestNotifications()" 
+                       style="font-size:0.8rem; color:var(--text-muted); text-decoration:underline;">Ricevi promemoria di domani 🔔</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+
+
+    <!-- PAGE: MATERIALE — contenuto migrato a ui/views/ (Phase 17) -->
+
+    <!-- OVERLAYS (OP FEATURES) -->
+    <!-- ORAL EXAM OVERLAY (FEYNMAN) -->
+    <div id="oral-overlay" class="glass"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(10,10,15,0.95); z-index:2000; flex-direction:column; align-items:center; justify-content:center; padding:24px; backdrop-filter:blur(20px);">
+        <button data-fn="closeOralExam" aria-label="Chiudi esame orale"
+            style="position:absolute; top:20px; right:20px; width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:var(--text-muted); font-size:1.2rem; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; z-index:10;">×</button>
+        <div
+            style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:32px; width:100%; max-width:650px; padding:40px 48px; position:relative; text-align:center; max-height:90vh; overflow-y:auto;">
+
+            <div
+                style="color:var(--accent); font-weight:800; font-size:0.85rem; text-transform:uppercase; letter-spacing:3px; margin-bottom:12px;">
+                🎤 Modalità Collaudo Feynman</div>
+
+            <button aria-label="Cambia materia o severità del prof (test locale)" id="oral-prof-mode-btn" class="prof-mode-btn" data-fn="openProfSelector"
+                style="display:block; margin:0 auto 16px; padding:6px 16px; border-radius:100px; font-size:0.75rem; font-weight:700; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.15); color:var(--text-muted); cursor:pointer; transition:all 0.2s;">🎓 Prof: Normale</button>
+
+            <!-- Toggle Vocale / Chat -->
+            <div style="display:flex; gap:6px; justify-content:center; margin-bottom:24px; background:rgba(255,255,255,0.04); border-radius:100px; padding:4px; width:fit-content; margin-left:auto; margin-right:auto;">
+                <button id="oral-mode-voice-btn" data-fn="setOralInputMode" data-params='["voice"]'
+                    style="padding:7px 22px; border-radius:100px; border:none; background:var(--accent); color:#fff; font-weight:700; font-size:0.82rem; cursor:pointer; transition:all 0.2s;">🎙️ Vocale</button>
+                <button id="oral-mode-chat-btn" data-fn="setOralInputMode" data-params='["chat"]'
+                    style="padding:7px 22px; border-radius:100px; border:none; background:transparent; color:var(--text-muted); font-weight:700; font-size:0.82rem; cursor:pointer; transition:all 0.2s;">💬 Chat</button>
+            </div>
+
+            <div id="oral-progress" style="font-size:0.85rem; color:var(--text-muted); margin-bottom:24px;">Domanda 1 di 5</div>
+
+            <!-- MODALITÀ VOCALE: domanda grande + mic -->
+            <div id="oral-voice-area">
+                <h3 id="oral-q" style="font-size:1.7rem; margin-bottom:40px; line-height:1.4; font-weight:700;">Caricamento domanda...</h3>
+                <div class="oral-mic-container" style="position:relative; margin-bottom:36px;">
+                    <button aria-label="Attiva o disattiva il microfono per l'esame orale" id="oral-mic" data-fn="toggleSpeechRecognition"
+                        style="width:90px; height:90px; border-radius:50%; background:var(--accent-glow); border:2px solid var(--accent); font-size:2.8rem; cursor:pointer; color:#fff; display:flex; align-items:center; justify-content:center; margin:0 auto; box-shadow:0 0 30px var(--accent-glow); transition:all 0.3s; padding-bottom:5px;">🎙️</button>
+                </div>
+                <div id="oral-transcript"
+                    style="font-style:italic; color:var(--text-muted); min-height:56px; margin-bottom:28px; padding:18px 20px; background:rgba(255,255,255,0.03); border-radius:16px; border:1px solid rgba(255,255,255,0.05); border-left:4px solid var(--accent);">
+                    In attesa della tua spiegazione...</div>
+            </div>
+
+            <!-- MODALITÀ CHAT: conversazione a bolle -->
+            <div id="oral-chat-area" style="display:none; text-align:left; height:280px; overflow-y:auto; margin-bottom:14px; padding:14px; background:rgba(255,255,255,0.02); border-radius:20px; border:1px solid rgba(255,255,255,0.07); scroll-behavior:smooth;"></div>
+            <div id="oral-chat-input-area" style="display:none; flex-direction:column; gap:10px; margin-bottom:28px;">
+                <textarea id="oral-chat-input" rows="2" placeholder="Scrivi la tua risposta..."
+                    style="width:100%; resize:none; border-radius:14px; padding:14px 16px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:var(--text); font-size:0.95rem; font-family:inherit; outline:none; box-sizing:border-box;"></textarea>
+                <button data-fn="sendChatMessage"
+                    style="width:100%; padding:14px; border-radius:100px; background:var(--accent); border:none; color:#fff; font-weight:700; font-size:1rem; cursor:pointer;">Invia risposta ↑</button>
+            </div>
+
+            <div id="oral-result"
+                style="display:none; padding:20px; border-radius:16px; font-weight:700; font-size:1.1rem; margin-bottom:32px; border:1px solid rgba(255,255,255,0.1);">
+            </div>
+
+            <button aria-label="Passa alla prossima domanda dell'esame" id="oral-next-btn" class="btn btn-primary" data-fn="nextOralQuestion"
+                style="display:none; width:100%; justify-content:center; padding:16px; border-radius:100px; font-size:1.1rem;">Prossima
+                Domanda ➔</button>
+        </div>
+    </div>
+
+    <!-- PROF SELECTOR OVERLAY (scelta materia + modalità, test locale) -->
+    <div id="prof-select-overlay" class="glass"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(10,10,15,0.95); z-index:2010; flex-direction:column; align-items:center; justify-content:center; padding:24px; backdrop-filter:blur(20px);">
+        <div
+            style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:32px; width:100%; max-width:550px; padding:40px; position:relative; text-align:center; max-height:80vh; overflow-y:auto;">
+            <button data-fn="closeProfSelector" aria-label="Chiudi selezione prof"
+                style="position:absolute; top:24px; right:24px; background:none; border:none; color:var(--text-muted); font-size:1.8rem; cursor:pointer;">×</button>
+            <div id="prof-select-content"></div>
+        </div>
+    </div>
+
+    <!-- PDF CHUNKING OVERLAY -->
+    <div id="pdf-chunking-overlay"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(10,10,15,0.98); z-index:2500; flex-direction:column; padding:20px;">
+        <div
+            style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1px solid var(--border); padding-bottom:12px;">
+            <h2 style="color:var(--accent2);">🪄 Magia PDF: Lo Spaccatesto</h2>
+            <button data-fn="closePdfChunkingOverlay" aria-label="Chiudi lo spaccatesto PDF"
+                style="background:none; border:none; color:var(--text-muted); font-size:2rem; cursor:pointer;">×</button>
+        </div>
+        <p style="color:var(--text-muted); margin-bottom:16px;">Il testo è stato estratto. Seleziona i blocchi da
+            trasformare in flashcard o usa lo split automatico.</p>
+
+        <div style="display:flex; gap:20px; flex:1; overflow:hidden;">
+            <!-- Source Text -->
+            <div style="flex:1; background:var(--surface); border-radius:12px; border:1px solid var(--border); padding:20px; overflow-y:auto; font-size:0.95rem; line-height:1.6; white-space:pre-wrap;"
+                id="pdf-raw-text"></div>
+
+            <!-- Chunks / Actions -->
+            <div style="width:350px; display:flex; flex-direction:column; gap:16px;">
+                <div
+                    style="background:var(--surface2); border-radius:12px; padding:16px; border:1px solid var(--accent);">
+                    <h4 style="margin-bottom:12px; color:var(--accent);">Split Automatico</h4>
+                    <label style="font-size:0.8rem; display:block; margin-bottom:8px;">Dividi ogni X parole
+                        (circa):</label>
+                    <input type="number" id="chunk-size" aria-label="Dimensione dei blocchi spaccatesto" value="150" step="50"
+                        style="width:100%; padding:8px; border-radius:8px; background:var(--surface); border:1px solid var(--border); color:#fff; margin-bottom:16px;">
+                    <button class="btn btn-primary" style="width:100%;" data-fn="runAutoChunk">⚡ Dividi in
+                        Blocchi</button>
+                    <p style="font-size:0.75rem; color:var(--text-muted); margin-top:8px;">L'app creerà dei mazzi logici
+                        basati sulla punteggiatura e la lunghezza.</p>
+                </div>
+
+                <div id="chunks-list" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:10px;">
+                    <!-- Chunks will appear here -->
+                </div>
+
+                <button class="btn" style="background:var(--green); color:#fff;" data-fn="addAllChunksToDeck">✨ Crea
+                    Flashcard da tutti i blocchi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PHYSICS MIND MAP OVERLAY -->
+    <div id="mindmap-overlay" class="glass"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(10,10,15,0.95); z-index:2000; flex-direction:column; align-items:center; justify-content:center; backdrop-filter:blur(20px);">
+        <div style="position:absolute; top:32px; z-index:2010; text-align:center;">
+            <h2 style="color:#fff; text-shadow:0 2px 10px rgba(124,106,247,0.5); font-weight:800; letter-spacing:1px;">
+                🗺️ Grafo della Conoscenza</h2>
+            <p style="color:var(--text-muted); font-size:0.9rem;">Trascina i nodi per esplorare le connessioni tra i
+                concetti.</p>
+        </div>
+        <button
+            data-fn="closeMindmapOverlay" aria-label="Chiudi il grafo della conoscenza"
+            style="position:absolute; top:32px; right:32px; z-index:2010; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:50%; color:#fff; width:48px; height:48px; font-size:1.5rem; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: all 0.2s;">×</button>
+        <canvas id="physics-canvas" style="width:100%; height:100%; touch-action:none;"></canvas>
+    </div>
+
+    <div id="boss-overlay" class="glass"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:2500; flex-direction:column; align-items:center; justify-content:center; padding:24px; background:rgba(0,0,0,0.85); backdrop-filter:blur(20px);">
+        <div id="boss-modal" class="boss-box" style="width:100%; max-width:700px; text-align:center;">
+
+            <div class="boss-header"
+                style="display:flex; justify-content:space-between; align-items:center; margin-bottom:32px;">
+                <div class="hp-display" style="text-align:left;">
+                    <div data-i18n="boss_player">
+                        Tu (Player)</div>
+
+                    <div id="player-hp" class="hearts" style="font-size:1.5rem;"></div>
+                </div>
+                <div class="boss-v" style="font-size:2rem; font-weight:900; color:var(--accent); font-style:italic;">VS
+                </div>
+                <div class="hp-display" style="text-align:right;">
+                    <div data-i18n="boss_guardian">
+                        Il Guardiano (Boss)</div>
+
+                    <div id="boss-hp" class="hearts" style="font-size:1.5rem;"></div>
+                </div>
+            </div>
+
+            <div class="timer-container"
+                style="width:100%; height:8px; background:rgba(255,255,255,0.1); border-radius:100px; margin-bottom:40px; overflow:hidden; border:1px solid rgba(255,255,255,0.05);">
+                <div id="boss-timer-bar"
+                    style="width:100%; height:100%; background:linear-gradient(90deg, var(--accent), var(--accent2)); transition:width 0.1s linear; box-shadow:0 0 15px var(--accent-glow);">
+                </div>
+            </div>
+
+            <h3 id="boss-q" data-i18n="boss_defense_wait"
+                style="font-size:1.8rem; margin-bottom:40px; color:#fff; text-shadow:0 0 20px rgba(124,106,247,0.3);">
+                In attesa della tua difesa...</h3>
+
+
+            <div class="boss-input-area" style="position:relative; margin-bottom:32px;">
+                <button aria-label="Rispondi al Guardian con la tua voce" id="boss-mic" data-fn="toggleBossMic" class="boss-mic-btn"
+                    style="width:90px; height:90px; border-radius:50%; background:var(--accent-glow); border:2px solid var(--accent); color:#fff; font-size:2.5rem; display:flex; align-items:center; justify-content:center; margin:0 auto; cursor:pointer; transition:all 0.3s; box-shadow:0 0 30px var(--accent-glow);">🎙️</button>
+                <div id="boss-transcript" data-i18n="boss_defense_wait"
+                    style="margin-top:24px; font-style:italic; color:var(--text-muted); min-height:50px; padding:16px; background:rgba(255,255,255,0.03); border-radius:12px; border:1px solid var(--border);">
+                    In attesa della tua difesa...</div>
+
+            </div>
+
+            <!-- boss-result alias di boss-feedback + elementi counter e next usati da bossMode.js -->
+            <div id="boss-feedback" id-alias="boss-result"
+                style="display:none; padding:16px; border-radius:12px; font-weight:700; font-size:1.1rem; margin-top:24px; border: 1px solid rgba(255,255,255,0.1);">
+            </div>
+            <div id="boss-result" style="display:none; padding:16px; border-radius:12px; font-weight:700; font-size:1.1rem; margin-top:8px;"></div>
+            <div id="boss-counter" style="color:rgba(255,255,255,0.4); font-size:0.85rem; margin-top:12px;"></div>
+            <button id="boss-next-btn" data-fn="nextBossQuestion" aria-label="Prossima domanda Boss Mode"
+                style="display:none; margin-top:20px; padding:14px 32px; background:var(--accent); border:none; border-radius:14px; color:#fff; font-family:inherit; font-weight:700; font-size:1rem; cursor:pointer;">
+                ➡️ Prossima domanda
+            </button>
+        </div>
+        <button data-fn="closeBossMode" aria-label="Chiudi la modalità Boss"
+            style="position:absolute; top:32px; right:32px; background:rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:50%; width:48px; height:48px; color:#fff; font-size:1.2rem; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: all 0.2s;">✕</button>
+    </div>
+
+    <!-- LOCI PALACE OVERLAY -->
+    <div id="loci-overlay"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(10,10,15,0.95); z-index:2000; flex-direction:column; align-items:center; justify-content:center; padding:16px;">
+        <div
+            style="width:100%; max-width:800px; background:var(--surface); border:1px solid var(--border); border-radius:16px; overflow:hidden; position:relative; display:flex; flex-direction:column; max-height:90vh;">
+            <div
+                style="padding:16px 24px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:var(--surface2);">
+                <h3 id="loci-title" style="margin:0;">🏛️ Palazzo: -</h3>
+                <div style="display:flex; gap:12px;">
+                    <button id="loci-mode-btn" class="btn btn-outline btn-sm" data-fn="toggleLociMode">✏️ Modalità
+                        Pin</button>
+                    <button data-fn="closeLoci" aria-label="Chiudi il Palazzo della Memoria"
+                        style="background:transparent; border:none; color:var(--text-muted); font-size:1.5rem; cursor:pointer;">×</button>
+                </div>
+            </div>
+
+            <div style="padding:16px; text-align:center; background:rgba(245,158,11,0.1); color:var(--gold); font-size:0.9rem; font-weight:600;"
+                id="loci-hint">Carica una foto della tua stanza per iniziare.</div>
+
+            <div id="loci-container"
+                style="flex:1; position:relative; overflow:auto; display:flex; align-items:center; justify-content:center; background:#000;">
+
+                <div id="loci-upload-prompt" style="text-align:center; padding:48px;">
+                    <div style="font-size:3rem; margin-bottom:16px;">📸</div>
+                    <h3 style="margin-bottom:8px;">Carica l'ambiente</h3>
+                    <p style="color:var(--text-muted); margin-bottom:24px; max-width:300px;">Scatta una foto della tua
+                        camera, cucina o percorso abituale e usala come Palazzo della Memoria.</p>
+                    <div style="display:flex; gap:12px; justify-content:center;">
+                        <label class="btn btn-primary" style="cursor:pointer; display:inline-flex;" aria-label="Scegli immagine per il Palazzo della Memoria">
+                            Scegli Immagine
+                            <input type="file" accept="image/*" aria-label="File immagine palazzo" style="display:none;" onchange="loadLociImage(this)">
+                        </label>
+                        <button class="btn btn-outline" data-fn="simulateAIVision"
+                            style="border-color:var(--accent); color:var(--accent);">🤖 Suggerisci Ancore IA</button>
+                    </div>
+                </div>
+
+                <div style="position:relative; display:inline-block;">
+                    <img id="loci-img" class="loci-img"
+                        style="display:none; max-width:100%; max-height:60vh; object-fit:contain; border-radius:8px;" />
+                    <!-- IA SCANNER OVERLAY -->
+                    <div id="loci-scanner"
+                        style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; border-radius:8px; overflow:hidden; pointer-events:none; z-index:20;">
+                        <div
+                            style="position:absolute; top:0; left:0; width:100%; height:5px; background:var(--accent); box-shadow:0 0 20px var(--accent); animation:scanLine 2s linear infinite;">
+                        </div>
+                        <div
+                            style="position:absolute; bottom:20px; width:100%; text-align:center; color:var(--accent); font-weight:800; text-shadow:0 2px 4px rgba(0,0,0,0.8); font-size:1.2rem; animation:pulseText 1s infinite;">
+                            Analisi IA in corso... Identificazione ancore visive...</div>
+                    </div>
+                    <div id="loci-pins-layer"
+                        style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none;"></div>
+                </div>
+
+                <!-- Loci Popover -->
+                <div id="loci-popup"
+                    style="position:absolute; background:var(--surface); border:1px solid var(--accent); border-radius:12px; padding:16px; width:220px; box-shadow:0 8px 32px rgba(0,0,0,0.5); z-index:10; display:none; pointer-events:auto; transform:translate(-50%, 16px);">
+                    <div
+                        style="font-size:0.75rem; color:var(--accent); font-weight:800; text-transform:uppercase; margin-bottom:4px; letter-spacing:1px;">
+                        Concept associato</div>
+                    <div id="loci-popup-q" style="font-weight:700; margin-bottom:8px; font-size:1.05rem;">Domanda</div>
+                    <div id="loci-popup-a" style="color:var(--text-muted); font-size:0.9rem; cursor:pointer;"
+                        data-fn="revealImage" data-self="true">Clicca per rivelare l'immagine mentale...</div>
+                </div>
+
+                <style>
+                    .loci-pin {
+                        position: absolute;
+                        width: 28px;
+                        height: 28px;
+                        background: var(--gold);
+                        border: 2px solid #fff;
+                        border-radius: 50%;
+                        transform: translate(-50%, -50%);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-weight: 800;
+                        color: #000;
+                        font-size: 0.85rem;
+                        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+                        cursor: pointer;
+                        transition: transform 0.2s;
+                        z-index: 5;
+                    }
+
+                    .loci-pin:hover {
+                        transform: translate(-50%, -50%) scale(1.15);
+                    }
+
+                    .loci-pin.hidden {
+                        background: rgba(255, 255, 255, 0.2);
+                        border-color: transparent;
+                        color: transparent;
+                        box-shadow: none;
+                    }
+
+                    #loci-popup::before {
+                        content: '';
+                        position: absolute;
+                        top: -6px;
+                        left: 50%;
+                        transform: translateX(-50%) rotate(45deg);
+                        width: 12px;
+                        height: 12px;
+                        background: var(--surface);
+                        border-top: 1px solid var(--accent);
+                        border-left: 1px solid var(--accent);
+                    }
+
+                    #loci-popup.show {
+                        display: block;
+                        animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                    }
+
+                    @keyframes popIn {
+                        from {
+                            opacity: 0;
+                            transform: translate(-50%, 20px) scale(0.9);
+                        }
+
+                        to {
+                            opacity: 1;
+                            transform: translate(-50%, 16px) scale(1);
+                        }
+                    }
+
+                    @keyframes scanLine {
+                        0% {
+                            top: -5px;
+                        }
+
+                        100% {
+                            top: 100%;
+                        }
+                    }
+
+                    @keyframes pulseText {
+
+                        0%,
+                        100% {
+                            opacity: 1;
+                        }
+
+                        50% {
+                            opacity: 0.5;
+                        }
+                    }
+                </style>
+            </div>
+
+            <div id="loci-action-bar"
+                style="display:none; padding:16px 24px; border-top:1px solid var(--border); background:var(--surface2); justify-content:center; gap:16px;">
+                <button class="btn btn-outline" data-fn="simulateAIVision"
+                    style="border-color:var(--accent); color:var(--accent);">🤖 Suggerisci Ancore IA</button>
+                <button class="btn" style="background:var(--red); color:#fff;" data-fn="clearLociPins">🗑️ Svuota
+                    Pin</button>
+            </div>
+        </div>
+    </div>
+
+
+
+
+    <!-- XP TOAST -->
+    <div id="xp-toast" class="xp-toast"></div>
+
+    <!-- INSTALL BANNER -->
+    <!-- INSTALL BANNER -->
+    <div id="install-banner">
+        <span class="inst-icon">⚡</span>
+        <div class="inst-text">
+            <strong>Installa Cortex</strong>
+            <small>Usalo come app dal tuo dispositivo, anche offline</small>
+        </div>
+        <div class="inst-btns">
+            <button class="inst-yes" data-fn="installPWA">Installa</button>
+            <button class="inst-no" data-fn="dismissInstall" aria-label="Chiudi banner installazione">✕</button>
+        </div>
+    </div>
+
+    <!-- PWA INSTALL MODAL (Premium Guide) -->
+    <div id="pwa-install-modal">
+        <div class="install-card">
+
+            <div class="install-icon">⚡</div>
+            <h2 id="install-title">Installa Cortex</h2>
+            <p id="install-desc" style="color:var(--text-muted); font-size:0.9rem; margin-top:8px;">Usa Cortex come
+                un'app nativa sul tuo telefono.</p>
+
+            <div class="install-steps" id="install-steps">
+                <!-- DYNAMIC CONTENT -->
+            </div>
+
+            <button class="btn btn-primary" style="width:100%;" data-fn="closeInstallModal">Ho capito</button>
+        </div>
+    </div>
+
+
+
+    <!-- ARCHITECT OVERLAY -->
+    <div id="architect-overlay" class="glass"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:3000; flex-direction:column; align-items:center; justify-content:center; padding:24px; background:rgba(0,0,0,0.85); backdrop-filter:blur(25px);">
+        <div class="architect-card glass" id="arch-content"
+            style="width:100%; max-width:800px; max-height:90vh; overflow-y:auto; padding:48px; border-radius:32px; border:1px solid rgba(255,255,255,0.1); position:relative; background:rgba(255,255,255,0.03);">
+            <!-- Content dynamic -->
+        </div>
+    </div>
+
+
+    <!-- SPLASH SCREEN -->
+    <div id="splash-screen">
+        <div class="splash-logo">
+            <img src="LOGO_PREMIUM.png" alt="Cortex Logo" class="logo-img">
+        </div>
+        <div
+            style="color:var(--text); font-family:'Outfit'; font-size:1.5rem; font-weight:800; letter-spacing:-0.03em;">
+            Cortex</div>
+        <div style="position:fixed; bottom:20px; left:0; width:100%; text-align:center;">
+            <div style="font-size:0.7rem; color:var(--text-muted); opacity:0.5; margin-bottom:8px;">v9.69 | Neural Study Engine</div>
+            <button data-fn="hardRefresh" aria-label="Aggiorna l'applicazione forzatamente"
+                    style="background:rgba(255,255,255,0.05); border:1px solid var(--border); color:var(--text-muted); font-size:0.6rem; padding:4px 8px; border-radius:4px;">
+                Aggiorna Forza ⚙️
+            </button>
+        </div>
+        <!-- Fallback: se l'app non si avvia entro 2.5s, rimuovi il splash da solo -->
+        <script>
+        (function() {
+            setTimeout(function() {
+                var s = document.getElementById('splash-screen');
+                if (s) { s.classList.add('fade-out'); setTimeout(function(){ if(s.parentNode) s.parentNode.removeChild(s); }, 600); }
+                var sk = document.getElementById('cortex-skeleton');
+                if (sk) { sk.classList.add('sk-hidden'); setTimeout(function(){ if(sk.parentNode) sk.parentNode.removeChild(sk); }, 450); }
+            }, 2500);
+        })();
+        </script>
+    </div>
+
+
+    <!-- ONBOARDING MODAL -->
+    <div id="onboarding-overlay"
+        style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(10,10,15,0.85); backdrop-filter:blur(30px) saturate(150%); flex-direction:column; align-items:center; justify-content:center; padding:24px; animation:fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);">
+        <div style="width:100%; max-width:500px; text-align:center; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:32px; padding:48px 32px; box-shadow:0 32px 80px rgba(0,0,0,0.8); position:relative; overflow:hidden;">
+            <!-- Glow background -->
+            <div style="position:absolute; top:-50%; left:-50%; width:200%; height:200%; background:radial-gradient(circle at center, rgba(124,106,247,0.1) 0%, transparent 60%); z-index:0; pointer-events:none;"></div>
+            
+            <div style="position:relative; z-index:1;">
+                <!-- DOTS -->
+                <div style="display:flex; gap:8px; justify-content:center; margin-bottom:40px;" id="ob-dots">
+                    <div class="ob-dot active" data-fn="goObSlide" data-params='[0]' aria-label="Vai alla slide 1"></div>
+                    <div class="ob-dot" data-fn="goObSlide" data-params='[1]' aria-label="Vai alla slide 2"></div>
+                    <div class="ob-dot" data-fn="goObSlide" data-params='[2]' aria-label="Vai alla slide 3"></div>
+                    <div class="ob-dot" data-fn="goObSlide" data-params='[3]' aria-label="Vai alla slide 4"></div>
+                    <div class="ob-dot" data-fn="goObSlide" data-params='[4]' aria-label="Vai alla slide 5"></div>
+                </div>
+
+                <!-- SLIDE 0: WELCOME -->
+                <div id="ob-slide-0" style="animation:slideUp 0.5s ease forwards;">
+                    <div style="width:80px; height:80px; background:linear-gradient(135deg, var(--accent), var(--accent2)); border-radius:24px; display:flex; align-items:center; justify-content:center; font-size:3rem; margin:0 auto 20px; box-shadow:0 15px 35px var(--accent-glow);">🧠</div>
+                    <h2 style="font-family:'Outfit'; font-size:2.2rem; font-weight:800; margin-bottom:8px; background:linear-gradient(135deg, #fff 20%, rgba(255,255,255,0.5) 100%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; letter-spacing:-0.5px;">Benvenuto in Cortex.</h2>
+                    <p style="color:var(--text-muted); font-size:0.95rem; line-height:1.65; margin-bottom:22px; padding:0 4px;">
+                        Scatta una foto agli appunti. L'AI genera flashcard in secondi.<br>
+                        Spaced Repetition intelligente che si adatta a te.
+                    </p>
+                    <!-- Mini feature pills -->
+                    <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:28px; text-align:left;">
+                        <div style="display:flex; align-items:center; gap:12px; padding:11px 14px; background:rgba(124,58,237,0.07); border:1px solid rgba(124,58,237,0.18); border-radius:12px;">
+                            <span style="font-size:1.4rem;">📸</span>
+                            <span style="font-size:0.82rem; color:rgba(255,255,255,0.8); font-weight:600;">Foto → Flashcard AI in pochi secondi</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:12px; padding:11px 14px; background:rgba(239,68,68,0.05); border:1px solid rgba(239,68,68,0.13); border-radius:12px;">
+                            <span style="font-size:1.4rem;">🎤</span>
+                            <span style="font-size:0.82rem; color:rgba(255,255,255,0.8); font-weight:600;">Interrogazione orale AI — il prof digitale</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:12px; padding:11px 14px; background:rgba(16,185,129,0.05); border:1px solid rgba(16,185,129,0.13); border-radius:12px;">
+                            <span style="font-size:1.4rem;">📅</span>
+                            <span style="font-size:0.82rem; color:rgba(255,255,255,0.8); font-weight:600;">Spaced Repetition: studia meno, ricordi di più</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" style="width:100%; padding:18px; border-radius:18px; font-size:1.05rem; font-weight:800; letter-spacing:0.3px; box-shadow:0 10px 20px rgba(124,106,247,0.3);"
+                        data-fn="goObSlide" data-params='[2]'>Inizia — è gratis ⚡</button>
+                </div>
+
+                <!-- SLIDE 1: COME FUNZIONA — 3 passi -->
+                <div id="ob-slide-1" style="display:none; animation:slideUp 0.5s ease forwards;">
+                    <div style="font-size:3rem; margin-bottom:12px;">⚡</div>
+                    <h2 style="font-family:'Outfit'; font-size:1.7rem; font-weight:800; margin-bottom:6px;">Studia 3× più veloce</h2>
+                    <p style="color:var(--text-muted); font-size:0.88rem; margin-bottom:24px; line-height:1.5;">
+                        Cortex combina le tecniche dei campioni mondiali di memoria con l'AI.
+                    </p>
+
+                    <div style="display:flex; flex-direction:column; gap:14px; margin-bottom:28px; text-align:left;">
+                        <div style="display:flex; align-items:center; gap:14px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:16px; padding:16px;">
+                            <div style="font-size:1.8rem; flex-shrink:0;">📸</div>
+                            <div>
+                                <div style="font-weight:800; font-size:0.92rem; color:#fff;">Foto → Flashcard in 5 secondi</div>
+                                <div style="font-size:0.78rem; color:var(--text-muted); margin-top:2px;">Inquadra i tuoi appunti. L'AI genera le domande per te.</div>
+                            </div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:14px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:16px; padding:16px;">
+                            <div style="font-size:1.8rem; flex-shrink:0;">🧠</div>
+                            <div>
+                                <div style="font-weight:800; font-size:0.92rem; color:#fff;">Spaced Repetition automatico</div>
+                                <div style="font-size:0.78rem; color:var(--text-muted); margin-top:2px;">Ripassa solo le carte che stai per dimenticare. Zero tempo sprecato.</div>
+                            </div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:14px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:16px; padding:16px;">
+                            <div style="font-size:1.8rem; flex-shrink:0;">🎤</div>
+                            <div>
+                                <div style="font-weight:800; font-size:0.92rem; color:#fff;">Boss Mode — interrogazione AI</div>
+                                <div style="font-size:0.78rem; color:var(--text-muted); margin-top:2px;">L'AI ti interroga a voce alta come farebbe il tuo professore.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" style="width:100%; padding:18px; border-radius:18px; font-size:1.05rem; font-weight:800; letter-spacing:0.3px; box-shadow:0 10px 20px rgba(124,106,247,0.3);"
+                        data-fn="goObSlide" data-params='[2]'>Continua →</button>
+                </div>
+
+                <!-- SLIDE 2: COGNITIVE PROFILE -->
+                <div id="ob-slide-2" style="display:none; animation:slideUp 0.5s ease forwards;">
+                    <div style="font-size:3rem; margin-bottom:12px;">🎯</div>
+                    <h2 style="font-family:'Outfit'; font-size:1.8rem; font-weight:800; margin-bottom:8px;">Cosa stai studiando?</h2>
+                    <p style="color:var(--text-muted); font-size:0.88rem; margin-bottom:20px; line-height:1.5;">
+                        Personalizziamo Cortex in base al tuo percorso.
+                    </p>
+
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px;">
+                        <button class="ob-goal-btn" data-fn="setObGoal" data-params='["maturita"]'
+                            style="padding:14px 10px; border-radius:14px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); color:#fff; cursor:pointer; font-family:inherit; font-size:0.88rem; font-weight:700; transition:all 0.2s; text-align:center;">
+                            📝 Scuola superiore
+                        </button>
+                        <button class="ob-goal-btn" data-fn="setObGoal" data-params='["university"]'
+                            style="padding:14px 10px; border-radius:14px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); color:#fff; cursor:pointer; font-family:inherit; font-size:0.88rem; font-weight:700; transition:all 0.2s; text-align:center;">
+                            🎓 Università
+                        </button>
+                        <button class="ob-goal-btn" data-fn="setObGoal" data-params='["medicina"]'
+                            style="padding:14px 10px; border-radius:14px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); color:#fff; cursor:pointer; font-family:inherit; font-size:0.88rem; font-weight:700; transition:all 0.2s; text-align:center;">
+                            🩺 Medicina / Scienze
+                        </button>
+                        <button class="ob-goal-btn" data-fn="setObGoal" data-params='["exam"]'
+                            style="padding:14px 10px; border-radius:14px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); color:#fff; cursor:pointer; font-family:inherit; font-size:0.88rem; font-weight:700; transition:all 0.2s; text-align:center;">
+                            📚 Esame specifico
+                        </button>
+                        <button class="ob-goal-btn" data-fn="setObGoal" data-params='["language"]'
+                            style="padding:14px 10px; border-radius:14px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); color:#fff; cursor:pointer; font-family:inherit; font-size:0.88rem; font-weight:700; transition:all 0.2s; text-align:center;">
+                            🗣️ Lingua straniera
+                        </button>
+                        <button class="ob-goal-btn" data-fn="setObGoal" data-params='["competence"]'
+                            style="padding:14px 10px; border-radius:14px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); color:#fff; cursor:pointer; font-family:inherit; font-size:0.88rem; font-weight:700; transition:all 0.2s; text-align:center;">
+                            🛠️ Skill tecniche
+                        </button>
+                    </div>
+                    <div style="display:flex; gap:8px; margin-top:4px;">
+                        <button class="btn btn-outline" style="flex:1; border-radius:12px; padding:12px; font-size:0.85rem; opacity:0.7;" data-fn="goObSlide" data-params='[0]'>← Indietro</button>
+                        <button style="flex:1; background:none; border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:12px; color:var(--text-muted); font-size:0.85rem; cursor:pointer; font-family:inherit; transition:all 0.2s;" onmouseover="this.style.opacity='1';this.style.borderColor='rgba(255,255,255,0.25)'" onmouseout="this.style.opacity='0.65';this.style.borderColor='rgba(255,255,255,0.1)'" data-fn="closeOnboarding" style="opacity:0.65;">Salta →</button>
+                    </div>
+                </div>
+
+                <!-- SLIDE 3: COME HAI CONOSCIUTO CORTEX? -->
+                <div id="ob-slide-3" style="display:none; animation:slideUp 0.5s ease forwards;">
+                    <div style="font-size:3rem; margin-bottom:12px;">🔍</div>
+                    <h2 style="font-family:'Outfit'; font-size:1.8rem; font-weight:800; margin-bottom:8px;">Come hai scoperto Cortex?</h2>
+                    <p style="color:var(--text-muted); font-size:0.875rem; line-height:1.5; margin-bottom:22px;">
+                        Ci aiuta a capire da dove arrivate — così miglioriamo dove conta.
+                    </p>
+                    <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:24px;" id="ob-source-options">
+                        <button class="ob-source-btn" data-source="tiktok" data-fn="saveAcquisitionSource" data-self="true"
+                            style="padding:13px 16px; border-radius:14px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); color:#fff; cursor:pointer; font-family:inherit; font-size:0.88rem; font-weight:600; transition:all 0.2s; text-align:left; display:flex; align-items:center; gap:12px;">
+                            <span style="font-size:1.3rem;">🎵</span> TikTok / Instagram Reels
+                        </button>
+                        <button class="ob-source-btn" data-source="friend" data-fn="saveAcquisitionSource" data-self="true"
+                            style="padding:13px 16px; border-radius:14px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); color:#fff; cursor:pointer; font-family:inherit; font-size:0.88rem; font-weight:600; transition:all 0.2s; text-align:left; display:flex; align-items:center; gap:12px;">
+                            <span style="font-size:1.3rem;">👥</span> Amico / Compagno di classe
+                        </button>
+                        <button class="ob-source-btn" data-source="google" data-fn="saveAcquisitionSource" data-self="true"
+                            style="padding:13px 16px; border-radius:14px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); color:#fff; cursor:pointer; font-family:inherit; font-size:0.88rem; font-weight:600; transition:all 0.2s; text-align:left; display:flex; align-items:center; gap:12px;">
+                            <span style="font-size:1.3rem;">🔎</span> Google / Ricerca online
+                        </button>
+                        <button class="ob-source-btn" data-source="playstore" data-fn="saveAcquisitionSource" data-self="true"
+                            style="padding:13px 16px; border-radius:14px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); color:#fff; cursor:pointer; font-family:inherit; font-size:0.88rem; font-weight:600; transition:all 0.2s; text-align:left; display:flex; align-items:center; gap:12px;">
+                            <span style="font-size:1.3rem;">📱</span> Play Store
+                        </button>
+                        <button class="ob-source-btn" data-source="other" data-fn="saveAcquisitionSource" data-self="true"
+                            style="padding:13px 16px; border-radius:14px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); color:#fff; cursor:pointer; font-family:inherit; font-size:0.88rem; font-weight:600; transition:all 0.2s; text-align:left; display:flex; align-items:center; gap:12px;">
+                            <span style="font-size:1.3rem;">💬</span> Altro
+                        </button>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn btn-outline" style="flex:1; border-radius:12px; padding:12px; font-size:0.85rem; opacity:0.7;" data-fn="goObSlide" data-params='[2]'>← Indietro</button>
+                        <button class="btn btn-primary" style="flex:2; border-radius:12px; padding:12px; font-size:0.9rem; font-weight:700;" data-fn="goObSlide" data-params='[4]'>Continua →</button>
+                    </div>
+                </div>
+
+                <!-- SLIDE 4: READY + FIRST ACTION -->
+                <div id="ob-slide-4" style="display:none; animation:slideUp 0.5s ease forwards;">
+                    <div style="font-size:3rem; margin-bottom:10px;">🚀</div>
+                    <h2 style="font-family:'Outfit'; font-size:1.9rem; font-weight:800; margin-bottom:6px; background:linear-gradient(135deg,#fff 20%,rgba(255,255,255,0.6)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;">Tutto pronto.</h2>
+                    <p style="color:var(--text-muted); font-size:0.85rem; line-height:1.5; margin-bottom:18px;" id="ob-ready-sub">
+                        Crea il tuo primo mazzo e inizia a studiare meglio da subito.
+                    </p>
+
+                    <!-- Quick tips -->
+                    <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:22px; text-align:left;">
+                        <div style="display:flex; align-items:center; gap:12px; padding:11px 14px; background:rgba(124,58,237,0.07); border:1px solid rgba(124,58,237,0.15); border-radius:12px;">
+                            <span style="font-size:1.3rem; flex-shrink:0;">💡</span>
+                            <span style="font-size:0.8rem; color:rgba(255,255,255,0.75);">Clicca <strong style="color:#c084fc;">+ Nuova Materia</strong> per creare il primo mazzo con l'AI</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:12px; padding:11px 14px; background:rgba(16,185,129,0.05); border:1px solid rgba(16,185,129,0.12); border-radius:12px;">
+                            <span style="font-size:1.3rem; flex-shrink:0;">🔥</span>
+                            <span style="font-size:0.8rem; color:rgba(255,255,255,0.75);">Studia almeno <strong style="color:#34d399;">5 minuti al giorno</strong> per costruire il tuo streak</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:12px; padding:11px 14px; background:rgba(239,68,68,0.05); border:1px solid rgba(239,68,68,0.12); border-radius:12px;">
+                            <span style="font-size:1.3rem; flex-shrink:0;">🎤</span>
+                            <span style="font-size:0.8rem; color:rgba(255,255,255,0.75);">Prova <strong style="color:#f87171;">Boss Mode</strong> prima di un esame per simulare l'interrogazione</span>
+                        </div>
+                    </div>
+
+                    <!-- Social proof -->
+                    <div style="margin-bottom:18px; padding:10px 14px; background:rgba(255,255,255,0.03); border-radius:10px; border:1px solid rgba(255,255,255,0.06);">
+                        <span style="font-size:0.75rem; color:rgba(255,255,255,0.45);">👩‍🎓 👨‍🔬 👩‍💻 &nbsp;</span>
+                        <span style="font-size:0.75rem; color:rgba(255,255,255,0.5);">2.000+ studenti stanno già studiando con Cortex</span>
+                    </div>
+
+                    <button class="btn btn-primary" style="width:100%; padding:18px; border-radius:18px; font-size:1.05rem; font-weight:800; box-shadow:0 10px 40px var(--accent-glow);"
+                        data-fn="closeOnboarding">Crea il mio primo mazzo →</button>
+                </div>
+
+                <button data-fn="closeOnboarding" aria-label="Salta l'introduzione"
+                    style="margin-top:32px; background:none; border:none; color:var(--text-muted); font-size:0.85rem; cursor:pointer; text-decoration:none; opacity:0.6; transition:opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">
+                    Salta Configurazione Guidata</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .ob-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--surface3);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .ob-dot.active {
+            width: 24px;
+            border-radius: 4px;
+            background: var(--accent);
+        }
+        .ob-goal-btn:hover {
+            border-color: var(--accent) !important;
+            background: rgba(124,58,237,0.08) !important;
+            transform: translateY(-1px);
+        }
+
+        /* ===== SUPER NUCLEAR NAVBAR FIX (NO LABELS, NO OVERFLOW) ===== */
+        :root {
+            --icon-size-nav: 1.35rem;
+        }
+
+
+        @media (max-width: 1280px) {
+
+            /* Targeting the specific span without classes found in DOM inspection */
+            .nav-tab span:not(.icon),
+            .nav-tab .label,
+            .nav-action-btn .label,
+            .nav-action-btn [data-i18n],
+            #user-display-name {
+                display: none !important;
+            }
+
+            .nav-tab {
+                padding: 8px 10px !important;
+                gap: 0 !important;
+                min-width: 0 !important;
+                flex-shrink: 0 !important;
+            }
+
+            nav {
+                gap: 8px !important;
+                padding: 10px 14px !important;
+                width: 100% !important;
+                max-width: 100vw !important;
+                overflow: hidden !important;
+                flex-wrap: nowrap !important;
+                box-sizing: border-box !important;
+                justify-content: space-between !important;
+            }
+
+            .nav-tabs {
+                gap: 4px !important;
+                padding: 4px !important;
+                flex-shrink: 1 !important;
+                min-width: 0 !important;
+                /* Crucial for small screens: allow horizontal scrolling of tabs */
+                overflow-x: auto !important;
+                overflow-y: hidden !important;
+                -webkit-overflow-scrolling: touch !important;
+                scrollbar-width: none !important;
+            }
+
+            .nav-tabs::-webkit-scrollbar {
+                display: none !important;
+            }
+
+            .nav-actions {
+                gap: 6px !important;
+                flex-shrink: 0 !important;
+            }
+
+            .nav-action-btn {
+                width: 38px !important;
+                height: 38px !important;
+                padding: 0 !important;
+                font-size: 1.1rem !important;
+                flex-shrink: 0 !important;
+            }
+
+            .user-profile-btn {
+                padding: 4px !important;
+                width: 38px !important;
+                height: 38px !important;
+                flex-shrink: 0 !important;
+            }
+        }
+
+        @media (max-width: 800px) {
+            :root {
+                --icon-size-nav: 1.1rem;
+            }
+
+            nav {
+                gap: 4px !important;
+                padding: 8px 10px !important;
+            }
+
+            .nav-action-btn {
+                width: 34px !important;
+                height: 34px !important;
+            }
+        }
+
+        /* ── Mobile stretto (≤480px) — telefoni reali ───────────────────────── */
+        @media (max-width: 480px) {
+            :root {
+                --icon-size-nav: 1.2rem;
+            }
+
+            nav {
+                padding: 8px 8px !important;
+                gap: 4px !important;
+                border-radius: 0 !important;
+                /* Barra fissa in fondo su mobile — più naturale su telefono */
+                top: auto !important;
+                bottom: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                width: 100% !important;
+                border-top: 1px solid rgba(255,255,255,0.06) !important;
+                border-bottom: none !important;
+                box-shadow: 0 -4px 24px rgba(0,0,0,0.4) !important;
+                justify-content: space-around !important;
+            }
+
+            .nav-logo {
+                display: none !important;
+            }
+
+            .nav-tabs {
+                gap: 0 !important;
+                padding: 0 !important;
+                flex: 1 !important;
+                justify-content: space-around !important;
+                overflow: visible !important;
+            }
+
+            .nav-tab {
+                flex-direction: column !important;
+                padding: 6px 8px !important;
+                font-size: 0.6rem !important;
+                gap: 2px !important;
+                flex: 1 !important;
+                justify-content: center !important;
+                align-items: center !important;
+                border-radius: 8px !important;
+            }
+
+            /* Su mobile mostra label corte sotto l'icona */
+            .nav-tab span:not(.icon),
+            .nav-tab .label,
+            .nav-tab [data-i18n] {
+                display: block !important;
+                font-size: 0.58rem !important;
+                opacity: 0.7 !important;
+            }
+
+            .nav-tab.active span:not(.icon),
+            .nav-tab.active .label {
+                opacity: 1 !important;
+                color: var(--accent) !important;
+            }
+
+            .nav-tab span.icon {
+                font-size: 1.3rem !important;
+            }
+
+            .nav-actions {
+                gap: 4px !important;
+                flex-shrink: 0 !important;
+            }
+
+            .nav-action-btn {
+                width: 38px !important;
+                height: 38px !important;
+            }
+
+            /* Padding bottom extra per non coprire contenuto con la nav */
+            .page, #app-root > * {
+                padding-bottom: 90px !important;
+            }
+        }
+
+        /* ── Phase 8: AppRouter container ───────────────────────────────────── */
+        /* #app-root è inizialmente nascosto (display:none via attributo HTML).   */
+        /* AppRouter lo mostra/nasconde in _renderRoute() in base alla rotta.     */
+        #app-root {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            /* Sfondo nebula puro CSS — no immagine sgranata */
+            /* Sfondo nebula puro CSS — no immagine sgranata */
+            background:
+                radial-gradient(ellipse 80% 60% at 15% 20%, rgba(139,92,246,0.18) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 50% at 85% 75%, rgba(6,182,212,0.12) 0%, transparent 55%),
+                radial-gradient(ellipse 70% 40% at 50% 110%, rgba(217,70,239,0.10) 0%, transparent 50%),
+                #030305;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding-bottom: env(safe-area-inset-bottom, 0);
+        }
+    </style>
+
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+
+    <!-- Phase 5: main.js è ora un ES module.
+         Importa direttamente APP_CONFIG e processAnswer dai moduli.
+         Phase 7: tutti gli onclick migrati a data-fn (event delegation).
+         Phase 9: registry esplicito; WINDOW EXPORTS ridotto alle funzioni di HTML dinamico. -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js');
+        });
+      }
+    </script>
+    <script type="module" src="./main.js"></script>
+
+    <!-- Phase 8: AppRouter container.
+         Inizialmente nascosto (display:none via stile inline); AppRouter lo mostra
+         quando naviga su rotte implementate (home, materiale) e lo nasconde per
+         le rotte legacy, delegando a showPage() in main.js. -->
+    <div id="app-root" style="display:none;"></div>
+    <!-- API Onboarding Modal -->
+    <div id="api-onboarding-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:50000; flex-direction:column; align-items:center; justify-content:center; padding:24px; backdrop-filter:blur(16px);">
+        <div style="background:rgba(20,20,28,0.95); border:1px solid rgba(255,255,255,0.12); border-radius:12px; padding:14px 16px; color:#fff; font-size:0.95rem; margin-bottom:12px; outline:none; font-family:monospace;">
+            <button id="save-onboarding-api-btn" data-fn="saveApiKeyModal" style="width:100%; background:linear-gradient(135deg,#8b5cf6,#6d28d9); color:#fff; border:none; border-radius:12px; padding:14px; font-size:1rem; font-weight:700; cursor:pointer; margin-bottom:16px; transition:all 0.2s;">⚡ Attiva Motore IA</button>
+            <p style="color:rgba(255,255,255,0.35); font-size:0.75rem; text-align:center;">
+                <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:#8b5cf6; text-decoration:none;">Ottieni chiave gratuita su Google AI Studio →</a><br>
+                La chiave rimane sul tuo dispositivo, mai sui nostri server.
+            </p>
+        </div>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>Cortex — Onboarding Preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#06040F;
+  --surface:#0D0A1E;
+  --surface2:#13102A;
+  --border:rgba(139,92,246,0.18);
+  --border-bright:rgba(139,92,246,0.45);
+  --accent:#8B5CF6;
+  --accent2:#06B6D4;
+  --accent3:#10B981;
+  --gold:#F59E0B;
+  --text:#F0EEFF;
+  --text-muted:rgba(200,190,255,0.5);
+  --glow:rgba(139,92,246,0.3);
+  --font:'Outfit',sans-serif;
+  --mono:'JetBrains Mono',monospace;
+}
+html,body{height:100%;background:var(--bg);font-family:var(--font);color:var(--text);overflow:hidden}
+
+/* ── ANIMATED BG ── */
+.bg-layer{position:fixed;inset:0;overflow:hidden;z-index:0}
+.nebula{position:absolute;border-radius:50%;filter:blur(120px);animation:float 15s ease-in-out infinite}
+.nebula-1{width:600px;height:600px;background:radial-gradient(circle at 30%,rgba(139,92,246,0.3),transparent 70%);top:-200px;left:-200px;animation-delay:0s}
+.nebula-2{width:500px;height:500px;background:radial-gradient(circle at 70%,rgba(6,182,212,0.2),transparent 70%);bottom:-150px;right:-150px;animation-delay:-7s}
+.nebula-3{width:300px;height:300px;background:radial-gradient(circle,rgba(16,185,129,0.15),transparent 70%);top:30%;left:60%;animation-delay:-12s}
+@keyframes float{0%,100%{transform:translate(0,0)}33%{transform:translate(20px,-30px)}66%{transform:translate(-15px,20px)}}
+
+/* Grid overlay */
+.grid-overlay{position:fixed;inset:0;z-index:0;background-image:linear-gradient(rgba(139,92,246,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(139,92,246,0.04) 1px,transparent 1px);background-size:40px 40px;mask-image:radial-gradient(ellipse at 50% 50%,black 0%,transparent 70%)}
+
+/* ── APP SHELL ── */
+.app{position:relative;z-index:1;max-width:390px;height:100vh;margin:0 auto;display:flex;flex-direction:column}
+
+/* ── STEP INDICATOR ── */
+.step-indicator{display:flex;align-items:center;justify-content:center;gap:8px;padding:52px 0 0}
+.step-dot{width:8px;height:8px;border-radius:50%;background:rgba(139,92,246,0.2);border:1px solid rgba(139,92,246,0.3);transition:all 0.4s}
+.step-dot.active{background:var(--accent);border-color:var(--accent);box-shadow:0 0 12px rgba(139,92,246,0.5);width:24px;border-radius:100px}
+.step-dot.done{background:var(--accent3);border-color:var(--accent3)}
+
+/* ── SCREENS ── */
+.screens{flex:1;position:relative;overflow:hidden}
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 28px;transition:all 0.5s cubic-bezier(0.4,0,0.2,1);opacity:0;transform:translateX(60px);pointer-events:none}
+.screen.active{opacity:1;transform:translateX(0);pointer-events:all}
+.screen.prev{opacity:0;transform:translateX(-60px)}
+
+/* ── SCREEN 1: WELCOME ── */
+.logo-wrap{position:relative;margin-bottom:40px;display:flex;flex-direction:column;align-items:center}
+.logo-ring{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:120px;height:120px;border-radius:50%;border:1px solid rgba(139,92,246,0.3);animation:spin-slow 20s linear infinite}
+.logo-ring-2{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:160px;height:160px;border-radius:50%;border:1px dashed rgba(6,182,212,0.15);animation:spin-slow 30s linear infinite reverse}
+@keyframes spin-slow{from{transform:translate(-50%,-50%) rotate(0deg)}to{transform:translate(-50%,-50%) rotate(360deg)}}
+.logo-core{width:88px;height:88px;border-radius:28px;background:linear-gradient(135deg,#8B5CF6,#5B21B6);display:flex;align-items:center;justify-content:center;font-size:42px;box-shadow:0 0 60px rgba(139,92,246,0.5),0 0 120px rgba(139,92,246,0.2);position:relative;z-index:1;animation:logo-pulse 3s ease-in-out infinite}
+@keyframes logo-pulse{0%,100%{box-shadow:0 0 60px rgba(139,92,246,0.5),0 0 120px rgba(139,92,246,0.2)}50%{box-shadow:0 0 80px rgba(139,92,246,0.7),0 0 160px rgba(139,92,246,0.3)}}
+.logo-nodes{position:absolute;top:50%;left:50%;width:200px;height:200px;transform:translate(-50%,-50%)}
+.node{position:absolute;width:6px;height:6px;border-radius:50%;background:var(--accent);opacity:0.6;animation:node-blink 3s ease-in-out infinite}
+.node:nth-child(1){top:0;left:50%;transform:translateX(-50%);animation-delay:0s}
+.node:nth-child(2){top:50%;right:0;transform:translateY(-50%);animation-delay:0.75s;background:var(--accent2)}
+.node:nth-child(3){bottom:0;left:50%;transform:translateX(-50%);animation-delay:1.5s}
+.node:nth-child(4){top:50%;left:0;transform:translateY(-50%);animation-delay:2.25s;background:var(--accent3)}
+@keyframes node-blink{0%,100%{opacity:0.4;transform:scale(1) translateX(-50%)}50%{opacity:1;transform:scale(1.5) translateX(-35%)}}
+
+.welcome-title{font-size:36px;font-weight:900;text-align:center;line-height:1.15;margin-bottom:16px;letter-spacing:-0.02em}
+.welcome-title .brand{background:linear-gradient(135deg,#C4B5FD,#8B5CF6,#06B6D4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.welcome-sub{font-size:16px;color:var(--text-muted);text-align:center;line-height:1.6;margin-bottom:44px;max-width:280px}
+
+.feature-pills{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:44px}
+.pill{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:100px;font-size:12px;font-weight:600;border:1px solid}
+.pill-purple{background:rgba(139,92,246,0.1);border-color:rgba(139,92,246,0.3);color:#C4B5FD}
+.pill-cyan{background:rgba(6,182,212,0.1);border-color:rgba(6,182,212,0.3);color:#67E8F9}
+.pill-green{background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.3);color:#6EE7B7}
+
+.cta-btn{width:100%;padding:18px;background:linear-gradient(135deg,#8B5CF6,#5B21B6);border:none;border-radius:18px;color:#fff;font-size:17px;font-weight:800;font-family:var(--font);cursor:pointer;box-shadow:0 12px 40px rgba(139,92,246,0.4);letter-spacing:0.01em;transition:all 0.2s;position:relative;overflow:hidden}
+.cta-btn::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,0.1),transparent);pointer-events:none}
+.cta-btn:active{transform:scale(0.97)}
+
+.login-link{margin-top:20px;font-size:14px;color:var(--text-muted);text-align:center}
+.login-link a{color:var(--accent);font-weight:600;cursor:pointer;text-decoration:none}
+
+/* ── SCREEN 2: LOGIN / SOCIAL ── */
+.screen-title{font-size:28px;font-weight:800;text-align:center;margin-bottom:8px;letter-spacing:-0.02em}
+.screen-sub{font-size:15px;color:var(--text-muted);text-align:center;line-height:1.5;margin-bottom:36px}
+
+.social-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:16px;border-radius:16px;font-size:15px;font-weight:700;font-family:var(--font);cursor:pointer;border:1px solid;transition:all 0.2s;margin-bottom:12px}
+.social-btn:active{transform:scale(0.97)}
+.google-btn{background:rgba(255,255,255,0.04);border-color:rgba(255,255,255,0.12);color:var(--text)}
+.google-btn:hover{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.2)}
+.google-icon{width:20px;height:20px;border-radius:50%}
+
+.divider{display:flex;align-items:center;gap:12px;margin:20px 0;color:var(--text-muted);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+
+.email-input{width:100%;padding:16px;background:rgba(139,92,246,0.06);border:1px solid var(--border);border-radius:16px;color:var(--text);font-size:15px;font-family:var(--font);outline:none;transition:all 0.2s;margin-bottom:12px}
+.email-input:focus{border-color:var(--accent);background:rgba(139,92,246,0.1);box-shadow:0 0 0 3px rgba(139,92,246,0.15)}
+.email-input::placeholder{color:var(--text-muted)}
+
+.terms{font-size:11px;color:var(--text-muted);text-align:center;line-height:1.6;margin-top:16px}
+.terms a{color:var(--accent);cursor:pointer}
+
+/* ── SCREEN 3: API KEY ── */
+.api-icon-wrap{width:72px;height:72px;border-radius:22px;background:linear-gradient(135deg,rgba(6,182,212,0.2),rgba(6,182,212,0.05));border:1px solid rgba(6,182,212,0.3);display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 24px;box-shadow:0 0 40px rgba(6,182,212,0.15)}
+.steps-mini{display:flex;flex-direction:column;gap:10px;width:100%;margin-bottom:28px}
+.step-mini{display:flex;align-items:center;gap:12px;background:rgba(139,92,246,0.05);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
+.step-num{width:24px;height:24px;border-radius:50%;background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--accent);flex-shrink:0}
+.step-text{font-size:13px;color:var(--text-muted);line-height:1.4}
+.step-text strong{color:var(--text);font-weight:600}
+
+.api-input-wrap{position:relative;width:100%;margin-bottom:12px}
+.api-input{width:100%;padding:16px 50px 16px 16px;background:rgba(6,182,212,0.06);border:1px solid rgba(6,182,212,0.2);border-radius:16px;color:var(--text);font-size:14px;font-family:var(--mono);outline:none;transition:all 0.2s}
+.api-input:focus{border-color:var(--accent2);background:rgba(6,182,212,0.1);box-shadow:0 0 0 3px rgba(6,182,212,0.12)}
+.api-input::placeholder{color:var(--text-muted);font-family:var(--mono)}
+.api-eye{position:absolute;right:16px;top:50%;transform:translateY(-50%);color:var(--text-muted);cursor:pointer;font-size:16px}
+
+.link-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;border:1px dashed rgba(6,182,212,0.3);border-radius:14px;color:var(--accent2);font-size:14px;font-weight:600;cursor:pointer;margin-bottom:24px;background:rgba(6,182,212,0.04);transition:all 0.2s}
+.link-btn:hover{background:rgba(6,182,212,0.08);border-color:rgba(6,182,212,0.5)}
+
+.cta-btn-cyan{background:linear-gradient(135deg,#06B6D4,#0891B2)}
+.cta-btn-cyan{box-shadow:0 12px 40px rgba(6,182,212,0.3)}
+
+/* ── BOTTOM PADDING ── */
+.bottom-actions{padding:0 28px 40px;flex-shrink:0}
+
+/* ── LOGO WORD MARK ── */
+.wordmark{font-size:13px;font-weight:700;letter-spacing:0.15em;color:var(--text-muted);text-transform:uppercase;text-align:center;margin-bottom:20px}
+.wordmark span{color:var(--accent)}
+
+/* ── ANIMATED ENTRANCE ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.screen.active > *{animation:fadeUp 0.4s ease both}
+.screen.active > *:nth-child(1){animation-delay:0.05s}
+.screen.active > *:nth-child(2){animation-delay:0.1s}
+.screen.active > *:nth-child(3){animation-delay:0.15s}
+.screen.active > *:nth-child(4){animation-delay:0.2s}
+.screen.active > *:nth-child(5){animation-delay:0.25s}
+</style>
+</head>
+<body>
+<div class="bg-layer">
+  <div class="nebula nebula-1"></div>
+  <div class="nebula nebula-2"></div>
+  <div class="nebula nebula-3"></div>
+</div>
+<div class="grid-overlay"></div>
+
+<div class="app">
+  <!-- STEP INDICATOR -->
+  <div class="step-indicator">
+    <div class="step-dot active" id="dot-0"></div>
+    <div class="step-dot" id="dot-1"></div>
+    <div class="step-dot" id="dot-2"></div>
+  </div>
+
+  <!-- SCREENS -->
+  <div class="screens">
+
+    <!-- SCREEN 0: WELCOME -->
+    <div class="screen active" id="screen-0">
+      <div class="logo-wrap">
+        <div class="logo-ring"></div>
+        <div class="logo-ring-2"></div>
+        <div class="logo-nodes">
+          <div class="node"></div>
+          <div class="node"></div>
+          <div class="node"></div>
+          <div class="node"></div>
+        </div>
+        <div class="logo-core">🧠</div>
+      </div>
+      <div class="welcome-title">Il tuo studio<br/>diventa <span class="brand">intelligente</span></div>
+      <div class="welcome-sub">AI personalizzata, flashcard adattive e focus profondo. Tutto in una PWA.</div>
+      <div class="feature-pills">
+        <div class="pill pill-purple">🧠 AI Tutor</div>
+        <div class="pill pill-cyan">📄 PDF Analyzer</div>
+        <div class="pill pill-green">🃏 Flashcard AI</div>
+        <div class="pill pill-purple">🍅 Deep Focus</div>
+        <div class="pill pill-cyan">👥 Community</div>
+      </div>
+    </div>
+
+    <!-- SCREEN 1: LOGIN -->
+    <div class="screen" id="screen-1">
+      <div class="wordmark"><span>Cortex</span> — Accedi</div>
+      <div class="screen-title">Bentornato 👋</div>
+      <div class="screen-sub">Accedi per continuare il tuo percorso di studio</div>
+      <button class="social-btn google-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Continua con Google
+      </button>
+      <div class="divider">oppure</div>
+      <input class="email-input" type="email" placeholder="La tua email"/>
+      <button class="cta-btn" onclick="goTo(2)">Continua con Email →</button>
+      <div class="terms">Proseguendo accetti i <a>Termini di Servizio</a> e la <a>Privacy Policy</a></div>
+    </div>
+
+    <!-- SCREEN 2: API KEY -->
+    <div class="screen" id="screen-2">
+      <div class="api-icon-wrap">🔑</div>
+      <div class="screen-title">La tua chiave AI</div>
+      <div class="screen-sub">Cortex usa la tua API key di Google per il Tutor AI. Rimane solo sul tuo dispositivo.</div>
+      <div class="steps-mini">
+        <div class="step-mini">
+          <div class="step-num">1</div>
+          <div class="step-text">Vai su <strong>aistudio.google.com</strong></div>
+        </div>
+        <div class="step-mini">
+          <div class="step-num">2</div>
+          <div class="step-text">Crea un progetto e clicca <strong>"Get API Key"</strong></div>
+        </div>
+        <div class="step-mini">
+          <div class="step-num">3</div>
+          <div class="step-text">Incolla la chiave qui sotto 👇</div>
+        </div>
+      </div>
+      <div class="api-input-wrap">
+        <input class="api-input" type="password" placeholder="AIza..."/>
+        <span class="api-eye">👁</span>
+      </div>
+      <a class="link-btn" href="#">🔗 Ottieni la chiave da Google AI Studio</a>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM ACTIONS -->
+  <div class="bottom-actions">
+    <button class="cta-btn" id="main-cta" onclick="nextScreen()">Inizia Gratis →</button>
+    <div class="login-link" id="login-link">Hai già un account? <a onclick="goTo(1)">Accedi</a></div>
+  </div>
+</div>
+
+<script>
+let current = 0;
+const total = 3;
+
+function goTo(n) {
+  const prev = document.getElementById('screen-' + current);
+  if (prev) { prev.classList.remove('active'); prev.classList.add('prev'); }
+  setTimeout(() => { if (prev) prev.classList.remove('prev'); }, 500);
+  current = n;
+  const next = document.getElementById('screen-' + current);
+  if (next) next.classList.add('active');
+  // update dots
+  document.querySelectorAll('.step-dot').forEach((dot, i) => {
+    dot.classList.remove('active', 'done');
+    if (i < current) dot.classList.add('done');
+    if (i === current) dot.classList.add('active');
+  });
+  // update CTA
+  const cta = document.getElementById('main-cta');
+  const link = document.getElementById('login-link');
+  if (current === 0) { cta.textContent = 'Inizia Gratis →'; link.style.display = 'block'; }
+  if (current === 1) { cta.style.display = 'none'; link.style.display = 'none'; }
+  if (current === 2) { cta.style.display = 'block'; cta.textContent = '🚀 Accendi l\'Intelligenza'; cta.className = 'cta-btn cta-btn-cyan'; link.style.display = 'none'; }
+}
+
+function nextScreen() {
+  if (current < total - 1) goTo(current + 1);
+}
+
+// Google btn
+document.querySelector('.google-btn').addEventListener('click', () => goTo(2));
+</script>
+</body>
+</html>

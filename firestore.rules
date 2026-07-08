@@ -198,18 +198,18 @@ service cloud.firestore {
       }
     }
 
-    // 📈 Analytics: presenza e page views scritti dai client.
-    // HARDENING (audit sicurezza 02/07/2026): scrittura richiede autenticazione,
-    // per evitare che script esterni gonfino i contatori / generino costi.
-    // NB: se raccogli analytics anche da utenti NON loggati, questo li escluderà —
-    // in quel caso valuta di spostare la scrittura dietro una Cloud Function con rate-limit.
+    // 📈 Analytics: presenza e page views scritti dai client (anche NON loggati).
+    // IMPORTANTE: la landing traccia le visite da utenti anonimi (nessun login),
+    // quindi la scrittura DEVE restare aperta, altrimenti "VISITE OGGI" resta a 0.
+    // (Il tentativo di richiedere l'auth — audit 02/07/2026 — è stato annullato
+    //  perché bloccava il tracciamento della landing.)
     // La lettura è riservata all'admin via Cloud Function (adminDashboard).
     match /analytics/{docId} {
       allow read: if false;
-      allow write: if request.auth != null;
+      allow write: if true;
       match /sessions/{sessionId} {
         allow read: if false;
-        allow write: if request.auth != null;
+        allow write: if true;
       }
     }
   }

@@ -1,0 +1,161 @@
+{
+  "name": "Cortex",
+  "short_name": "Cortex",
+  "description": "Il tuo secondo cervello per studiare con le tecniche dei campioni mondiali di memoria",
+  "id": "com.cortex.app",
+  "version": "9.93.0",
+  "start_url": "/app.html",
+  "display": "standalone",
+  "display_override": [
+    "window-controls-overlay",
+    "tabbed",
+    "standalone",
+    "minimal-ui"
+  ],
+  "background_color": "#030305",
+  "theme_color": "#8b5cf6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": [
+    "education",
+    "productivity"
+  ],
+  "dir": "ltr",
+  "lang": "it-IT",
+
+  "related_applications": [
+    {
+      "platform": "play",
+      "url": "https://play.google.com/store/apps/details?id=app.web.cortex_app.twa",
+      "id": "app.web.cortex_app.twa"
+    }
+  ],
+  "prefer_related_applications": false,
+
+  "iarc_rating_id": "e84b072d-71b3-4d3e-86ae-31a8ce4e53b7",
+
+  "scope": "/",
+  "scope_extensions": [
+    { "origin": "https://cortex-app.web.app" },
+    { "origin": "https://cortex-app.firebaseapp.com" }
+  ],
+
+  "shortcuts": [
+    {
+      "name": "Studia ora",
+      "short_name": "Studia",
+      "description": "Avvia subito una sessione di studio",
+      "url": "/app.html?action=study",
+      "icons": [{ "src": "pwa-192x192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Nuovo mazzo",
+      "short_name": "Crea",
+      "description": "Crea un nuovo mazzo di flashcard",
+      "url": "/app.html?action=create",
+      "icons": [{ "src": "pwa-192x192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Neural Duels",
+      "short_name": "Duels",
+      "description": "Sfida altri studenti in tempo reale",
+      "url": "/app.html?action=duels",
+      "icons": [{ "src": "pwa-192x192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ],
+
+  "file_handlers": [
+    {
+      "action": "/app.html",
+      "accept": {
+        "text/plain": [".txt"],
+        "application/pdf": [".pdf"],
+        "text/markdown": [".md"]
+      }
+    }
+  ],
+
+  "note_taking": {
+    "new_note_url": "/app.html?action=create"
+  },
+
+  "widgets": [
+    {
+      "name": "Cortex Study Widget",
+      "short_name": "Studia",
+      "description": "Ripassa le tue flashcard direttamente dal widget",
+      "tag": "cortex-study-widget",
+      "template": "small-widget",
+      "ms_ac_template": "widgets/study-widget.json",
+      "data": "/widgets/study-data.json",
+      "type": "application/json",
+      "screenshots": [{ "src": "pwa-192x192.png", "sizes": "192x192", "label": "Study Widget" }],
+      "icons": [{ "src": "pwa-192x192.png", "sizes": "192x192" }],
+      "auth": false,
+      "update": 3600
+    }
+  ],
+
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "protocol_handlers": [
+    {
+      "protocol": "web+cortex",
+      "url": "/app.html?url=%s"
+    }
+  ],
+  "share_target": {
+    "action": "/app.html",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  "screenshots": [
+    {
+      "src": "./LOGO_PREMIUM.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "form_factor": "narrow",
+      "label": "Cortex Home"
+    },
+    {
+      "src": "./LOGO_PREMIUM.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "form_factor": "wide",
+      "label": "Cortex Home Wide"
+    }
+  ]
+}

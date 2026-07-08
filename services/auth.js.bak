@@ -1,0 +1,58 @@
+// services/auth.js
+// ⚠️ NOTA: Assicurati di includere lo script Supabase via CDN in index.html o importarlo.
+// Se usi un bundler, installa @supabase/supabase-js.
+// Per un sito statico Vanilla JS, possiamo usare l'import nativo da CDN:
+
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+// placeholders per le credenziali
+// ⚠️ IL TUO LAVORO: Sostituisci questi valori con quelli del tuo Supabase Dashboard
+export const SUPABASE_URL = 'https://TUO-PROGETTO.supabase.co';
+export const SUPABASE_ANON_KEY = 'IL_TUO_ANON_KEY';
+
+export const isSupabaseConfigured = SUPABASE_URL !== 'https://TUO-PROGETTO.supabase.co' && SUPABASE_ANON_KEY !== 'IL_TUO_ANON_KEY';
+
+export const supabase = isSupabaseConfigured 
+    ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) 
+    : null;
+
+/**
+ * Recupera la sessione utente corrente
+ */
+export async function getUser() {
+    if (!supabase) return { data: { user: null } };
+    return await supabase.auth.getUser();
+}
+
+/**
+ * Avvia il login con Google OAuth
+ * Forza il redirect per evitare problemi con popup bloccati in WebView (es. Android)
+ */
+export async function signInWithGoogle() {
+    if (!supabase) {
+        if (window.showToast) window.showToast("Supabase non configurato!", "error");
+        console.error("Supabase non configurato. Aggiorna SUPABASE_URL e SUPABASE_ANON_KEY.");
+        return;
+    }
+
+    const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+            // Forza il redirect allo stesso dominio per il ritorno
+            redirectTo: window.location.origin
+        }
+    });
+
+    if (error) {
+        console.error("Errore Login Google OAuth:", error);
+        if (window.showToast) window.showToast("Errore di Login: " + error.message, "error");
+    }
+}
+
+/**
+ * Sign Out
+ */
+export async function signOut() {
+    if (!supabase) return;
+    await supabase.auth.signOut();
+}

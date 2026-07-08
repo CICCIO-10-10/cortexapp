@@ -1,0 +1,52 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper: solo il proprietario autenticato
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // Helper: tipo file consentito
+    function isAllowedType() {
+      return request.resource.contentType.matches('image/.*')
+          || request.resource.contentType == 'audio/webm'
+          || request.resource.contentType == 'audio/ogg'
+          || request.resource.contentType == 'audio/mpeg';
+    }
+
+    // Helper: dimensione massima 10MB
+    function isUnderSizeLimit() {
+      return request.resource.size < 10 * 1024 * 1024;
+    }
+
+    // ── Foto profilo utente ───────────────────────────────────────────────────
+    match /users/{userId}/avatar/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if isOwner(userId)
+                   && request.resource.contentType.matches('image/.*')
+                   && request.resource.size < 2 * 1024 * 1024; // max 2MB
+      allow delete: if isOwner(userId);
+    }
+
+    // ── Registrazioni audio (lezioni) ─────────────────────────────────────────
+    match /users/{userId}/recordings/{fileName} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId)
+                   && isAllowedType()
+                   && isUnderSizeLimit();
+      allow delete: if isOwner(userId);
+    }
+
+    // ── Asset pubblici (solo lettura) ─────────────────────────────────────────
+    match /public/{allPaths=**} {
+      allow read: if true;
+      allow write: if false; // Solo Admin SDK può scrivere qui
+    }
+
+    // ── Blocca tutto il resto ─────────────────────────────────────────────────
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

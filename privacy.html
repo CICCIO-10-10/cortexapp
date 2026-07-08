@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Privacy Policy — Cortex</title>
+    <style>
+        :root { --bg:#0a0a0f; --surface:#12121a; --accent:#8b5cf6; --text:#f1f5f9; --text-muted:#94a3b8; --border:rgba(255,255,255,0.08); }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:var(--bg); color:var(--text); line-height:1.7; padding:0 16px 80px; }
+        .container { max-width:760px; margin:0 auto; }
+        header { padding:48px 0 32px; border-bottom:1px solid var(--border); margin-bottom:40px; }
+        .logo { font-size:1.8rem; font-weight:900; color:var(--accent); margin-bottom:8px; }
+        h2 { font-size:1.15rem; font-weight:800; color:var(--text); margin:36px 0 12px; padding-left:12px; border-left:3px solid var(--accent); }
+        h3 { font-size:0.95rem; font-weight:700; color:var(--text); margin:20px 0 8px; }
+        p { color:var(--text-muted); font-size:0.9rem; margin-bottom:12px; }
+        ul { color:var(--text-muted); font-size:0.9rem; padding-left:20px; margin-bottom:12px; }
+        li { margin-bottom:6px; }
+        table { width:100%; border-collapse:collapse; font-size:0.85rem; margin:16px 0 24px; }
+        th { background:rgba(139,92,246,0.1); color:var(--text); font-weight:700; padding:10px 14px; text-align:left; border:1px solid var(--border); }
+        td { padding:9px 14px; color:var(--text-muted); border:1px solid var(--border); vertical-align:top; }
+        tr:nth-child(even) td { background:rgba(255,255,255,0.02); }
+        .highlight-box { background:rgba(139,92,246,0.06); border:1px solid rgba(139,92,246,0.2); border-radius:14px; padding:16px 20px; margin:16px 0; }
+        a { color:var(--accent); text-decoration:none; }
+        a:hover { text-decoration:underline; }
+        .contact-box { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px; margin-top:40px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <div class="logo">🧠 Cortex</div>
+        <h1 style="font-size:1.5rem;font-weight:900;margin-bottom:8px;">Privacy Policy</h1>
+        <p style="font-size:0.8rem;color:var(--text-muted);margin-top:6px;">Ultimo aggiornamento: 12 Maggio 2026 · Versione 3.0</p>
+        <p style="margin-top:12px;">Questa Privacy Policy descrive come <strong style="color:var(--text);">Cortex</strong> raccoglie, utilizza e protegge i tuoi dati personali, in conformità al GDPR (Reg. UE 2016/679), al D.Lgs. 196/2003 e alle <a href="https://play.google.com/about/developer-content-policy/" target="_blank">Google Play Developer Policy 2026</a>.</p>
+    </header>
+
+    <h2>1. Titolare del Trattamento</h2>
+    <p><strong style="color:var(--text);">Francesco Cutugno</strong><br>
+    Email: <a href="mailto:francesco1cutugno@gmail.com">francesco1cutugno@gmail.com</a><br>
+    Sito: <a href="https://cortexapp.it" target="_blank">cortexapp.it</a></p>
+
+    <h2>2. Dati Raccolti e Finalità</h2>
+    <p>Cortex raccoglie solo i dati strettamente necessari al funzionamento del servizio.</p>
+    <table>
+        <thead><tr><th>Tipo di dato</th><th>Fonte</th><th>Finalità</th><th>Base giuridica</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Nome e indirizzo email</strong></td><td>Google Sign-In</td><td>Identificazione account, sincronizzazione cloud</td><td>Contratto</td></tr>
+            <tr><td><strong>Foto profilo (URL)</strong></td><td>Google Sign-In (Social Profile)</td><td>Avatar nell'app e nei Neural Duels</td><td>Contratto</td></tr>
+            <tr><td><strong>UID Firebase</strong></td><td>Firebase Auth</td><td>Identificazione univoca, regole di sicurezza Firestore</td><td>Contratto</td></tr>
+            <tr><td><strong>Materiale di studio</strong> (testi, PDF, flashcard, audio)</td><td>Inserimento utente</td><td>Erogazione servizio SRS e generazione AI</td><td>Contratto</td></tr>
+            <tr><td><strong>Dati sessione studio</strong> (XP, streak, risposte, timing)</td><td>Attività in-app</td><td>Algoritmo SRS, statistiche, Neural Duels, leaderboard</td><td>Contratto / Legittimo interesse</td></tr>
+            <tr><td><strong>FCM Token</strong></td><td>Firebase Cloud Messaging</td><td>Notifiche push (reminder, aggiornamenti, eventi)</td><td>Consenso</td></tr>
+            <tr><td><strong>Sorgente acquisizione</strong> (es. TikTok, Google, amico)</td><td>Onboarding — scelta utente</td><td>Analisi canali marketing interni</td><td>Legittimo interesse</td></tr>
+            <tr><td><strong>Chiave API Google Gemini</strong> (opzionale)</td><td>Inserimento utente</td><td>Generazione AI flashcard. Conservata <em>solo sul dispositivo</em>, mai sui server Cortex</td><td>Contratto</td></tr>
+            <tr><td><strong>Dati di pagamento</strong></td><td>Stripe (processore terzo)</td><td>Abbonamenti Premium e acquisto Neural Sparks</td><td>Contratto</td></tr>
+            <tr><td><strong>Eventi di utilizzo</strong> (es. "deck_created", "study_started")</td><td>Attività in-app</td><td>Analytics interni anonimizzati per migliorare l'app</td><td>Legittimo interesse</td></tr>
+            <tr><td><strong>Log diagnostici</strong></td><td>Firebase</td><td>Identificazione e correzione bug</td><td>Legittimo interesse</td></tr>
+        </tbody>
+    </table>
+    <div class="highlight-box">
+        <strong style="color:var(--text);">🔒 Non vendiamo mai i tuoi dati.</strong> Cortex non ha modello pubblicitario. I tuoi dati non sono mai condivisi con inserzionisti né usati per addestrare modelli AI pubblici.
+    </div>
+
+    <h2>3. Terze Parti e Sub-processor</h2>
+    <table>
+        <thead><tr><th>Servizio</th><th>Fornitore</th><th>Dato condiviso</th><th>Privacy</th></tr></thead>
+        <tbody>
+            <tr><td>Firebase Auth, Firestore, Storage, Hosting, FCM, App Check</td><td>Google LLC (USA)</td><td>UID, email, dati studio, FCM token</td><td><a href="https://firebase.google.com/support/privacy" target="_blank">Link →</a></td></tr>
+            <tr><td>Google Gemini API</td><td>Google LLC (USA)</td><td>Testo materiali studio (temporaneo, non persistito)</td><td><a href="https://ai.google.dev/gemini-api/terms" target="_blank">Link →</a></td></tr>
+            <tr><td>Stripe</td><td>Stripe Inc. (USA)</td><td>Email, importo transazione. Dati carta mai visti da noi</td><td><a href="https://stripe.com/privacy" target="_blank">Link →</a></td></tr>
+            <tr><td>Google Play Billing</td><td>Google LLC (USA)</td><td>Informazioni acquisto in-app</td><td><a href="https://policies.google.com/privacy" target="_blank">Link →</a></td></tr>
+        </tbody>
+    </table>
+    <p>I trasferimenti verso USA avvengono sulla base delle Standard Contractual Clauses (SCC) adottate dalla Commissione Europea.</p>
+
+    <h2>4. Intelligenza Artificiale e Contenuto Generato</h2>
+    <p>Cortex utilizza Google Gemini per generare flashcard, quiz e piani di studio. Il contenuto AI:</p>
+    <ul>
+        <li>È prodotto sul tuo materiale — non da dati di altri utenti</li>
+        <li>Non è usato da Google per addestrare modelli pubblici (API senza data-training opt-in)</li>
+        <li>Potrebbe contenere imprecisioni — verificalo con le fonti originali</li>
+        <li>Non costituisce parere professionale (medico, legale, finanziario)</li>
+    </ul>
+
+    <h2>5. Minori</h2>
+    <p>Cortex è rivolta a studenti di 14-25 anni. <strong style="color:var(--text);">Non raccogliamo consapevolmente dati di bambini sotto i 13 anni.</strong> Se sei genitore e ritieni che tuo figlio under-13 abbia creato un account, scrivici a <a href="mailto:francesco1cutugno@gmail.com">francesco1cutugno@gmail.com</a> per la cancellazione immediata.</p>
+
+    <h2>6. Conservazione dei Dati</h2>
+    <table>
+        <thead><tr><th>Dato</th><th>Periodo</th></tr></thead>
+        <tbody>
+            <tr><td>Dati account e studio (Firestore)</td><td>Fino alla cancellazione dell'account</td></tr>
+            <tr><td>FCM Token</td><td>Fino alla revoca consenso o disinstallazione</td></tr>
+            <tr><td>Sorgente acquisizione</td><td>Fino alla cancellazione dell'account</td></tr>
+            <tr><td>Dati pagamento (Stripe)</td><td>7 anni (obbligo di legge fiscale)</td></tr>
+            <tr><td>Log diagnostici</td><td>90 giorni</td></tr>
+            <tr><td>Chiave API Gemini</td><td>Solo sul dispositivo — mai sui server Cortex</td></tr>
+        </tbody>
+    </table>
+
+    <h2>7. I Tuoi Diritti (GDPR Art. 15–22)</h2>
+    <p>Hai il diritto di:</p>
+    <ul>
+        <li><strong>Accedere</strong> ai dati che conserviamo su di te</li>
+        <li><strong>Rettificare</strong> dati inesatti</li>
+        <li><strong>Cancellare</strong> il tuo account — direttamente dall'app: <em>Impostazioni → Privacy → Elimina Account</em></li>
+        <li><strong>Portabilità</strong> dei dati (esportazione in formato leggibile)</li>
+        <li><strong>Opporti</strong> al trattamento basato su legittimo interesse</li>
+        <li><strong>Revocare il consenso</strong> alle notifiche push: Impostazioni dispositivo → Notifiche → Cortex</li>
+        <li><strong>Presentare reclamo</strong> al Garante Privacy: <a href="https://www.garanteprivacy.it" target="_blank">garanteprivacy.it</a></li>
+    </ul>
+    <p>Per esercitare i tuoi diritti: <a href="mailto:francesco1cutugno@gmail.com">francesco1cutugno@gmail.com</a>. Risponderemo entro 30 giorni.</p>
+
+    <h2>8. Eliminazione Account</h2>
+    <div class="highlight-box">
+        <strong style="color:var(--text);">Come eliminare il tuo account:</strong><br>
+        <strong>In-app:</strong> Impostazioni → Privacy e Dati → Elimina Account<br>
+        <strong>Via email:</strong> <a href="mailto:francesco1cutugno@gmail.com?subject=Richiesta%20eliminazione%20account%20Cortex">francesco1cutugno@gmail.com</a> (oggetto: "Richiesta eliminazione account")<br><br>
+        Vengono eliminati permanentemente: profilo, mazzi, sessioni, XP, Neural Sparks, FCM token. I dati fiscali legati a pagamenti sono conservati 7 anni per obbligo di legge.
+    </div>
+
+    <h2>9. Sicurezza</h2>
+    <ul>
+        <li>Tutte le comunicazioni avvengono via <strong>HTTPS/TLS 1.3</strong></li>
+        <li>Firebase Security Rules limitano l'accesso ai soli dati dell'utente autenticato</li>
+        <li>Firebase App Check protegge le API da accessi non autorizzati</li>
+        <li>La chiave API Gemini è conservata esclusivamente sul dispositivo tramite localStorage</li>
+        <li>Nessuna password raccolta — autenticazione esclusivamente tramite Google OAuth 2.0</li>
+    </ul>
+
+    <h2>10. Notifiche Push</h2>
+    <p>Cortex può inviare notifiche push tramite Firebase Cloud Messaging (FCM) per: reminder di studio, aggiornamenti funzionalità, eventi speciali di studio. Il consenso è richiesto esplicitamente. Puoi revocarlo in qualsiasi momento dalle impostazioni del dispositivo.</p>
+
+    <h2>11. Archiviazione Locale (localStorage)</h2>
+    <p>L'app non usa cookie di tracciamento. Usa localStorage esclusivamente per: preferenze utente, chiave API Gemini (solo dispositivo), stato onboarding, cache mazzi offline. Dati eliminati alla disinstallazione.</p>
+
+    <h2>12. Modifiche a Questa Policy</h2>
+    <p>Notificheremo modifiche sostanziali tramite notifica push o banner in-app almeno 15 giorni prima dell'entrata in vigore. Policy sempre aggiornata su <a href="https://cortexapp.it/privacy" target="_blank">cortexapp.it/privacy</a>.</p>
+
+    <div class="contact-box">
+        <strong style="color:var(--text);font-size:1rem;">📬 Contatti Privacy</strong>
+        <p style="margin-top:8px;"><a href="mailto:francesco1cutugno@gmail.com">francesco1cutugno@gmail.com</a></p>
+        <p style="margin-top:8px;font-size:0.82rem;">Titolare: Francesco Cutugno · cortexapp.it · Ultima revisione: 12 Maggio 2026</p>
+    </div>
+</div>
+</body>
+</html>

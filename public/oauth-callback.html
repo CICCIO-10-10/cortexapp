@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TikTok OAuth Callback - Cortex</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9fafb;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background-color: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            width: 100%;
+        }
+        h1 {
+            color: #111827;
+            font-size: 1.4rem;
+            margin-top: 0;
+        }
+        .label {
+            font-size: 0.85rem;
+            color: #6b7280;
+            margin-bottom: 4px;
+        }
+        .code-box {
+            background: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 14px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            word-break: break-all;
+            margin-bottom: 16px;
+        }
+        button {
+            background-color: #8b5cf6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            cursor: pointer;
+        }
+        button:active {
+            background-color: #7c3aed;
+        }
+        .error {
+            color: #dc2626;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 14px;
+        }
+        .ok {
+            color: #16a34a;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="container">
+        <h1>Autorizzazione TikTok completata</h1>
+        <p>Copia il codice qui sotto e incollalo nel terminale dello script Cortex Video Factory.</p>
+
+        <div id="content"></div>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get('code');
+        const state = params.get('state');
+        const error = params.get('error');
+        const errorDesc = params.get('error_description');
+        const content = document.getElementById('content');
+
+        if (error) {
+            content.innerHTML = `
+                <div class="error">
+                    <strong>Errore: ${error}</strong><br>
+                    ${errorDesc || ''}
+                </div>
+            `;
+        } else if (code && state === 'cortex_admin') {
+            // Flusso admin (/admin-tiktok.html): scambio automatico del code lato server.
+            const key = localStorage.getItem('cortex_admin_key') || '';
+            content.innerHTML = `<p>Completamento autorizzazione in corso...</p>`;
+            fetch('/api/tiktok/exchange', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+                body: JSON.stringify({ code }),
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        content.innerHTML = `
+                            <div class="ok">✅ Account TikTok connesso!</div>
+                            <p><a href="/admin-tiktok.html">Torna alla pagina admin</a></p>
+                        `;
+                    } else {
+                        content.innerHTML = `<div class="error">Errore scambio token: ${data.error || 'sconosciuto'}</div><p><a href="/admin-tiktok.html">Torna alla pagina admin</a></p>`;
+                    }
+                })
+                .catch(err => {
+                    content.innerHTML = `<div class="error">Errore di rete: ${err.message}</div><p><a href="/admin-tiktok.html">Torna alla pagina admin</a></p>`;
+                });
+        } else if (code) {
+            content.innerHTML = `
+                <div class="label">Authorization code</div>
+                <div class="code-box" id="codeBox">${code}</div>
+                <div class="label">State</div>
+                <div class="code-box" id="stateBox">${state || '(nessuno)'}</div>
+                <button id="copyBtn">Copia codice</button>
+                <div class="ok" id="okMsg" style="display:none;">Copiato negli appunti!</div>
+            `;
+            document.getElementById('copyBtn').addEventListener('click', () => {
+                navigator.clipboard.writeText(code).then(() => {
+                    document.getElementById('okMsg').style.display = 'block';
+                });
+            });
+        } else {
+            content.innerHTML = `<div class="error">Nessun codice ricevuto. Riprova il flusso di autorizzazione.</div>`;
+        }
+    </script>
+</body>
+</html>

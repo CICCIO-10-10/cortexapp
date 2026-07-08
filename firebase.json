@@ -1,0 +1,147 @@
+{
+    "hosting": {
+        "target": "cortex",
+    "public": "dist",
+        "ignore": [
+            "firebase.json",
+            "**/.*",
+            "**/node_modules/**",
+            "firestore.rules",
+            "crop_logo.py",
+            "start_app.py",
+            "test_info.png",
+            "split_files.py",
+            "index.backup.html",
+            "play_store_package/**",
+            "store_assets/**",
+            "play_store_guide.md"
+        ],
+        "rewrites": [
+            {
+                "source": "/api/gemini",
+                "function": "callGeminiHttp",
+                "region": "us-central1"
+            },
+            {
+                "source": "/api/tts",
+                "function": "textToSpeechHttp",
+                "region": "us-central1"
+            },
+            {
+                "source": "/api/tiktok/auth",
+                "function": "tiktokAuthUrl",
+                "region": "us-central1"
+            },
+            {
+                "source": "/api/tiktok/exchange",
+                "function": "tiktokExchangeToken",
+                "region": "us-central1"
+            },
+            {
+                "source": "/api/tiktok/status",
+                "function": "tiktokStatus",
+                "region": "us-central1"
+            },
+            {
+                "source": "/api/tiktok/publish",
+                "function": "tiktokPublish",
+                "region": "us-central1"
+            },
+            {
+                "source": "/api/tiktok/publish-status",
+                "function": "tiktokPublishStatus",
+                "region": "us-central1"
+            },
+            {
+                "source": "/app",
+                "destination": "/app.html"
+            },
+            {
+                "source": "/app/**",
+                "destination": "/app.html"
+            },
+            {
+                "source": "/sw.js",
+                "destination": "/sw.js"
+            },
+            {
+                "source": "/oauth/callback",
+                "destination": "/oauth-callback.html"
+            },
+            {
+                "source": "/settings",
+                "destination": "/app.html"
+            },
+            {
+                "source": "/privacy",
+                "destination": "/privacy.html"
+            },
+            {
+                "source": "/terms",
+                "destination": "/terms.html"
+            },
+            {
+                "source": "**",
+                "destination": "/index.html"
+            }
+        ],
+        "headers": [
+            {
+                "source": "**/*.@(html|js|css|json)",
+                "headers": [
+                    {
+                        "key": "Cache-Control",
+                        "value": "no-cache, no-store, must-revalidate"
+                    },
+                    {
+                        "key": "X-Content-Type-Options",
+                        "value": "nosniff"
+                    },
+                    {
+                        "key": "X-Frame-Options",
+                        "value": "SAMEORIGIN"
+                    },
+                    {
+                        "key": "X-XSS-Protection",
+                        "value": "1; mode=block"
+                    },
+                    {
+                        "key": "Strict-Transport-Security",
+                        "value": "max-age=31536000; includeSubDomains"
+                    },
+                    {
+                        "key": "Permissions-Policy",
+                        "value": "camera=(), microphone=(self), geolocation=()"
+                    },
+                    {
+                        "key": "Referrer-Policy",
+                        "value": "strict-origin-when-cross-origin"
+                    }
+                ]
+            }
+        ]
+    },
+    "firestore": {
+        "rules": "firestore.rules"
+    },
+    "storage": {
+        "rules": "storage.rules"
+    },
+    "functions": [
+        {
+            "source": "functions",
+            "codebase": "default",
+            "ignore": [
+                "node_modules",
+                ".git",
+                "firebase-debug.log",
+                "firebase-debug.*.log"
+            ]
+        }
+    ],
+    "emulators": {
+        "functions": {
+            "port": 5001
+        }
+    }
+}

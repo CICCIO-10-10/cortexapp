@@ -1,0 +1,65 @@
+# Dipendenze
+node_modules/
+functions/node_modules/
+
+# Build
+dist/
+.firebase/
+
+# Env e segreti
+.env
+.env.local
+functions/.env
+*.key
+*.pem
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Log
+*.log
+npm-debug.log*
+
+# Cache
+.cache/
+.vite/
+.parcel-cache/
+
+# IDE
+.vscode/
+*.swp
+
+# File multimediali pesanti (non serve indicizzarli)
+media/videos/
+media/audio/
+*.mp4
+*.mp3
+*.wav
+*.aac
+*.ogg
+
+# Build Play Store (binari, non codice)
+play_store_package/
+store_assets/
+*.aab
+*.apk
+*.keystore
+
+# Immagini pesanti
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.ico
+*.svg
+
+# Archivi
+*.zip
+*.tar.gz
+cortex_review.zip
+
+# Backups
+backups/

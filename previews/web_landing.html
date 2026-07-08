@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Cortex — Studia più veloce con l'AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #080808;
+  --surface: #111111;
+  --surface-2: #171717;
+  --border: rgba(255,255,255,0.07);
+  --border-h: rgba(255,255,255,0.13);
+  --text: #FAFAFA;
+  --text-2: rgba(255,255,255,0.5);
+  --text-3: rgba(255,255,255,0.25);
+  --accent: #8B5CF6;
+  --accent-d: rgba(139,92,246,0.12);
+  --accent-b: rgba(139,92,246,0.25);
+  --green: #22C55E;
+  --gold: #F59E0B;
+  --cyan: #06B6D4;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+/* ─── NAV ─── */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 64px;
+  height: 64px;
+  background: rgba(8,8,8,0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-logo {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.logo-mark {
+  width: 28px;
+  height: 28px;
+  background: var(--accent);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-mark svg { width: 14px; height: 14px; fill: none; stroke: #fff; stroke-width: 2; }
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 36px;
+  list-style: none;
+}
+
+.nav-links a {
+  font-size: 14px;
+  font-weight: 450;
+  color: var(--text-2);
+  text-decoration: none;
+  transition: color 0.15s;
+  cursor: pointer;
+}
+
+.nav-links a:hover { color: var(--text); }
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-ghost {
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-2);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: color 0.15s;
+}
+.btn-ghost:hover { color: var(--text); }
+
+.btn-primary {
+  padding: 9px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--bg);
+  background: var(--text);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+  letter-spacing: -0.01em;
+}
+.btn-primary:hover { background: rgba(255,255,255,0.88); }
+
+/* ─── HERO ─── */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 120px 64px 80px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle grid */
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black, transparent);
+  pointer-events: none;
+}
+
+/* Accent glow */
+.hero::after {
+  content: '';
+  position: absolute;
+  top: -200px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border: 1px solid var(--border-h);
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
+  margin-bottom: 36px;
+  position: relative;
+  z-index: 1;
+  background: rgba(255,255,255,0.02);
+}
+
+.eyebrow-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px rgba(34,197,94,0.6);
+  animation: blink 2s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+.hero-title {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: clamp(52px, 7vw, 96px);
+  line-height: 1.03;
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  margin-bottom: 28px;
+  max-width: 900px;
+  position: relative;
+  z-index: 1;
+}
+
+.hero-title em {
+  font-style: italic;
+  color: rgba(255,255,255,0.65);
+}
+
+.hero-title .underline-accent {
+  position: relative;
+  color: var(--text);
+  display: inline-block;
+}
+
+.hero-title .underline-accent::after {
+  content: '';
+  position: absolute;
+  left: 0; bottom: -4px; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--cyan));
+  border-radius: 2px;
+}
+
+.hero-sub {
+  font-size: 18px;
+  color: var(--text-2);
+  max-width: 480px;
+  line-height: 1.6;
+  margin-bottom: 48px;
+  font-weight: 400;
+  position: relative;
+  z-index: 1;
+}
+
+.hero-ctas {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 72px;
+  position: relative;
+  z-index: 1;
+}
+
+.cta-main {
+  padding: 14px 28px;
+  background: var(--text);
+  color: var(--bg);
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  letter-spacing: -0.01em;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cta-main:hover { background: rgba(255,255,255,0.9); transform: translateY(-1px); }
+
+.cta-secondary {
+  padding: 14px 24px;
+  background: transparent;
+  color: var(--text-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.cta-secondary:hover { border-color: var(--border-h); color: var(--text); }
+
+.hero-social {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-3);
+  position: relative;
+  z-index: 1;
+}
+
+.avatars-row {
+  display: flex;
+  align-items: center;
+}
+
+.mini-avatar {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--bg);
+  background: var(--surface-2);
+  margin-left: -6px;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: var(--text-2);
+}
+.mini-avatar:first-child { margin-left: 0; }
+
+/* ─── APP PREVIEW ─── */
+.app-preview-wrap {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.browser-chrome {
+  background: var(--surface);
+  border: 1px solid var(--border-h);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px var(--border),
+    0 40px 120px rgba(0,0,0,0.6),
+    0 0 80px rgba(139,92,246,0.08);
+}
+
+.browser-bar {
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.browser-dots {
+  display: flex;
+  gap: 6px;
+}
+
+.bdot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+}
+.bdot.r { background: #FF5F56; }
+.bdot.y { background: #FFBD2E; }
+.bdot.g { background: #27C93F; }
+
+.browser-url {
+  flex: 1;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 12px;
+  color: var(--text-3);
+  font-family: 'Inter', monospace;
+}
+
+.app-inner {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  height: 560px;
+}
+
+/* Sidebar */
+.sidebar {
+  background: var(--surface-2);
+  border-right: 1px solid var(--border);
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar-brand {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  padding: 4px 8px 16px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.s-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.s-item:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+.s-item.active { background: rgba(255,255,255,0.06); color: var(--text); }
+.s-item svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; }
+
+.sidebar-spacer { flex: 1; }
+
+.sidebar-plan {
+  background: var(--accent-d);
+  border: 1px solid var(--accent-b);
+  border-radius: 10px;
+  padding: 12px;
+  margin-top: 8px;
+}
+.plan-label { font-size: 11px; color: var(--accent); font-weight: 600; margin-bottom: 6px; letter-spacing: 0.04em; }
+.plan-bar-wrap { height: 3px; background: rgba(139,92,246,0.15); border-radius: 3px; margin-bottom: 8px; overflow: hidden; }
+.plan-bar { height: 100%; width: 60%; background: var(--accent); border-radius: 3px; }
+.plan-info { font-size: 11px; color: var(--text-2); display: flex; justify-content: space-between; }
+.upgrade-link { color: var(--accent); font-weight: 600; cursor: pointer; }
+
+/* Main content */
+.main-content {
+  padding: 28px 32px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.mc-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.mc-greeting { font-size: 12px; color: var(--text-3); font-weight: 500; margin-bottom: 4px; }
+.mc-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: 32px;
+  font-weight: 400;
+  font-style: italic;
+  color: var(--text);
+  line-height: 1;
+}
+
+.mc-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.meta-item { display: flex; align-items: center; gap: 5px; }
+.meta-dot { width: 5px; height: 5px; border-radius: 50%; }
+
+/* Stat row */
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.stat-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  transition: border-color 0.15s;
+  cursor: pointer;
+}
+.stat-card:hover { border-color: var(--border-h); }
+.stat-label { font-size: 11px; color: var(--text-3); font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+.stat-num { font-size: 26px; font-weight: 800; color: var(--text); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1; margin-bottom: 4px; }
+.stat-delta { font-size: 11px; color: var(--green); font-weight: 600; }
+.stat-delta.down { color: var(--text-3); }
+
+/* AI bar */
+.ai-command {
+  background: var(--surface-2);
+  border: 1px solid var(--border-h);
+  border-radius: 12px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: text;
+  transition: border-color 0.15s;
+}
+.ai-command:hover { border-color: rgba(255,255,255,0.2); }
+.ai-cmd-icon {
+  width: 26px; height: 26px;
+  border-radius: 7px;
+  background: var(--accent-d);
+  border: 1px solid var(--accent-b);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.ai-cmd-icon svg { width: 13px; height: 13px; stroke: var(--accent); fill: none; stroke-width: 2; }
+.ai-placeholder-text { flex: 1; font-size: 14px; color: var(--text-3); }
+.ai-kbd { font-size: 11px; color: var(--text-3); background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 3px 8px; }
+
+/* Tools + recent */
+.bottom-split {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 14px;
+  flex: 1;
+}
+
+.tools-mini {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.card-header {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-3);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.tool-mini-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.tool-mini-row:last-child { border-bottom: none; }
+.tool-mini-row:hover { background: rgba(255,255,255,0.02); }
+.tool-mini-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.tool-mini-name { font-size: 13px; font-weight: 500; color: var(--text); flex: 1; }
+.tool-mini-val { font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.tool-mini-arrow { color: var(--text-3); }
+.tool-mini-arrow svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+.recent-mini {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.activity-mini-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.activity-mini-row:last-child { border-bottom: none; }
+.activity-mini-row:hover { background: rgba(255,255,255,0.02); }
+.act-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.act-info { flex: 1; min-width: 0; }
+.act-title { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.act-time { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+.act-val { font-size: 12px; font-weight: 600; color: var(--text-2); flex-shrink: 0; }
+
+/* ─── FEATURES ─── */
+section.features {
+  padding: 120px 64px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.section-tag {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 20px;
+}
+
+.section-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: clamp(36px, 4vw, 56px);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-bottom: 16px;
+  max-width: 600px;
+}
+
+.section-title em { font-style: italic; color: var(--text-2); }
+
+.section-sub {
+  font-size: 17px;
+  color: var(--text-2);
+  max-width: 480px;
+  line-height: 1.6;
+  margin-bottom: 64px;
+  font-weight: 400;
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.feat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 28px;
+  transition: all 0.2s;
+  cursor: default;
+  position: relative;
+  overflow: hidden;
+}
+
+.feat-card:hover {
+  border-color: var(--border-h);
+  transform: translateY(-2px);
+}
+
+.feat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+}
+
+.feat-icon {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+.feat-icon svg { width: 20px; height: 20px; fill: none; stroke-width: 1.8; stroke-linecap: round; }
+
+.feat-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 10px;
+  letter-spacing: -0.01em;
+}
+
+.feat-desc {
+  font-size: 14px;
+  color: var(--text-2);
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+.feat-tag {
+  display: inline-block;
+  margin-top: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 100px;
+  border: 1px solid;
+}
+
+/* ─── SOCIAL PROOF ─── */
+.social-proof {
+  padding: 0 64px 120px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.testimonial-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.testimonial {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 28px;
+}
+
+.test-stars { color: var(--gold); font-size: 14px; margin-bottom: 16px; letter-spacing: 2px; }
+
+.test-quote {
+  font-size: 15px;
+  color: var(--text-2);
+  line-height: 1.6;
+  font-weight: 400;
+  margin-bottom: 20px;
+  font-style: italic;
+}
+
+.test-author {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.test-avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid var(--border-h);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-2);
+  flex-shrink: 0;
+}
+
+.test-name { font-size: 13px; font-weight: 600; color: var(--text); }
+.test-role { font-size: 11px; color: var(--text-3); }
+
+/* ─── FOOTER CTA ─── */
+.footer-cta {
+  text-align: center;
+  padding: 120px 64px;
+  position: relative;
+  overflow: hidden;
+}
+
+.footer-cta::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  height: 300px;
+  background: radial-gradient(ellipse, rgba(139,92,246,0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.footer-cta-eyebrow {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-3);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 24px;
+}
+
+.footer-cta-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: clamp(40px, 5vw, 68px);
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  margin-bottom: 24px;
+}
+
+.footer-cta-title em { font-style: italic; color: var(--text-2); }
+
+.footer-cta-sub {
+  font-size: 17px;
+  color: var(--text-2);
+  margin-bottom: 48px;
+  font-weight: 400;
+}
+
+.footer-cta-hint {
+  margin-top: 24px;
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+/* ─── FOOTER ─── */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 48px 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.footer-brand {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.footer-links {
+  display: flex;
+  gap: 28px;
+}
+
+.footer-links a {
+  font-size: 13px;
+  color: var(--text-3);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.footer-links a:hover { color: var(--text-2); }
+
+.footer-copy {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+/* ─── ANIMATIONS ─── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.hero-eyebrow { animation: fadeUp .5s .05s both; }
+.hero-title   { animation: fadeUp .5s .10s both; }
+.hero-sub     { animation: fadeUp .5s .15s both; }
+.hero-ctas    { animation: fadeUp .5s .20s both; }
+.hero-social  { animation: fadeUp .5s .25s both; }
+.app-preview-wrap { animation: fadeUp .6s .3s both; }
+
+/* scroll fade in */
+.feat-card, .testimonial {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity .5s, transform .5s;
+}
+.feat-card.visible, .testimonial.visible {
+  opacity: 1;
+  transform: none;
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24"><path d="M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0"/></svg>
+    </div>
+    Cortex
+  </a>
+  <ul class="nav-links">
+    <li><a>Funzionalità</a></li>
+    <li><a>Prezzi</a></li>
+    <li><a>Community</a></li>
+    <li><a>Blog</a></li>
+  </ul>
+  <div class="nav-actions">
+    <button class="btn-ghost">Accedi</button>
+    <button class="btn-primary">Inizia gratis →</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-eyebrow">
+    <div class="eyebrow-dot"></div>
+    Ora con AI · Oltre 2.400 studenti attivi
+  </div>
+  <h1 class="hero-title">
+    Studia come<br/>non hai mai <em>studiato</em>.
+  </h1>
+  <p class="hero-sub">Tutor AI personalizzato, flashcard adattive e sessioni di focus profondo. Tutto in un'unica PWA gratuita.</p>
+  <div class="hero-ctas">
+    <button class="cta-main">
+      Inizia gratis
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </button>
+    <button class="cta-secondary">Guarda demo →</button>
+  </div>
+  <div class="hero-social">
+    <div class="avatars-row">
+      <div class="mini-avatar">M</div>
+      <div class="mini-avatar">A</div>
+      <div class="mini-avatar">G</div>
+      <div class="mini-avatar">L</div>
+    </div>
+    &nbsp;&nbsp;Usato da 2.400+ studenti universitari
+  </div>
+
+  <!-- App preview -->
+  <div class="app-preview-wrap" style="margin-top: 72px;">
+    <div class="browser-chrome">
+      <div class="browser-bar">
+        <div class="browser-dots">
+          <div class="bdot r"></div>
+          <div class="bdot y"></div>
+          <div class="bdot g"></div>
+        </div>
+        <div class="browser-url">cortex-app.web.app</div>
+      </div>
+      <div class="app-inner">
+        <!-- Sidebar -->
+        <div class="sidebar">
+          <div class="sidebar-brand">
+            <div class="logo-mark" style="width:22px;height:22px;border-radius:6px">
+              <svg viewBox="0 0 24 24" style="width:10px;height:10px;fill:none;stroke:#fff;stroke-width:2"><path d="M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0"/></svg>
+            </div>
+            Cortex
+          </div>
+          <div class="s-item active">
+            <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            Home
+          </div>
+          <div class="s-item">
+            <svg viewBox="0 0 24 24"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3"/></svg>
+            Tutor AI
+          </div>
+          <div class="s-item">
+            <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="M8 12h8M8 8h4"/></svg>
+            Flashcard
+          </div>
+          <div class="s-item">
+            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Materiale
+          </div>
+          <div class="s-item">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Pomodoro
+          </div>
+          <div class="s-item">
+            <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            Community
+          </div>
+          <div class="sidebar-spacer"></div>
+          <div class="sidebar-plan">
+            <div class="plan-label">Piano Free · 3/5 AI</div>
+            <div class="plan-bar-wrap"><div class="plan-bar"></div></div>
+            <div class="plan-info">
+              <span>2 richieste rimaste</span>
+              <span class="upgrade-link">Upgrade →</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main -->
+        <div class="main-content">
+          <div class="mc-header">
+            <div>
+              <div class="mc-greeting">Sabato 4 Aprile · Buona serata</div>
+              <div class="mc-title">Ciao, Francesco</div>
+            </div>
+            <div class="mc-meta">
+              <div class="meta-item">
+                <div class="meta-dot" style="background: #F59E0B"></div>
+                Streak 12 giorni
+              </div>
+              <div class="meta-item">
+                <div class="meta-dot" style="background: #22C55E"></div>
+                Online ora
+              </div>
+            </div>
+          </div>
+
+          <div class="stat-row">
+            <div class="stat-card">
+              <div class="stat-label">Studio oggi</div>
+              <div class="stat-num">2h 40</div>
+              <div class="stat-delta">↑ +40 min vs ieri</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Flashcard oggi</div>
+              <div class="stat-num">47</div>
+              <div class="stat-delta">92% corrette</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">AI rimaste</div>
+              <div class="stat-num">2/5</div>
+              <div class="stat-delta down">Piano Free</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Neural Sparks</div>
+              <div class="stat-num">47</div>
+              <div class="stat-delta" style="color: var(--accent)">✦ Disponibili</div>
+            </div>
+          </div>
+
+          <div class="ai-command">
+            <div class="ai-cmd-icon">
+              <svg viewBox="0 0 24 24"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+            </div>
+            <span class="ai-placeholder-text">Chiedi qualcosa al tuo tutor AI — spiega, riepiloga, crea un quiz…</span>
+            <span class="ai-kbd">⌘ K</span>
+          </div>
+
+          <div class="bottom-split">
+            <div class="tools-mini">
+              <div class="card-header">Strumenti</div>
+              <div class="tool-mini-row">
+                <div class="tool-mini-dot" style="background: #8B5CF6"></div>
+                <span class="tool-mini-name">Flashcard</span>
+                <span class="tool-mini-val">47 carte</span>
+                <div class="tool-mini-arrow"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></div>
+              </div>
+              <div class="tool-mini-row">
+                <div class="tool-mini-dot" style="background: #06B6D4"></div>
+                <span class="tool-mini-name">Materiale PDF</span>
+                <span class="tool-mini-val">3 file</span>
+                <div class="tool-mini-arrow"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></div>
+              </div>
+              <div class="tool-mini-row">
+                <div class="tool-mini-dot" style="background: #F59E0B"></div>
+                <span class="tool-mini-name">Pomodoro</span>
+                <span class="tool-mini-val">×4 oggi</span>
+                <div class="tool-mini-arrow"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></div>
+              </div>
+              <div class="tool-mini-row">
+                <div class="tool-mini-dot" style="background: #22C55E"></div>
+                <span class="tool-mini-name">Community</span>
+                <span class="tool-mini-val">12 online</span>
+                <div class="tool-mini-arrow"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></div>
+              </div>
+            </div>
+
+            <div class="recent-mini">
+              <div class="card-header">Attività recente</div>
+              <div class="activity-mini-row">
+                <div class="act-dot" style="background:#8B5CF6"></div>
+                <div class="act-info">
+                  <div class="act-title">Chat — Teorema di Bayes</div>
+                  <div class="act-time">Oggi, 14:32</div>
+                </div>
+                <span class="act-val">—</span>
+              </div>
+              <div class="activity-mini-row">
+                <div class="act-dot" style="background:#22C55E"></div>
+                <div class="act-info">
+                  <div class="act-title">Flashcard — Anatomia cap. 4</div>
+                  <div class="act-time">Oggi, 11:15</div>
+                </div>
+                <span class="act-val">92%</span>
+              </div>
+              <div class="activity-mini-row">
+                <div class="act-dot" style="background:#F59E0B"></div>
+                <div class="act-info">
+                  <div class="act-title">Pomodoro × 4 sessioni</div>
+                  <div class="act-time">Ieri, 20:05</div>
+                </div>
+                <span class="act-val">100 min</span>
+              </div>
+              <div class="activity-mini-row">
+                <div class="act-dot" style="background:#06B6D4"></div>
+                <div class="act-info">
+                  <div class="act-title">PDF — Istologia, cap. 3</div>
+                  <div class="act-time">Ieri, 17:40</div>
+                </div>
+                <span class="act-val">Riepilogato</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features">
+  <div class="section-tag">Funzionalità</div>
+  <h2 class="section-title">Ogni cosa che ti serve per <em>eccellere</em>.</h2>
+  <p class="section-sub">Non solo un'app. Un sistema di studio completo che si adatta a te.</p>
+
+  <div class="feature-grid">
+    <div class="feat-card">
+      <div class="feat-icon" style="background: rgba(139,92,246,0.1)">
+        <svg viewBox="0 0 24 24" style="stroke: #8B5CF6"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+      </div>
+      <div class="feat-title">Tutor AI Personalizzato</div>
+      <div class="feat-desc">Spiega concetti, crea quiz, riepiloga argomenti. Usa la tua API key Gemini — la chiave rimane solo sul tuo dispositivo.</div>
+      <div class="feat-tag" style="color: #8B5CF6; border-color: rgba(139,92,246,0.25); background: rgba(139,92,246,0.06)">GPT-4 · Gemini · Claude</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon" style="background: rgba(34,197,94,0.1)">
+        <svg viewBox="0 0 24 24" style="stroke: #22C55E"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="M8 12h8M8 8h4"/></svg>
+      </div>
+      <div class="feat-title">Flashcard Adattive</div>
+      <div class="feat-desc">Ripetizione spaziata intelligente. L'AI ottimizza quali carte studiare in base alle tue risposte precedenti.</div>
+      <div class="feat-tag" style="color: #22C55E; border-color: rgba(34,197,94,0.25); background: rgba(34,197,94,0.06)">Spaced Repetition</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon" style="background: rgba(6,182,212,0.1)">
+        <svg viewBox="0 0 24 24" style="stroke: #06B6D4"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>
+      </div>
+      <div class="feat-title">PDF Analyzer</div>
+      <div class="feat-desc">Carica qualsiasi dispensa. Ottieni riepiloghi, domande d'esame e flashcard generate automaticamente dall'AI.</div>
+      <div class="feat-tag" style="color: #06B6D4; border-color: rgba(6,182,212,0.25); background: rgba(6,182,212,0.06)">Piano Student+</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon" style="background: rgba(245,158,11,0.1)">
+        <svg viewBox="0 0 24 24" style="stroke: #F59E0B"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+      <div class="feat-title">Focus Pomodoro</div>
+      <div class="feat-desc">Timer con Soundscape ambientali: caffetteria, pioggia, foresta. Costruisce l'abitudine di studio giorno dopo giorno.</div>
+      <div class="feat-tag" style="color: #F59E0B; border-color: rgba(245,158,11,0.25); background: rgba(245,158,11,0.06)">Soundscape PRO</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon" style="background: rgba(239,68,68,0.1)">
+        <svg viewBox="0 0 24 24" style="stroke: #EF4444"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      </div>
+      <div class="feat-title">Neural Sparks</div>
+      <div class="feat-desc">Esaurito il piano mensile? Ricarica con micro-pacchetti da 50, 150 o 500 chiamate. Nessun abbonamento obbligatorio.</div>
+      <div class="feat-tag" style="color: #EF4444; border-color: rgba(239,68,68,0.25); background: rgba(239,68,68,0.06)">A partire da €0.99</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon" style="background: rgba(139,92,246,0.1)">
+        <svg viewBox="0 0 24 24" style="stroke: #8B5CF6"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      </div>
+      <div class="feat-title">Community Live</div>
+      <div class="feat-desc">Studia con altri in tempo reale. Vedi chi è online, condividi sessioni Pomodoro e costruisci motivazione collettiva.</div>
+      <div class="feat-tag" style="color: #8B5CF6; border-color: rgba(139,92,246,0.25); background: rgba(139,92,246,0.06)">Gratuito</div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<div class="social-proof">
+  <div class="testimonial-grid">
+    <div class="testimonial">
+      <div class="test-stars">★★★★★</div>
+      <div class="test-quote">"Ho passato Biochimica al primo tentativo dopo 2 anni di insuccessi. Il tutor AI di Cortex mi ha spiegato la glicolisi meglio di qualsiasi professore."</div>
+      <div class="test-author">
+        <div class="test-avatar">M</div>
+        <div>
+          <div class="test-name">Martina R.</div>
+          <div class="test-role">Medicina, Università di Bologna</div>
+        </div>
+      </div>
+    </div>
+    <div class="testimonial">
+      <div class="test-stars">★★★★★</div>
+      <div class="test-quote">"Le flashcard adattive sono una roba seria. Studio 30 minuti e ricordo più di quando studiavo 3 ore. Non torno indietro."</div>
+      <div class="test-author">
+        <div class="test-avatar">A</div>
+        <div>
+          <div class="test-name">Andrea L.</div>
+          <div class="test-role">Giurisprudenza, La Sapienza</div>
+        </div>
+      </div>
+    </div>
+    <div class="testimonial">
+      <div class="test-stars">★★★★★</div>
+      <div class="test-quote">"Uso Cortex su PC e telefono senza installare nulla. La PWA è velocissima. Il Pomodoro con i suoni ambientali mi ha cambiato la vita."</div>
+      <div class="test-author">
+        <div class="test-avatar">G</div>
+        <div>
+          <div class="test-name">Giulia P.</div>
+          <div class="test-role">Ingegneria, Politecnico di Milano</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER CTA -->
+<div class="footer-cta">
+  <div class="footer-cta-eyebrow">Inizia oggi · Gratis per sempre</div>
+  <div class="footer-cta-title">Il tuo prossimo esame<br/>lo passi <em>così</em>.</div>
+  <p class="footer-cta-sub">Nessuna carta di credito. Nessuna installazione.</p>
+  <button class="cta-main" style="margin: 0 auto">
+    Apri Cortex gratis
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+  </button>
+  <div class="footer-cta-hint">Già usato da 2.400+ studenti universitari in Italia</div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-brand">Cortex</div>
+  <div class="footer-links">
+    <a>Privacy</a>
+    <a>Termini</a>
+    <a>Supporto</a>
+    <a>Blog</a>
+  </div>
+  <div class="footer-copy">© 2026 Cortex · Tutti i diritti riservati</div>
+</footer>
+
+<script>
+// Scroll-triggered reveal
+const observer = new IntersectionObserver(entries => {
+  entries.forEach((e, i) => {
+    if (e.isIntersecting) {
+      setTimeout(() => e.target.classList.add('visible'), i * 60);
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.feat-card, .testimonial').forEach(el => observer.observe(el));
+
+// Nav scroll effect (already handled by backdrop-filter)
+
+// Hover interactivity on stat cards
+document.querySelectorAll('.stat-card').forEach(card => {
+  card.addEventListener('mouseenter', () => card.style.background = 'rgba(255,255,255,0.04)');
+  card.addEventListener('mouseleave', () => card.style.background = '');
+});
+</script>
+</body>
+</html>

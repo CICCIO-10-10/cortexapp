@@ -1,0 +1,31 @@
+CORTEX — MAPPA DEI FILE FONDAMENTALI (DEBUG & ARCHITETTURA)
+
+Se devi spiegare a Gemini (o un altro assistente) come funziona Cortex e dove guardare per eventuali problemi, questi sono i file "Core":
+
+1. [MAIN HUB] - main.js
+   Percorso: c:\Users\User\Desktop\PROGETTI\cortex\main.js
+   Funzione: Coordina tutti i moduli, gestisce i listener globali e il "bridge" tra la landing page e l'app (es. ?action=login).
+
+2. [LIFECYCLE & AUTH] - core/appBoot.js
+   Percorso: c:\Users\User\Desktop\PROGETTI\cortex\core\appBoot.js
+   Funzione: Gestisce il caricamento iniziale (Splash Screen), il controllo dello stato di login di Firebase e la visibilità degli overlay (Login/Registration). Qui è dove si decide cosa vede l'utente all'avvio.
+
+3. [BACKEND & KEY MANAGEMENT] - services/firebase.js
+   Percorso: c:\Users\User\Desktop\PROGETTI\cortex\services\firebase.js
+   Funzione: Contiene il SecurityManager (gestione chiavi API Gemini) e tutte le chiamate Firebase (Auth, Firestore). È il "motore" che parla con il cloud.
+
+4. [GLOBAL STATE] - core/state.js
+   Percorso: c:\Users\User\Desktop\PROGETTI\cortex\core\state.js
+   Funzione: Definisce l'oggetto 'state' reattivo. Ogni modulo che ha bisogno dei dati (deck, API key, profilo utente) legge da qui.
+
+5. [AI SERVICES] - services/ai.js
+   Percorso: c:\Users\User\Desktop\PROGETTI\cortex\services\ai.js
+   Funzione: Tutta la logica di intelligenza artificiale (Vision, Trascrizioni, Gemini Proxy). Se l'IA non risponde, il problema è qui.
+
+6. [UI & COMPONENTS] - modules/architect.js
+   Percorso: c:\Users\User\Desktop\PROGETTI\cortex\modules\architect.js
+   Funzione: Gestisce la sezione "Network & Stats" e le logiche degli algoritmi di studio (Aura Engine).
+
+--- PUNTI CRITICI RECENTI ---
+- Login Flow: Gestito nel bridge URL in main.js e filtrato in appBoot.js per evitare overlay bloccanti.
+- Persistence: Gestita dal SecurityManager in firebase.js (salvataggio in localStorage + sessionStorage).

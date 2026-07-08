@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TradeLab — Analisi Crypto</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg-0: #080808; --bg-1: #111; --bg-2: #1a1a1a; --bg-3: #242424;
+      --purple: #a855f7; --pink: #ec4899; --cyan: #06b6d4;
+      --green: #10b981; --red: #ef4444; --yellow: #f59e0b;
+      --text-1: #f0f0f0; --text-2: #888; --text-3: #444;
+      --border: rgba(255,255,255,0.08); --radius: 14px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg-0); color: var(--text-1); min-height: 100vh; }
+
+    /* NAV */
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 36px; border-bottom: 1px solid var(--border);
+      background: rgba(8,8,8,0.9); backdrop-filter: blur(20px);
+      position: sticky; top: 0; z-index: 50;
+    }
+    .logo {
+      font-size: 20px; font-weight: 900; letter-spacing: -1px;
+      background: linear-gradient(135deg, var(--purple), var(--cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .nav-tag {
+      font-size: 11px; color: var(--text-2); background: var(--bg-3);
+      padding: 4px 12px; border-radius: 99px; border: 1px solid var(--border);
+    }
+
+    /* LAYOUT */
+    .container { max-width: 1280px; margin: 0 auto; padding: 32px 24px; }
+    .grid-main { display: grid; grid-template-columns: 260px 1fr; gap: 20px; align-items: start; }
+    @media(max-width: 900px) { .grid-main { grid-template-columns: 1fr; } }
+
+    /* CARD */
+    .card {
+      background: var(--bg-1); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+    }
+    .card-header {
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+      font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+      text-transform: uppercase; color: var(--text-2);
+    }
+
+    /* COIN LIST */
+    .coin-item {
+      display: flex; align-items: center; gap: 12px; padding: 14px 20px;
+      cursor: pointer; transition: background 0.15s; border-bottom: 1px solid var(--border);
+    }
+    .coin-item:last-child { border-bottom: none; }
+    .coin-item:hover { background: var(--bg-2); }
+    .coin-item.active { background: rgba(168,85,247,0.1); border-left: 3px solid var(--purple); }
+    .coin-dot { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .coin-info { flex: 1; min-width: 0; }
+    .coin-name { font-size: 14px; font-weight: 700; }
+    .coin-sym { font-size: 11px; color: var(--text-2); }
+    .coin-price-col { text-align: right; }
+    .coin-price { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .coin-change { font-size: 11px; font-weight: 600; }
+    .up { color: var(--green); } .down { color: var(--red); }
+
+    /* CHART AREA */
+    .chart-header { padding: 20px 24px 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .chart-title { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+    .chart-price { font-size: 28px; font-weight: 900; }
+    .chart-change-badge {
+      display: inline-block; padding: 4px 12px; border-radius: 99px;
+      font-size: 13px; font-weight: 700;
+    }
+    .badge-up { background: rgba(16,185,129,0.15); color: var(--green); }
+    .badge-down { background: rgba(239,68,68,0.15); color: var(--red); }
+
+    .days-btns { display: flex; gap: 6px; }
+    .day-btn {
+      padding: 5px 12px; border-radius: 99px; font-size: 12px; font-weight: 600;
+      border: 1px solid var(--border); background: transparent; color: var(--text-2);
+      cursor: pointer; transition: all 0.15s;
+    }
+    .day-btn:hover { color: var(--text-1); }
+    .day-btn.active { background: var(--purple); color: white; border-color: var(--purple); }
+
+    .chart-wrap { padding: 0 16px 16px; height: 280px; position: relative; }
+    .chart-loading {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      font-size: 13px; color: var(--text-2);
+    }
+
+    /* INDICATORS ROW */
+    .indicators-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 20px; }
+    @media(max-width: 700px) { .indicators-grid { grid-template-columns: 1fr; } }
+
+    .indicator-box {
+      background: var(--bg-2); border-radius: 10px; padding: 16px;
+      border: 1px solid var(--border); position: relative;
+    }
+    .ind-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-2); margin-bottom: 8px; }
+    .ind-value { font-size: 24px; font-weight: 900; margin-bottom: 4px; }
+    .ind-sub { font-size: 12px; color: var(--text-2); }
+    .ind-bar { height: 4px; border-radius: 99px; background: var(--bg-3); margin-top: 10px; overflow: hidden; }
+    .ind-bar-fill { height: 100%; border-radius: 99px; transition: width 0.8s ease; }
+
+    /* RSI gauge colors */
+    .rsi-oversold { color: var(--cyan); }
+    .rsi-neutral { color: var(--yellow); }
+    .rsi-overbought { color: var(--red); }
+
+    /* SIGNAL BOX */
+    .signal-box { margin: 0 20px 20px; border-radius: 12px; padding: 20px; border: 1px solid var(--border); }
+    .signal-box.buy { background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.3); }
+    .signal-box.sell { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.3); }
+    .signal-box.hold { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.3); }
+
+    .signal-title { font-size: 18px; font-weight: 900; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
+    .signal-icon { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .signal-icon.buy { background: rgba(16,185,129,0.2); }
+    .signal-icon.sell { background: rgba(239,68,68,0.2); }
+    .signal-icon.hold { background: rgba(245,158,11,0.2); }
+    .signal-reasons { list-style: none; display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+    .signal-reasons li { font-size: 13px; color: var(--text-2); display: flex; gap: 8px; align-items: flex-start; }
+    .signal-reasons li::before { content: "→"; color: var(--text-3); flex-shrink: 0; }
+
+    .signal-disclaimer {
+      font-size: 11px; color: var(--text-3); margin-top: 12px;
+      padding-top: 12px; border-top: 1px solid var(--border);
+    }
+
+    /* GLOSSARY */
+    .glossary { padding: 0 20px 20px; display: flex; flex-direction: column; gap: 12px; }
+    .gloss-item {
+      background: var(--bg-2); border-radius: 10px; padding: 14px 16px;
+      border: 1px solid var(--border); cursor: pointer;
+    }
+    .gloss-q {
+      font-size: 13px; font-weight: 700; display: flex; justify-content: space-between; align-items: center;
+    }
+    .gloss-a { font-size: 12px; color: var(--text-2); line-height: 1.6; margin-top: 10px; display: none; }
+    .gloss-a.open { display: block; }
+    .gloss-arrow { transition: transform 0.2s; color: var(--text-3); }
+    .gloss-arrow.open { transform: rotate(180deg); }
+
+    /* DISCLAIMER BANNER */
+    .disclaimer-banner {
+      background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2);
+      border-radius: 10px; padding: 12px 16px; margin-bottom: 20px;
+      font-size: 12px; color: var(--yellow); display: flex; gap: 10px; align-items: center;
+    }
+
+    /* LOADING / ERROR */
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .dot-live { background: var(--green); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* SECTION TITLE */
+    .section-title { font-size: 18px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 20px; margin-top: 32px; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">TradeLab</div>
+  <div class="nav-tag">
+    <span class="status-dot dot-live"></span>
+    Solo analisi — nessun ordine reale
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- DISCLAIMER -->
+  <div class="disclaimer-banner">
+    ⚠️ <strong>Questo è uno strumento educativo.</strong> I segnali mostrati sono indicatori tecnici, non consigli di investimento. Sei sempre tu a decidere se comprare o vendere.
+  </div>
+
+  <div class="grid-main">
+
+    <!-- LEFT: COIN LIST -->
+    <div>
+      <div class="card" id="coin-list-card">
+        <div class="card-header">Asset disponibili</div>
+        <div id="coin-list">
+          <div style="padding:24px;text-align:center;color:var(--text-2);font-size:13px">Caricamento prezzi...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: CHART + INDICATORS -->
+    <div style="display:flex;flex-direction:column;gap:20px;">
+
+      <!-- CHART CARD -->
+      <div class="card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title" id="chart-title">—</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:6px">
+              <span class="chart-price" id="chart-price">—</span>
+              <span class="chart-change-badge" id="chart-change-badge">—</span>
+            </div>
+          </div>
+          <div class="days-btns">
+            <button class="day-btn" data-days="7">7G</button>
+            <button class="day-btn active" data-days="30">30G</button>
+            <button class="day-btn" data-days="90">90G</button>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <div class="chart-loading" id="chart-loading">Seleziona un asset →</div>
+          <canvas id="priceChart" style="display:none"></canvas>
+        </div>
+      </div>
+
+      <!-- INDICATORS CARD -->
+      <div class="card">
+        <div class="card-header">Indicatori tecnici</div>
+        <div class="indicators-grid">
+          <!-- RSI -->
+          <div class="indicator-box">
+            <div class="ind-label">RSI (14)</div>
+            <div class="ind-value" id="rsi-val">—</div>
+            <div class="ind-sub" id="rsi-label">—</div>
+            <div class="ind-bar"><div class="ind-bar-fill" id="rsi-bar" style="width:0%;background:var(--purple)"></div></div>
+          </div>
+          <!-- SMA -->
+          <div class="indicator-box">
+            <div class="ind-label">Media Mobile</div>
+            <div class="ind-value" style="font-size:16px;padding-top:4px" id="sma-val">—</div>
+            <div class="ind-sub" id="sma-label">—</div>
+            <div style="display:flex;gap:8px;margin-top:10px">
+              <span style="font-size:11px;padding:2px 8px;border-radius:99px;background:rgba(168,85,247,0.15);color:var(--purple)" id="sma20-badge">SMA20 —</span>
+              <span style="font-size:11px;padding:2px 8px;border-radius:99px;background:rgba(6,182,212,0.15);color:var(--cyan)" id="sma50-badge">SMA50 —</span>
+            </div>
+          </div>
+          <!-- MACD -->
+          <div class="indicator-box">
+            <div class="ind-label">MACD</div>
+            <div class="ind-value" id="macd-val">—</div>
+            <div class="ind-sub" id="macd-label">—</div>
+            <div class="ind-bar" style="margin-top:10px"><div class="ind-bar-fill" id="macd-bar" style="width:50%;background:var(--cyan)"></div></div>
+          </div>
+        </div>
+
+        <!-- SIGNAL -->
+        <div class="signal-box hold" id="signal-box">
+          <div class="signal-title">
+            <div class="signal-icon hold" id="signal-icon">🤔</div>
+            <span id="signal-text">Seleziona un asset</span>
+          </div>
+          <ul class="signal-reasons" id="signal-reasons">
+            <li>Clicca su una crypto nella lista a sinistra per vedere l'analisi</li>
+          </ul>
+          <div class="signal-disclaimer">
+            ⚠️ Questi segnali derivano solo dall'analisi tecnica. Non considerano notizie, eventi di mercato o fondamentali del progetto. Non è un consiglio finanziario.
+          </div>
+        </div>
+      </div>
+
+      <!-- GLOSSARY -->
+      <div class="card">
+        <div class="card-header">📚 Glossario — cosa significa ogni indicatore</div>
+        <div class="glossary" id="glossary">
+
+          <div class="gloss-item" onclick="toggleGloss(this)">
+            <div class="gloss-q">
+              <span>🌡 RSI — Relative Strength Index</span>
+              <span class="gloss-arrow">▾</span>
+            </div>
+            <div class="gloss-a">
+              Misura la <strong>velocità e la forza</strong> dei movimenti di prezzo su una scala da 0 a 100.
+              <br><br>
+              <strong>RSI &lt; 30</strong> → l'asset è stato venduto troppo, il prezzo è probabilmente basso rispetto al suo valore reale. È considerato un segnale di acquisto potenziale.
+              <br>
+              <strong>RSI &gt; 70</strong> → l'asset è stato comprato troppo, potrebbe essere "gonfiato". Segnale di possibile correzione al ribasso.
+              <br>
+              <strong>RSI 30-70</strong> → zona neutra, nessun segnale chiaro.
+              <br><br>
+              <em>Periodo usato: 14 giorni (standard).</em>
+            </div>
+          </div>
+
+          <div class="gloss-item" onclick="toggleGloss(this)">
+            <div class="gloss-q">
+              <span>📈 SMA — Media Mobile Semplice</span>
+              <span class="gloss-arrow">▾</span>
+            </div>
+            <div class="gloss-a">
+              La media dei prezzi degli ultimi N giorni. Serve a "smussare" i movimenti casuali del mercato e vedere il <strong>trend di fondo</strong>.
+              <br><br>
+              <strong>SMA 20</strong> → media degli ultimi 20 giorni (breve termine, reagisce veloce).
+              <br>
+              <strong>SMA 50</strong> → media degli ultimi 50 giorni (lungo termine, più stabile).
+              <br><br>
+              <strong>Golden Cross</strong> 🟡 → SMA20 supera SMA50 verso l'alto. I trader lo interpretano come inizio di un trend rialzista.
+              <br>
+              <strong>Death Cross</strong> 💀 → SMA20 scende sotto SMA50. Segnale ribassista.
+              <br><br>
+              <em>Se il prezzo attuale è sopra la SMA50, l'asset è in trend positivo di lungo periodo.</em>
+            </div>
+          </div>
+
+          <div class="gloss-item" onclick="toggleGloss(this)">
+            <div class="gloss-q">
+              <span>🔀 MACD — Moving Average Convergence Divergence</span>
+              <span class="gloss-arrow">▾</span>
+            </div>
+            <div class="gloss-a">
+              Indicatore che misura la <strong>differenza tra due medie mobili esponenziali</strong> (EMA 12 e EMA 26). Mostra se il momentum del prezzo sta accelerando o frenando.
+              <br><br>
+              <strong>MACD positivo</strong> → la media a breve (12g) è sopra quella a lungo (26g). Momento rialzista.
+              <br>
+              <strong>MACD negativo</strong> → la media a breve è sotto quella a lungo. Momento ribassista.
+              <br><br>
+              <em>L'EMA (Exponential Moving Average) è come la SMA ma dà più peso ai giorni recenti — reagisce più in fretta ai cambiamenti.</em>
+            </div>
+          </div>
+
+          <div class="gloss-item" onclick="toggleGloss(this)">
+            <div class="gloss-q">
+              <span>⚡ Come leggere i segnali — regole base</span>
+              <span class="gloss-arrow">▾</span>
+            </div>
+            <div class="gloss-a">
+              TradeLab combina tutti gli indicatori per darti un segnale riassuntivo. Ecco come funziona la logica:
+              <br><br>
+              🟢 <strong>COMPRA (potenziale)</strong>: RSI sotto 35 + SMA20 sopra SMA50 + MACD positivo → tre segnali rialzisti allineati.
+              <br><br>
+              🔴 <strong>VENDI (potenziale)</strong>: RSI sopra 65 + SMA20 sotto SMA50 + MACD negativo → tre segnali ribassisti allineati.
+              <br><br>
+              🟡 <strong>ASPETTA</strong>: segnali contrastanti o zona neutra → il mercato non ha una direzione chiara.
+              <br><br>
+              <strong>Importante:</strong> nessun indicatore tecnico è infallibile. Questi segnali guardano solo il passato, non prevedono il futuro. Usali come punto di partenza per la tua analisi, non come certezza.
+            </div>
+          </div>
+
+          <div class="gloss-item" onclick="toggleGloss(this)">
+            <div class="gloss-q">
+              <span>🧠 Glossario rapido — termini comuni</span>
+              <span class="gloss-arrow">▾</span>
+            </div>
+            <div class="gloss-a">
+              <strong>Bull market</strong> → mercato in salita prolungata. "Toro che carica in su."
+              <br>
+              <strong>Bear market</strong> → mercato in discesa prolungata. "Orso che abbassa la zampa."
+              <br>
+              <strong>Supporto</strong> → livello di prezzo dove storicamente il mercato "rimbalza" verso l'alto.
+              <br>
+              <strong>Resistenza</strong> → livello dove il prezzo fatica a salire e tende a tornare giù.
+              <br>
+              <strong>Volume</strong> → quante unità sono state scambiate in un periodo. Alto volume = movimento "vero". Basso volume = movimento poco affidabile.
+              <br>
+              <strong>Stop loss</strong> → prezzo a cui vendi automaticamente per limitare le perdite. È la cosa più importante quando si fa trading.
+              <br>
+              <strong>Volatilità</strong> → quanto il prezzo oscilla. Le crypto hanno volatilità altissima rispetto ad azioni o obbligazioni.
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== DATI =====
+const COINS = [
+  { id: 'bitcoin',       symbol: 'BTC', name: 'Bitcoin',  emoji: '₿', color: '#f7931a' },
+  { id: 'ethereum',      symbol: 'ETH', name: 'Ethereum', emoji: 'Ξ', color: '#627eea' },
+  { id: 'solana',        symbol: 'SOL', name: 'Solana',   emoji: '◎', color: '#9945ff' },
+  { id: 'binancecoin',   symbol: 'BNB', name: 'BNB',      emoji: '◈', color: '#f3ba2f' },
+  { id: 'cardano',       symbol: 'ADA', name: 'Cardano',  emoji: '₳', color: '#0033ad' },
+  { id: 'ripple',        symbol: 'XRP', name: 'XRP',      emoji: '✕', color: '#346aa9' },
+];
+
+let state = { selectedCoin: null, days: 30, prices: [], chart: null, priceData: {} };
+
+// ===== FETCH PREZZI LIVE =====
+async function fetchPrices() {
+  try {
+    const ids = COINS.map(c => c.id).join(',');
+    const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=eur&include_24hr_change=true&include_market_cap=true`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error();
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+// ===== FETCH STORICO =====
+async function fetchHistory(coinId, days) {
+  try {
+    const url = `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=eur&days=${days}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    return (data.prices || []).map(p => ({ t: p[0], v: p[1] }));
+  } catch {
+    return [];
+  }
+}
+
+// ===== INDICATORI =====
+function calcRSI(prices, period = 14) {
+  if (prices.length < period + 2) return null;
+  let gains = 0, losses = 0;
+  for (let i = 1; i <= period; i++) {
+    const d = prices[i] - prices[i - 1];
+    if (d > 0) gains += d; else losses += Math.abs(d);
+  }
+  let avgGain = gains / period, avgLoss = losses / period;
+  for (let i = period + 1; i < prices.length; i++) {
+    const d = prices[i] - prices[i - 1];
+    avgGain = (avgGain * (period - 1) + Math.max(d, 0)) / period;
+    avgLoss = (avgLoss * (period - 1) + Math.max(-d, 0)) / period;
+  }
+  if (avgLoss === 0) return 100;
+  return 100 - (100 / (1 + avgGain / avgLoss));
+}
+
+function calcSMA(prices, period) {
+  if (prices.length < period) return null;
+  return prices.slice(-period).reduce((a, b) => a + b, 0) / period;
+}
+
+function calcEMA(prices, period) {
+  if (prices.length < period) return null;
+  const k = 2 / (period + 1);
+  let ema = prices.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  for (let i = period; i < prices.length; i++) {
+    ema = prices[i] * k + ema * (1 - k);
+  }
+  return ema;
+}
+
+function calcMACD(prices) {
+  const ema12 = calcEMA(prices, 12);
+  const ema26 = calcEMA(prices, 26);
+  if (!ema12 || !ema26) return null;
+  return ema12 - ema26;
+}
+
+// ===== FORMAT =====
+function fmtEur(v) {
+  if (!v && v !== 0) return '—';
+  if (v >= 1000) return '€' + v.toLocaleString('it-IT', { maximumFractionDigits: 0 });
+  if (v >= 1) return '€' + v.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+  return '€' + v.toLocaleString('it-IT', { minimumFractionDigits: 4, maximumFractionDigits: 6 });
+}
+
+function fmtEurShort(v) {
+  if (!v && v !== 0) return '—';
+  if (v >= 1000) return '€' + Math.round(v).toLocaleString('it-IT');
+  return '€' + v.toFixed(4);
+}
+
+// ===== RENDER COIN LIST =====
+function renderCoinList(data) {
+  const el = document.getElementById('coin-list');
+  if (!data) {
+    el.innerHTML = '<div style="padding:20px;color:var(--text-2);font-size:13px;text-align:center">Errore caricamento (API rate limit) — riprova tra 60 secondi</div>';
+    return;
+  }
+  el.innerHTML = COINS.map(coin => {
+    const d = data[coin.id] || {};
+    const price = d.eur;
+    const change = d.eur_24h_change;
+    const isUp = change >= 0;
+    const isSelected = state.selectedCoin && state.selectedCoin.id === coin.id;
+    return `
+      <div class="coin-item ${isSelected ? 'active' : ''}" onclick="selectCoin('${coin.id}')">
+        <div class="coin-dot" style="background:${coin.color}22;color:${coin.color};font-size:14px;font-weight:900">${coin.symbol.slice(0,1)}</div>
+        <div class="coin-info">
+          <div class="coin-name">${coin.name}</div>
+          <div class="coin-sym">${coin.symbol}</div>
+        </div>
+        <div class="coin-price-col">
+          <div class="coin-price">${fmtEur(price)}</div>
+          <div class="coin-change ${isUp ? 'up' : 'down'}">${isUp ? '▲' : '▼'} ${Math.abs(change || 0).toFixed(2)}%</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ===== SELECT COIN =====
+async function selectCoin(coinId) {
+  const coin = COINS.find(c => c.id === coinId);
+  if (!coin) return;
+  state.selectedCoin = coin;
+
+  // Aggiorna lista (highlight)
+  document.querySelectorAll('.coin-item').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.coin-item').forEach(el => {
+    if (el.onclick.toString().includes(`'${coinId}'`)) el.classList.add('active');
+  });
+
+  // Header chart
+  const d = state.priceData[coinId] || {};
+  const price = d.eur;
+  const change = d.eur_24h_change;
+  const isUp = !change || change >= 0;
+  document.getElementById('chart-title').textContent = `${coin.name} (${coin.symbol})`;
+  document.getElementById('chart-price').textContent = fmtEur(price);
+  const badge = document.getElementById('chart-change-badge');
+  badge.textContent = `${isUp ? '▲' : '▼'} ${Math.abs(change || 0).toFixed(2)}% 24h`;
+  badge.className = `chart-change-badge ${isUp ? 'badge-up' : 'badge-down'}`;
+
+  // Loading
+  document.getElementById('chart-loading').style.display = 'flex';
+  document.getElementById('chart-loading').textContent = 'Caricamento grafico...';
+  document.getElementById('priceChart').style.display = 'none';
+
+  // Fetch storia
+  const history = await fetchHistory(coinId, state.days);
+  state.prices = history;
+
+  if (!history.length) {
+    document.getElementById('chart-loading').textContent = 'Dati non disponibili (riprova tra poco)';
+    return;
+  }
+
+  renderChart(coin, history);
+  renderIndicators(history.map(p => p.v), price);
+}
+
+// ===== CHART =====
+function renderChart(coin, history) {
+  const canvas = document.getElementById('priceChart');
+  document.getElementById('chart-loading').style.display = 'none';
+  canvas.style.display = 'block';
+
+  const labels = history.map(p => new Date(p.t).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' }));
+  const prices = history.map(p => p.v);
+
+  // Calcola SMA overlay
+  const sma20 = prices.map((_, i) => {
+    if (i < 19) return null;
+    return prices.slice(i - 19, i + 1).reduce((a, b) => a + b, 0) / 20;
+  });
+  const sma50 = prices.map((_, i) => {
+    if (i < 49) return null;
+    return prices.slice(i - 49, i + 1).reduce((a, b) => a + b, 0) / 50;
+  });
+
+  if (state.chart) state.chart.destroy();
+
+  const ctx = canvas.getContext('2d');
+  const grad = ctx.createLinearGradient(0, 0, 0, 280);
+  grad.addColorStop(0, coin.color + '40');
+  grad.addColorStop(1, coin.color + '00');
+
+  state.chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: coin.symbol,
+          data: prices,
+          borderColor: coin.color,
+          backgroundColor: grad,
+          borderWidth: 2,
+          pointRadius: 0,
+          fill: true,
+          tension: 0.3,
+        },
+        {
+          label: 'SMA 20',
+          data: sma20,
+          borderColor: '#a855f7',
+          borderWidth: 1.5,
+          pointRadius: 0,
+          fill: false,
+          tension: 0.3,
+          borderDash: [4, 4],
+        },
+        {
+          label: 'SMA 50',
+          data: sma50,
+          borderColor: '#06b6d4',
+          borderWidth: 1.5,
+          pointRadius: 0,
+          fill: false,
+          tension: 0.3,
+          borderDash: [8, 4],
+        },
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          labels: { color: '#888', font: { size: 11 }, boxWidth: 20 }
+        },
+        tooltip: {
+          backgroundColor: '#1a1a1a',
+          borderColor: 'rgba(255,255,255,0.1)',
+          borderWidth: 1,
+          titleColor: '#f0f0f0',
+          bodyColor: '#888',
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${fmtEurShort(ctx.raw)}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: {
+            color: '#555', font: { size: 10 },
+            maxTicksLimit: 8,
+          },
+          grid: { color: 'rgba(255,255,255,0.04)' }
+        },
+        y: {
+          ticks: {
+            color: '#555', font: { size: 10 },
+            callback: v => fmtEurShort(v)
+          },
+          grid: { color: 'rgba(255,255,255,0.04)' }
+        }
+      }
+    }
+  });
+}
+
+// ===== INDICATORI =====
+function renderIndicators(prices, currentPrice) {
+  // RSI
+  const rsi = calcRSI(prices);
+  const rsiEl = document.getElementById('rsi-val');
+  const rsiLabel = document.getElementById('rsi-label');
+  const rsiBar = document.getElementById('rsi-bar');
+  if (rsi !== null) {
+    rsiEl.textContent = rsi.toFixed(1);
+    rsiBar.style.width = `${rsi}%`;
+    if (rsi < 30) {
+      rsiEl.className = 'ind-value rsi-oversold';
+      rsiLabel.textContent = 'Ipervenduto — possibile rimbalzo';
+      rsiBar.style.background = 'var(--cyan)';
+    } else if (rsi > 70) {
+      rsiEl.className = 'ind-value rsi-overbought';
+      rsiLabel.textContent = 'Ipercomprato — possibile correzione';
+      rsiBar.style.background = 'var(--red)';
+    } else {
+      rsiEl.className = 'ind-value rsi-neutral';
+      rsiLabel.textContent = 'Zona neutra';
+      rsiBar.style.background = 'var(--yellow)';
+    }
+  }
+
+  // SMA
+  const sma20 = calcSMA(prices, 20);
+  const sma50 = calcSMA(prices, 50);
+  const smaEl = document.getElementById('sma-val');
+  const smaLabel = document.getElementById('sma-label');
+  document.getElementById('sma20-badge').textContent = `SMA20 ${sma20 ? fmtEurShort(sma20) : '—'}`;
+  document.getElementById('sma50-badge').textContent = `SMA50 ${sma50 ? fmtEurShort(sma50) : '—'}`;
+  if (sma20 && sma50) {
+    const goldCross = sma20 > sma50;
+    smaEl.textContent = goldCross ? '🟡 Golden Cross' : '💀 Death Cross';
+    smaEl.style.fontSize = '16px';
+    smaLabel.textContent = goldCross
+      ? 'SMA20 sopra SMA50 — trend rialzista'
+      : 'SMA20 sotto SMA50 — trend ribassista';
+  } else {
+    smaEl.textContent = sma20 ? fmtEurShort(sma20) : '—';
+    smaLabel.textContent = 'Dati insufficienti per SMA50';
+  }
+
+  // MACD
+  const macd = calcMACD(prices);
+  const macdEl = document.getElementById('macd-val');
+  const macdLabel = document.getElementById('macd-label');
+  const macdBar = document.getElementById('macd-bar');
+  if (macd !== null) {
+    macdEl.textContent = macd > 0 ? `+${macd.toFixed(2)}` : macd.toFixed(2);
+    macdEl.style.color = macd > 0 ? 'var(--green)' : 'var(--red)';
+    macdLabel.textContent = macd > 0 ? 'Momentum positivo' : 'Momentum negativo';
+    macdBar.style.width = Math.min(Math.abs(macd) / (Math.abs(macd) + 100) * 100 + 50, 95) + '%';
+    macdBar.style.background = macd > 0 ? 'var(--green)' : 'var(--red)';
+  }
+
+  // SIGNAL
+  renderSignal(rsi, sma20, sma50, macd, currentPrice);
+}
+
+// ===== SIGNAL =====
+function renderSignal(rsi, sma20, sma50, macd, price) {
+  const box = document.getElementById('signal-box');
+  const title = document.getElementById('signal-text');
+  const icon = document.getElementById('signal-icon');
+  const reasons = document.getElementById('signal-reasons');
+
+  let bullish = 0, bearish = 0;
+  const rList = [];
+
+  // RSI
+  if (rsi !== null) {
+    if (rsi < 35) { bullish++; rList.push(`RSI a ${rsi.toFixed(1)} → ipervenduto, storicamente zona di rimbalzo`); }
+    else if (rsi > 65) { bearish++; rList.push(`RSI a ${rsi.toFixed(1)} → ipercomprato, possibile correzione imminente`); }
+    else { rList.push(`RSI a ${rsi.toFixed(1)} → zona neutra, nessun segnale forte`); }
+  }
+
+  // SMA
+  if (sma20 && sma50) {
+    if (sma20 > sma50) { bullish++; rList.push(`Golden Cross: SMA20 (${fmtEurShort(sma20)}) sopra SMA50 (${fmtEurShort(sma50)}) → trend rialzista`); }
+    else { bearish++; rList.push(`Death Cross: SMA20 (${fmtEurShort(sma20)}) sotto SMA50 (${fmtEurShort(sma50)}) → trend ribassista`); }
+  }
+  if (sma20 && price) {
+    if (price > sma20) rList.push(`Prezzo sopra SMA20 → a breve termine siamo in positivo`);
+    else rList.push(`Prezzo sotto SMA20 → a breve termine siamo in negativo`);
+  }
+
+  // MACD
+  if (macd !== null) {
+    if (macd > 0) { bullish++; rList.push(`MACD positivo (+${macd.toFixed(2)}) → il momentum è rialzista`); }
+    else { bearish++; rList.push(`MACD negativo (${macd.toFixed(2)}) → il momentum è ribassista`); }
+  }
+
+  // Risultato
+  let type, emoji, label;
+  if (bullish > bearish && bullish >= 2) {
+    type = 'buy'; emoji = '🟢'; label = 'Potenziale opportunità di acquisto';
+  } else if (bearish > bullish && bearish >= 2) {
+    type = 'sell'; emoji = '🔴'; label = 'Segnale di cautela — possibile ribasso';
+  } else {
+    type = 'hold'; emoji = '🟡'; label = 'Segnali contrastanti — meglio aspettare';
+  }
+
+  box.className = `signal-box ${type}`;
+  icon.className = `signal-icon ${type}`;
+  icon.textContent = emoji;
+  title.textContent = label;
+  reasons.innerHTML = rList.map(r => `<li>${r}</li>`).join('');
+}
+
+// ===== GLOSSARY TOGGLE =====
+function toggleGloss(el) {
+  const a = el.querySelector('.gloss-a');
+  const arrow = el.querySelector('.gloss-arrow');
+  a.classList.toggle('open');
+  arrow.classList.toggle('open');
+}
+
+// ===== DAYS BUTTONS =====
+document.querySelectorAll('.day-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    document.querySelectorAll('.day-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.days = parseInt(btn.dataset.days);
+    if (state.selectedCoin) await selectCoin(state.selectedCoin.id);
+  });
+});
+
+// ===== INIT =====
+async function init() {
+  const data = await fetchPrices();
+  if (data) state.priceData = data;
+  renderCoinList(data);
+  // Seleziona Bitcoin di default
+  if (data) await selectCoin('bitcoin');
+}
+
+init();
+
+// Aggiorna prezzi ogni 60 secondi
+setInterval(async () => {
+  const data = await fetchPrices();
+  if (data) { state.priceData = data; renderCoinList(data); }
+}, 60000);
+</script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+/* ===== CORTEX THEME VARIABLES ===== */
+/* This file defines all global CSS custom properties used across the app. */
+
+:root {
+    /* Borders */
+    --border: rgba(255, 255, 255, 0.08);
+    --border-alpha-30: rgba(0, 0, 0, 0.12);
+
+    /* Surfaces */
+    --surface2: rgba(24, 24, 30, 0.5);
+    --surface3: rgba(255, 255, 255, 0.06);
+    --surface-alpha-50: rgba(14, 14, 18, 0.5);
+    --surface-alpha-80: rgba(14, 14, 18, 0.8);
+
+    /* Background Alpha */
+    --bg-alpha-80: rgba(3, 3, 5, 0.8);
+    --bg-alpha-90: rgba(3, 3, 5, 0.9);
+
+    /* Transition spring */
+    --spring: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+
+    /* Icon/button sizing */
+    --gap-icon: 8px;
+    --icon-size-nav: 1.2rem;
+
+    /* Semantic Colors */
+    --red: #ef4444;
+    --green: #10b981;
+    --gold: #f59e0b;
+
+    /* Shadow */
+    --shadow-float: 0 20px 60px -15px rgba(0, 0, 0, 0.5);
+}
+
+/* DEFAULT: DARK MODE */
+:root {
+    --bg-color: #0a0a0a;
+    --text-main: #ffffff;
+    --text-sub: #a1a1aa;
+    --accent: #a855f7;
+    --card-bg: rgba(255, 255, 255, 0.02);
+    --border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Rimuovi eventuali bagliori che lavano il testo in Light Mode */

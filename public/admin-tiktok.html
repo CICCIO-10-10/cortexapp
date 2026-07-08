@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cortex Admin — TikTok</title>
+    <link rel="icon" type="image/png" href="/LOGO_SQUARE.png">
+    <link rel="apple-touch-icon" href="/LOGO_SQUARE.png">
+    <style>
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            line-height: 1.6;
+            color: #1f2937;
+            max-width: 640px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9fafb;
+        }
+        .app-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+        .app-header img { width: 40px; height: 40px; border-radius: 10px; }
+        .app-header span { font-size: 1.3rem; font-weight: 800; color: #111827; }
+        .container { background: #fff; padding: 32px; border-radius: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+        h1 { font-size: 1.3rem; margin-top: 0; }
+        .card { border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+        .status-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 0.95rem; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; background: #d1d5db; }
+        .dot.on { background: #16a34a; }
+        .dot.off { background: #dc2626; }
+        button {
+            background-color: #8b5cf6;
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            margin-right: 8px;
+        }
+        button:disabled { background-color: #c4b5fd; cursor: not-allowed; }
+        button.secondary { background-color: #f3f4f6; color: #374151; }
+        textarea, input[type=text] {
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 10px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+        label { font-size: 0.8rem; color: #6b7280; display: block; margin-bottom: 4px; }
+        .log { background: #111827; color: #d1d5db; font-family: 'Courier New', monospace; font-size: 0.8rem; padding: 14px; border-radius: 8px; max-height: 220px; overflow-y: auto; white-space: pre-wrap; }
+        .preview { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+        .preview img { width: 56px; height: 100px; object-fit: cover; border-radius: 6px; border: 1px solid #e5e7eb; }
+        .gate { text-align: center; padding: 60px 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="app-header"><img src="/LOGO_SQUARE.png" alt="Cortex"><span>Cortex Admin</span></div>
+
+        <div id="gate" class="gate">
+            <h1>Accesso amministratore</h1>
+            <p>Inserisci la dashboard secret per accedere ai controlli TikTok.</p>
+            <input type="text" id="keyInput" placeholder="Dashboard secret">
+            <button id="unlockBtn">Sblocca</button>
+        </div>
+
+        <div id="app" style="display:none;">
+            <h1>Integrazione TikTok</h1>
+            <p style="color:#6b7280; font-size:0.9rem;">Pagina interna per gestire la connessione TikTok (Login Kit) e la pubblicazione contenuti (Content Posting API) sull'account ufficiale Cortex. Ambiente sandbox.</p>
+
+            <div class="card">
+                <div class="status-row"><span class="dot" id="statusDot"></span><span id="statusText">Verifica stato...</span></div>
+                <button id="connectBtn">Connetti TikTok</button>
+                <button class="secondary" id="refreshBtn">Aggiorna stato</button>
+            </div>
+
+            <div class="card">
+                <h2 style="margin-top:0; font-size:1.05rem;">Pubblica su TikTok</h2>
+                <label>Immagini carousel (una URL per riga)</label>
+                <textarea id="imagesInput" rows="5"></textarea>
+                <div class="preview" id="preview"></div>
+                <label>Caption</label>
+                <textarea id="captionInput" rows="3">Studiare con l'AI non è mai stato così semplice ✨ #cortex #studenti #università</textarea>
+                <button id="publishBtn">Pubblica su TikTok</button>
+                <button class="secondary" id="checkStatusBtn" style="display:none;">Controlla stato pubblicazione</button>
+            </div>
+
+            <div class="card">
+                <h2 style="margin-top:0; font-size:1.05rem;">Log</h2>
+                <div class="log" id="log">Pronto.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const DEFAULT_IMAGES = [
+            'https://cortexapp.it/media/tiktok/carousel_dispense_20260610_215157/01_hook.jpg',
+            'https://cortexapp.it/media/tiktok/carousel_dispense_20260610_215157/02_dolore1.jpg',
+            'https://cortexapp.it/media/tiktok/carousel_dispense_20260610_215157/03_dolore2.jpg',
+            'https://cortexapp.it/media/tiktok/carousel_dispense_20260610_215157/04_soluzione.jpg',
+            'https://cortexapp.it/media/tiktok/carousel_dispense_20260610_215157/05_cta.jpg',
+        ];
+
+        const gate = document.getElementById('gate');
+        const app = document.getElementById('app');
+        const logEl = document.getElementById('log');
+        let lastPublishId = null;
+
+        function log(msg) {
+            const time = new Date().toLocaleTimeString('it-IT');
+            logEl.textContent += `\n[${time}] ${msg}`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function getKey() {
+            return localStorage.getItem('cortex_admin_key') || '';
+        }
+
+        async function api(path, opts = {}) {
+            const key = getKey();
+            const resp = await fetch(path, {
+                ...opts,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + key,
+                    ...(opts.headers || {}),
+                },
+            });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+            return data;
+        }
+
+        function renderPreview() {
+            const urls = document.getElementById('imagesInput').value.split('\n').map(s => s.trim()).filter(Boolean);
+            const preview = document.getElementById('preview');
+            preview.innerHTML = urls.map(u => `<img src="${u}" loading="lazy">`).join('');
+        }
+
+        async function refreshStatus() {
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('statusText');
+            text.textContent = 'Verifica stato...';
+            try {
+                const data = await api('/api/tiktok/status');
+                if (data.connected) {
+                    dot.className = 'dot on';
+                    text.textContent = `Connesso${data.open_id ? ' (open_id: ' + data.open_id.slice(0, 10) + '…)' : ''}`;
+                    log('Stato: connesso. ' + JSON.stringify(data.creator_info || {}));
+                } else {
+                    dot.className = 'dot off';
+                    text.textContent = 'Non connesso';
+                }
+            } catch (e) {
+                dot.className = 'dot off';
+                text.textContent = 'Errore: ' + e.message;
+                log('Errore stato: ' + e.message);
+            }
+        }
+
+        function unlock() {
+            const key = document.getElementById('keyInput').value.trim();
+            if (!key) return;
+            localStorage.setItem('cortex_admin_key', key);
+            gate.style.display = 'none';
+            app.style.display = 'block';
+            document.getElementById('imagesInput').value = DEFAULT_IMAGES.join('\n');
+            renderPreview();
+            refreshStatus();
+        }
+
+        document.getElementById('unlockBtn').addEventListener('click', unlock);
+        document.getElementById('keyInput').addEventListener('keydown', e => { if (e.key === 'Enter') unlock(); });
+
+        document.getElementById('connectBtn').addEventListener('click', () => {
+            const key = getKey();
+            log('Reindirizzamento a TikTok per autorizzazione...');
+            window.location.href = '/api/tiktok/auth?key=' + encodeURIComponent(key);
+        });
+
+        document.getElementById('refreshBtn').addEventListener('click', refreshStatus);
+        document.getElementById('imagesInput').addEventListener('input', renderPreview);
+
+        document.getElementById('publishBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('publishBtn');
+            const imageUrls = document.getElementById('imagesInput').value.split('\n').map(s => s.trim()).filter(Boolean);
+            const caption = document.getElementById('captionInput').value.trim();
+            if (imageUrls.length === 0 || !caption) { log('Servono immagini e caption.'); return; }
+            btn.disabled = true;
+            log(`Pubblicazione carousel (${imageUrls.length} immagini)...`);
+            try {
+                const data = await api('/api/tiktok/publish', {
+                    method: 'POST',
+                    body: JSON.stringify({ imageUrls, caption }),
+                });
+                lastPublishId = data.publish_id;
+                log(`✅ Inviato. publish_id = ${data.publish_id} (privacy: ${data.privacy_level})`);
+                document.getElementById('checkStatusBtn').style.display = 'inline-block';
+            } catch (e) {
+                log('❌ Errore pubblicazione: ' + e.message);
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        document.getElementById('checkStatusBtn').addEventListener('click', async () => {
+            if (!lastPublishId) return;
+            try {
+                const data = await api('/api/tiktok/publish-status?publish_id=' + encodeURIComponent(lastPublishId));
+                log('Stato pubblicazione: ' + JSON.stringify(data));
+            } catch (e) {
+                log('Errore controllo stato: ' + e.message);
+            }
+        });
+
+        // Se la dashboard secret è già salvata, sblocca subito.
+        if (getKey()) {
+            gate.style.display = 'none';
+            app.style.display = 'block';
+            document.getElementById('imagesInput').value = DEFAULT_IMAGES.join('\n');
+            renderPreview();
+            refreshStatus();
+        }
+    </script>
+</body>
+</html>
