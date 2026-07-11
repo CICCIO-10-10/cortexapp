@@ -382,7 +382,12 @@
 }
 
 body {
+    /* bg: WebP (~43KB) con fallback PNG per browser legacy */
     background: #030305 url('./media/nebula/bg.png') no-repeat center center fixed;
+    background: #030305 image-set(
+        url('./media/nebula/bg.webp') type('image/webp'),
+        url('./media/nebula/bg.png') type('image/png')
+    ) no-repeat center center fixed;
     background-size: cover;
     color: var(--text);
 }

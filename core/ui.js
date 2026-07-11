@@ -29,6 +29,14 @@ export function showToast(msg, type = '') {
  * @param {'ai'|'duels'|'share'|'feature'} reason  — motivo del blocco
  */
 export function showPaywall(reason = 'ai') {
+    // FIX 10/07/2026: un ospite non deve MAI vedere il paywall €4,99 — il suo
+    // prossimo passo è la registrazione gratuita, non l'abbonamento. Redirect
+    // al gate di login (window.showGuestLoginGate, definito in app.html).
+    if (!window._fbLoggedIn && typeof window.showGuestLoginGate === 'function') {
+        track('paywall_redirect_guest_gate', { reason });
+        window.showGuestLoginGate(reason);
+        return;
+    }
     const CONTEXTS = {
         ai:      { icon: '🤖', title: 'Limite AI Raggiunto',           body: 'Hai esaurito le chiamate AI gratuite di oggi (10/giorno). Passa a Student per <strong>100 chiamate al giorno</strong>.' },
         duels:   { icon: '⚔️', title: 'Neural Duels — Piano Student', body: 'Le sfide 1v1 in tempo reale sono disponibili nel piano <strong>Student</strong>. Sfida i tuoi compagni di corso e scala la leaderboard!' },

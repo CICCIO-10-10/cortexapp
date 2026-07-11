@@ -106,7 +106,12 @@ export async function startStudy(deckIndex) {
 
     document.getElementById('session-done').style.display    = 'none';
     document.getElementById('study-session').style.display   = '';
-    document.getElementById('study-overlay').classList.add('active');
+    const _studyOv = document.getElementById('study-overlay');
+    // Bug "RIPASSA ORA morto": un display:none INLINE stantio sull'overlay
+    // (residuo di vecchie build/PWA) vinceva sulla regola CSS
+    // #study-overlay.active{display:flex}. Rimuovi sempre l'inline prima.
+    _studyOv.style.removeProperty('display');
+    _studyOv.classList.add('active');
 
     track('study_session_start', {
         deck_name: sessionDeckName,

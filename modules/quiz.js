@@ -36,7 +36,19 @@ export function startQuiz(deckIdx) {
         return;
     }
 
-    const overlay = document.getElementById('quiz-overlay');
+    // Bug "Quiz morto": #quiz-overlay era sparito da app.html col redesign,
+    // getElementById tornava null e il click falliva in silenzio
+    // (dopo aver gia' consumato la chiamata AI). Crealo on-demand.
+    let overlay = document.getElementById('quiz-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'quiz-overlay';
+        overlay.className = 'glass';
+        overlay.style.cssText = 'display:none; position:fixed; inset:0; z-index:2100;' +
+            ' align-items:center; justify-content:center; padding:20px;' +
+            ' background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); overflow:auto;';
+        document.body.appendChild(overlay);
+    }
     overlay.style.display = 'flex';
     overlay.innerHTML = _buildModeSelector(deckIdx, deck);
 }

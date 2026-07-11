@@ -141,7 +141,7 @@ export function renderDecks() {
                         ${t('deck_study_now')}
                     </button>
                     <div class="card-sub-actions">
-                        <button class="btn-deck-action" data-fn="openQuiz" data-params="[${i}]">&#10067; Quiz</button>
+                        <button class="btn-deck-action" data-fn="startQuiz" data-params="[${i}]">&#10067; Quiz</button>
                         <button class="btn-deck-action" data-fn="startOral" data-params="[${i}]">&#127891; Prof AI</button>
                         <button class="btn-deck-action" data-fn="startBossMode" data-params="[${i}]">&#128737; Boss</button>
                     </div>

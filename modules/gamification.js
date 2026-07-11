@@ -79,8 +79,22 @@ export function init(deps) {
 
 // ── Core functions ────────────────────────────────────────────────────────────
 
+let _gCloudTimer = null;
 export function saveGState() {
     localStorage.setItem(GAME_STATE_KEY, JSON.stringify(gState));
+    // FIX "XP ballerina": l'XP viveva solo in localStorage e il cloud restava
+    // stantio (si aggiornava solo col salvataggio dei deck) — al reload il
+    // boot ripristinava il valore vecchio. Sync leggero e debounced qui.
+    clearTimeout(_gCloudTimer);
+    _gCloudTimer = setTimeout(() => {
+        try {
+            if (typeof firebase !== 'undefined' && firebase.apps?.length && window._fbUserId) {
+                firebase.app().firestore().collection('users').doc(window._fbUserId)
+                    .set({ gamification: JSON.parse(JSON.stringify(gState)) }, { merge: true })
+                    .catch(() => {});
+            }
+        } catch (_) { /* offline o non loggato: il localStorage basta */ }
+    }, 3000);
 }
 
 export function getLevel() {
@@ -131,6 +145,11 @@ export function awardXP(amount, label) {
         showLevelUp(newLevel);
     } else {
         showXPToast(`+${actualAmount} XP ${label}`);
+    }
+
+    // Ospite: al primo XP guadagnato, invita (una sola volta) a salvare i progressi
+    if (localStorage.getItem('cortex_guest') === '1' && typeof window.__guestMaybePrompt === 'function') {
+        setTimeout(() => window.__guestMaybePrompt(), 1400);
     }
 }
 

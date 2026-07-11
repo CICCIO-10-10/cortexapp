@@ -63,3 +63,29 @@ cortex_review.zip
 
 # Backups
 backups/
+
+# ── Junk: timestamp Vite, backup, archivi (pulizia 08/07/2026) ──
+*.timestamp-*.mjs
+*.bak
+*.zip
+*.tar.gz
+deploy_log.txt
+
+# --- Security (audit 10/07/2026): mai committare segreti ---
+.env
+.env.*
+.secrets/
+**/.secrets/
+*token*.json
+*tokens.json
+*secret*.json
+credentials.json
+client_secret*.json
+*serviceAccount*.json
+*-service-account*.json
+cortex-*-*.json
+.gcloud_key.json
+*.pem
+*.key
+*cookies*.json
+cookies.txt

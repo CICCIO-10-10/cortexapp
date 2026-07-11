@@ -46,6 +46,9 @@ let _trackerStarted       = false; // guard: avvia il tracker una sola volta
 function _startAppTracker(firestoreDb) {
     if (_trackerStarted || !firestoreDb) return;
     _trackerStarted = true;
+    // Escludi il traffico dell'ADMIN dalle statistiche: gonfiava visite,
+    // presence e faceva crollare la % di conversione con i test interni.
+    if (localStorage.getItem('cortex_no_track') === '1') return;
     try {
         const params = new URLSearchParams(window.location.search);
         const source   = params.get('utm_source') || params.get('ref') || 'direct';
@@ -122,7 +125,13 @@ export function getFirestoreDB() {
  */
 export async function callGeminiProxy(payload) {
     const user = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
-    if (!user) throw new Error('Devi essere loggato per usare le funzioni AI.');
+    if (!user) {
+        // FIX 10/07/2026: per l'ospite questo non è un errore, è il momento di
+        // conversione — handleAIError mostra il gate di login Google gratuito.
+        const e = new Error('GUEST_LOGIN_REQUIRED');
+        e.isGuestGate = true;
+        throw e;
+    }
     const idToken = await user.getIdToken();
     const res = await fetch('/api/gemini', {
         method: 'POST',
@@ -283,8 +292,22 @@ export async function testFirebaseConnection() {
  * Se viene fornito deckId, esegue un'operazione atomica (WriteBatch) per aggiornare
  * i metadati nel documento radice e il payload completo nella sub-collection.
  */
+let _syncInFlight = false;
 export async function syncToCloud(deckId = null) {
     if (!firebase?.apps?.length || !window._fbUserId) return;
+    // Hardening: se una sync e' gia' in corso non accodarne altre —
+    // con la persistence multi-tab le batch possono attendere il lease
+    // e accavallarle congela l'app per minuti.
+    if (_syncInFlight) return;
+    _syncInFlight = true;
+    try {
+        return await _syncToCloudInner(deckId);
+    } finally {
+        _syncInFlight = false;
+    }
+}
+
+async function _syncToCloudInner(deckId = null) {
     const _db = firebase.app().firestore();
     const batch = _db.batch();
     const userRef = _db.collection('users').doc(window._fbUserId);
@@ -336,6 +359,22 @@ export async function syncToCloud(deckId = null) {
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
             }
+        } else {
+            // BUG FIX "mazzo sparito dopo reload": saveState() chiama syncToCloud()
+            // SENZA deckId, e prima di questo fix i deck non venivano MAI scritti
+            // nelle sub-collection. Al boot loadFromCloud legge le sub-collection:
+            // i mazzi nuovi (es. "Salva Mazzo" delle flashcard AI) svanivano.
+            // Ora senza deckId sincronizziamo TUTTI i deck.
+            for (const deck of (legacyState?.decks || [])) {
+                if (!deck.id) continue;
+                const deckRef = userRef.collection('decks').doc(deck.id.toString());
+                let plain;
+                try { plain = JSON.parse(JSON.stringify(deck)); } catch (_) { continue; }
+                batch.set(deckRef, {
+                    ...plain,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+            }
         }
 
         await batch.commit();
@@ -354,6 +393,42 @@ export async function loadFromCloud() {
             _db.collection('users').doc(window._fbUserId).get(),
             timeout
         ]);
+
+        // FIX 10/07/2026 — PRIMO LOGIN (doc utente inesistente):
+        // prima non succedeva NULLA: niente doc utente su Firestore (utente invisibile
+        // alle stats) e i progressi fatti da ospite non venivano mai caricati sul cloud
+        // finché l'utente non salvava un nuovo mazzo. Ora: creiamo il doc e pushiamo
+        // subito tutti i dati locali (mazzi, gamification) con syncToCloud().
+        if (!doc.exists) {
+            const uid = window._fbUserId;
+            let localDecksCount = 0;
+            try {
+                localDecksCount = (window._legacyState?.()?.decks
+                    || JSON.parse(localStorage.getItem(KEYS.DECKS_V1) || '[]')
+                    || []).length;
+            } catch (_) {}
+            try {
+                await _db.collection('users').doc(uid).set({
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    email:     window._cortexUserEmail || null,
+                    plan:      'free',
+                    refCode:   uid.slice(0, 8),
+                    migratedToSubcollections: true
+                }, { merge: true });
+                localStorage.setItem('cortex_user_plan', 'free');
+                window._cortexPlanVerified = true;
+                // Push dei progressi ospite (mazzi + gamification) sul cloud
+                await syncToCloud();
+                try {
+                    const { track } = await import('../core/analytics.js');
+                    track('first_login_data_migrated', { decks: localDecksCount });
+                } catch (_) {}
+                console.log(`[Firebase] Primo login: doc utente creato, ${localDecksCount} mazzi locali sincronizzati.`);
+            } catch (e) {
+                console.error('[Firebase] Primo login: creazione doc utente fallita:', e);
+            }
+            return;
+        }
 
         if (doc.exists) {
             const data = doc.data();
@@ -377,6 +452,31 @@ export async function loadFromCloud() {
                         .collection('decks').get();
                     const fullDecks = [];
                     decksSnap.forEach(d => fullDecks.push(d.data()));
+
+                    // FIX 10/07/2026 — CONVERSIONE OSPITE→ACCOUNT ESISTENTE:
+                    // prima il cloud SOVRASCRIVEVA i mazzi creati da ospite (persi per sempre).
+                    // Ora i mazzi locali non presenti sul cloud vengono caricati e uniti.
+                    if (window._guestConversion) {
+                        try {
+                            const localDecks = window._legacyState?.()?.decks
+                                || JSON.parse(localStorage.getItem(KEYS.DECKS_V1) || '[]')
+                                || [];
+                            const cloudIds = new Set(fullDecks.map(d => String(d.id)));
+                            const userRef = _db.collection('users').doc(window._fbUserId);
+                            for (const ld of localDecks) {
+                                if (!ld.id || cloudIds.has(String(ld.id))) continue;
+                                await userRef.collection('decks').doc(String(ld.id)).set({
+                                    ...JSON.parse(JSON.stringify(ld)),
+                                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                                }, { merge: true });
+                                fullDecks.push(ld);
+                            }
+                        } catch (mergeErr) {
+                            console.error('[Firebase] Merge mazzi ospite fallito:', mergeErr);
+                        }
+                        window._guestConversion = false;
+                    }
+
                     if (fullDecks.length > 0) {
                         localStorage.setItem(KEYS.DECKS_V1, JSON.stringify(fullDecks));
                         if (window.__cortexDispatch) {
@@ -445,7 +545,18 @@ export async function loadFromCloud() {
             if (data.sessions) localStorage.setItem(KEYS.SESSIONS || 'mm_sessions', JSON.stringify(data.sessions));
             
             if (data.gamification && window.gState) {
-                Object.assign(window.gState, data.gamification);
+                // FIX "XP ballerina": il cloud (spesso stantio, si aggiornava solo
+                // insieme ai deck) sovrascriveva il progresso locale piu' recente.
+                // Tieni il progresso maggiore e unisci i badge, mai regredire.
+                const _cloudG = data.gamification;
+                const _localG = window.gState;
+                if ((_cloudG.xp || 0) > (_localG.xp || 0)) {
+                    Object.assign(_localG, _cloudG);
+                }
+                _localG.badges = Array.from(new Set([
+                    ...(_localG.badges || []),
+                    ...(_cloudG.badges || []),
+                ]));
                 try { localStorage.setItem('mm_gstate', JSON.stringify(window.gState)); } catch (e) {}
                 if (typeof window.renderNetworkAndStats === 'function') window.renderNetworkAndStats();
             }
@@ -498,6 +609,9 @@ async function migrateDecksToSubcollections(legacyDecks) {
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 const _isMobile = () => /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+// Browser in-app dei social (Instagram/TikTok/Facebook/...): i popup OAuth sono
+// bloccati o si aprono in una finestra cieca → serve SEMPRE il redirect.
+const _isInAppBrowser = () => /FBAN|FBAV|FB_IAB|Instagram|Line\/|TikTok|musical_ly|BytedanceWebview|Snapchat|Pinterest|WhatsApp|LinkedInApp|GSA\//i.test(navigator.userAgent || '');
 
 function _doRedirect(provider) {
     localStorage.setItem('cortex_redirect_pending', '1');
@@ -525,8 +639,8 @@ export function loginWithGoogle() {
     provider.addScope('profile');
     provider.setCustomParameters({ prompt: 'select_account' });
 
-    // Su mobile i popup vengono bloccati o chiusi dal browser → redirect diretto
-    if (_isMobile()) {
+    // Su mobile e nei browser in-app dei social i popup vengono bloccati → redirect diretto
+    if (_isMobile() || _isInAppBrowser()) {
         _doRedirect(provider);
         return;
     }
@@ -1183,6 +1297,13 @@ export async function callGemini(promptOrContents, options = {}) {
     const apiKey = SecurityManager.getApiKey()
         || (typeof window._state !== 'undefined' ? window._state?.geminiKey : null);
     if (!apiKey) {
+        // FIX 10/07/2026: ospite senza chiave → gate di login gratuito,
+        // non un errore criptico su "API key non configurata".
+        if (!window._fbLoggedIn) {
+            const err = new Error('GUEST_LOGIN_REQUIRED');
+            err.isGuestGate = true;
+            throw err;
+        }
         const err = new Error('NO_API_KEY');
         err.isNoApiKey = true;
         throw err;

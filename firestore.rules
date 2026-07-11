@@ -8,8 +8,7 @@ service cloud.firestore {
     function isAdmin() {
       return request.auth != null && (
         request.auth.token.admin == true ||
-        request.auth.uid == 'f8oLEt3LDpT7VN9zFOa10mVE2Cf2' ||
-        request.auth.token.email == 'francesco1cutugno@gmail.com'
+        request.auth.uid == 'f8oLEt3LDpT7VN9zFOa10mVE2Cf2'
       );
     }
 

@@ -62,6 +62,10 @@ export function onAuthStateChangedHandler(user, firebaseDeps = {}) {
         window._fbUserId        = user.uid;
         window._fbLoggedIn      = true;
         window._cortexUserEmail = user.email || '';   // usato da isAdmin()
+        // Admin: marca il browser come no-track per le statistiche interne
+        if (user.uid === 'f8oLEt3LDpT7VN9zFOa10mVE2Cf2') {
+            try { localStorage.setItem('cortex_no_track', '1'); } catch (_) {}
+        }
 
         // Analytics: track login / first open
         const isFirstLogin = !localStorage.getItem('cortex_onboarded');
@@ -73,6 +77,16 @@ export function onAuthStateChangedHandler(user, firebaseDeps = {}) {
         if (overlay)        overlay.classList.add('hidden');
         if (formContainer)  formContainer.style.display = 'block';
         if (loginPrompt)    loginPrompt.style.display = 'none';
+
+        // Login completato → esci dalla modalità ospite e rimuovi il banner
+        // FIX 10/07/2026: memorizza che questa sessione è una conversione ospite→account,
+        // così loadFromCloud() fa il merge dei mazzi locali invece di sovrascriverli.
+        try {
+            window._guestConversion = localStorage.getItem('cortex_guest') === '1';
+            localStorage.removeItem('cortex_guest');
+        } catch (_) {}
+        const _gb = document.getElementById('guest-banner');
+        if (_gb) { _gb.remove(); document.body.style.paddingTop = ''; }
 
         if (user.displayName) {
             localStorage.setItem('mm_user_name', user.displayName);
@@ -147,14 +161,20 @@ export function onAuthStateChangedHandler(user, firebaseDeps = {}) {
         localStorage.removeItem('mm_user_name');
         localStorage.removeItem('mm_user_avatar');
 
+        const isGuest = localStorage.getItem('cortex_guest') === '1';
         if (overlay) {
-            if (redirectPending) {
-                // Redirect Google in corso — non mostrare overlay per evitare il flash
+            if (redirectPending || isGuest) {
+                // Redirect Google in corso, oppure sessione OSPITE → nessun muro login
                 overlay.classList.add('hidden');
             } else {
                 // Utente non autenticato → mostra schermata login
                 overlay.classList.remove('hidden');
             }
+        }
+        if (isGuest) {
+            const appRoot = document.getElementById('app-root');
+            if (appRoot) appRoot.style.display = 'block';
+            if (typeof window.__initGuestMode === 'function') window.__initGuestMode();
         }
         window.showPage?.('home');
         removeSplashScreen();
@@ -271,7 +291,7 @@ export function bootApp(deps) {
     // 3b. Safety Fallback: se Firebase non risponde entro 5s, mostra overlay login
     // Questo garantisce che l'utente possa sempre accedere anche se Firebase è lento o bloccato.
     setTimeout(() => {
-        if (!window._fbLoggedIn) {
+        if (!window._fbLoggedIn && localStorage.getItem('cortex_guest') !== '1') {
             const overlay = document.getElementById('auth-overlay');
             if (overlay && overlay.classList.contains('hidden')) {
                 console.warn('[Boot] Firebase non ha risposto in 5s — mostro overlay login come fallback');

@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+  <title>Cortex Demo — Prova senza registrazione</title>
+  <meta name="description" content="Prova Cortex gratis senza registrazione. Flashcard SRS su Matematica, Storia, Biologia, Fisica, Filosofia, Italiano.">
+  <link rel="icon" href="LOGO_PREMIUM.png">
+  <meta name="theme-color" content="#0a0a0f">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #050508;
+      --bg-card: #0d0d14;
+      --primary: #7c3aed;
+      --primary-glow: rgba(124,58,237,0.35);
+      --primary-light: #a855f7;
+      --text: #ffffff;
+      --muted: rgba(255,255,255,0.5);
+      --border: rgba(255,255,255,0.08);
+      --green: #22c55e;
+      --yellow: #eab308;
+      --red: #ef4444;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow-x: hidden;
+    }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes cardFlip { 0% { transform: rotateY(0deg); } 100% { transform: rotateY(180deg); } }
+    @keyframes popIn { 0% { transform: scale(.85); opacity:0; } 100% { transform: scale(1); opacity:1; } }
+    @keyframes slideLeft { to { transform: translateX(-120%) rotate(-8deg); opacity:0; } }
+    @keyframes slideRight { to { transform: translateX(120%) rotate(8deg); opacity:0; } }
+    @keyframes xpPop { 0% { transform: translateY(0); opacity:1; } 100% { transform: translateY(-40px); opacity:0; } }
+
+    /* ── TOP BAR ── */
+    .topbar {
+      width: 100%; max-width: 480px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px;
+    }
+    .topbar-logo { display: flex; align-items: center; gap: 8px; text-decoration: none; }
+    .topbar-logo img { width: 28px; height: 28px; border-radius: 8px; }
+    .topbar-logo span { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.1rem; color: white; }
+    .topbar-badge {
+      background: rgba(124,58,237,.15); border: 1px solid rgba(124,58,237,.3);
+      color: #a855f7; font-size: .72rem; font-weight: 700;
+      padding: 4px 10px; border-radius: 20px; letter-spacing: .04em;
+    }
+
+    /* ── SCREENS ── */
+    .screen { width: 100%; max-width: 480px; padding: 0 20px 40px; animation: fadeUp .4s ease both; }
+    .screen.hidden { display: none; }
+
+    /* ── SUBJECT PICKER ── */
+    .pick-title {
+      font-family: 'Outfit', sans-serif; font-size: 1.6rem; font-weight: 900;
+      text-align: center; margin: 8px 0 6px;
+    }
+    .pick-sub { text-align: center; color: var(--muted); font-size: .9rem; margin-bottom: 24px; }
+    .subjects-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .subj-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 18px 14px;
+      cursor: pointer; transition: border-color .2s, transform .15s, box-shadow .2s;
+      display: flex; flex-direction: column; gap: 8px;
+      user-select: none;
+    }
+    .subj-card:hover { border-color: rgba(124,58,237,.5); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(124,58,237,.15); }
+    .subj-card:active { transform: scale(.97); }
+    .subj-emoji { font-size: 1.8rem; }
+    .subj-name { font-weight: 700; font-size: .95rem; }
+    .subj-count { color: var(--muted); font-size: .78rem; }
+
+    /* ── QUIZ ── */
+    .quiz-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .quiz-back {
+      background: none; border: none; color: var(--muted); cursor: pointer;
+      font-size: .85rem; display: flex; align-items: center; gap: 4px;
+      padding: 6px 0; transition: color .2s;
+    }
+    .quiz-back:hover { color: white; }
+    .xp-counter {
+      background: rgba(124,58,237,.15); border: 1px solid rgba(124,58,237,.25);
+      color: #a855f7; font-size: .8rem; font-weight: 700;
+      padding: 4px 10px; border-radius: 20px; position: relative;
+    }
+    .xp-float {
+      position: absolute; top: -8px; right: -4px; font-size: .75rem; font-weight: 800;
+      color: #a855f7; pointer-events: none; animation: xpPop .8s ease forwards;
+    }
+    .progress-bar {
+      width: 100%; height: 4px; background: rgba(255,255,255,.08);
+      border-radius: 2px; margin-bottom: 20px; overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; background: linear-gradient(90deg, var(--primary), var(--primary-light));
+      border-radius: 2px; transition: width .4s ease;
+    }
+
+    /* ── CARD ── */
+    .card-scene { perspective: 1000px; margin-bottom: 24px; }
+    .card-wrap {
+      position: relative; width: 100%; height: 220px;
+      transform-style: preserve-3d; transition: transform .45s cubic-bezier(.4,0,.2,1);
+    }
+    .card-wrap.flipped { transform: rotateY(180deg); }
+    .card-face {
+      position: absolute; inset: 0; border-radius: 20px;
+      backface-visibility: hidden; -webkit-backface-visibility: hidden;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 24px; text-align: center; cursor: pointer;
+    }
+    .card-front {
+      background: linear-gradient(135deg, #0d0d14 0%, #12102a 100%);
+      border: 1px solid rgba(124,58,237,.3);
+      box-shadow: 0 0 40px rgba(124,58,237,.1);
+    }
+    .card-back {
+      background: linear-gradient(135deg, #0a1a0a 0%, #0d1a0d 100%);
+      border: 1px solid rgba(34,197,94,.25);
+      box-shadow: 0 0 40px rgba(34,197,94,.08);
+      transform: rotateY(180deg);
+    }
+    .card-label {
+      font-size: .72rem; font-weight: 700; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 12px;
+    }
+    .card-front .card-label { color: rgba(168,85,247,.7); }
+    .card-back .card-label { color: rgba(34,197,94,.7); }
+    .card-text { font-size: 1.05rem; font-weight: 600; line-height: 1.5; color: white; }
+    .card-tap { font-size: .78rem; color: var(--muted); margin-top: 14px; }
+    .card-subj-tag {
+      position: absolute; top: 14px; left: 14px;
+      background: rgba(124,58,237,.15); border: 1px solid rgba(124,58,237,.2);
+      color: rgba(168,85,247,.9); font-size: .7rem; font-weight: 700;
+      padding: 3px 8px; border-radius: 8px;
+    }
+
+    /* ── BUTTONS ── */
+    .answer-btns {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;
+      margin-top: 4px;
+    }
+    .btn-answer {
+      border: none; border-radius: 14px; padding: 14px 8px;
+      font-size: .85rem; font-weight: 700; cursor: pointer;
+      transition: transform .15s, box-shadow .15s; user-select: none;
+    }
+    .btn-answer:active { transform: scale(.95); }
+    .btn-no  { background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.25); color: #f87171; }
+    .btn-no:hover { background: rgba(239,68,68,.2); box-shadow: 0 4px 16px rgba(239,68,68,.15); }
+    .btn-hard { background: rgba(234,179,8,.1); border: 1px solid rgba(234,179,8,.2); color: #fde047; }
+    .btn-hard:hover { background: rgba(234,179,8,.18); box-shadow: 0 4px 16px rgba(234,179,8,.1); }
+    .btn-ok  { background: rgba(34,197,94,.12); border: 1px solid rgba(34,197,94,.25); color: #4ade80; }
+    .btn-ok:hover { background: rgba(34,197,94,.2); box-shadow: 0 4px 16px rgba(34,197,94,.12); }
+
+    .hint-flip { text-align: center; color: var(--muted); font-size: .78rem; margin-top: 10px; }
+
+    /* ── END SCREEN ── */
+    .end-wrap { text-align: center; padding: 20px 0; }
+    .end-emoji { font-size: 3.5rem; margin-bottom: 12px; }
+    .end-title { font-family: 'Outfit', sans-serif; font-size: 1.7rem; font-weight: 900; margin-bottom: 8px; }
+    .end-sub { color: var(--muted); font-size: .95rem; line-height: 1.6; margin-bottom: 28px; }
+    .stats-row {
+      display: flex; justify-content: center; gap: 24px; margin-bottom: 28px;
+    }
+    .stat-box { text-align: center; }
+    .stat-num { font-size: 1.8rem; font-weight: 900; color: var(--primary-light); }
+    .stat-lbl { font-size: .78rem; color: var(--muted); margin-top: 2px; }
+    .btn-signup {
+      display: block; width: 100%; padding: 16px;
+      background: linear-gradient(135deg, var(--primary) 0%, #9333ea 100%);
+      color: white; font-size: 1rem; font-weight: 800;
+      border: none; border-radius: 14px; cursor: pointer;
+      box-shadow: 0 8px 32px rgba(124,58,237,.35);
+      transition: transform .15s, box-shadow .2s;
+      text-decoration: none; text-align: center;
+      margin-bottom: 12px;
+    }
+    .btn-signup:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(124,58,237,.5); }
+    .btn-replay {
+      display: block; width: 100%; padding: 13px;
+      background: rgba(255,255,255,.05); border: 1px solid var(--border);
+      color: var(--muted); font-size: .9rem; font-weight: 600;
+      border-radius: 14px; cursor: pointer; transition: background .2s;
+    }
+    .btn-replay:hover { background: rgba(255,255,255,.1); color: white; }
+    .end-note { font-size: .75rem; color: rgba(255,255,255,.25); margin-top: 14px; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="/" class="topbar-logo">
+    <img src="LOGO_PREMIUM.png" alt="Cortex">
+    <span>Cortex</span>
+  </a>
+  <span class="topbar-badge">DEMO GRATUITA</span>
+</div>
+
+<!-- ── SUBJECT PICKER ── -->
+<div class="screen" id="screen-pick">
+  <p class="pick-title">Scegli la materia 📚</p>
+  <p class="pick-sub">Prova l'algoritmo SRS — nessun account richiesto</p>
+  <div class="subjects-grid" id="subjects-grid"></div>
+</div>
+
+<!-- ── QUIZ ── -->
+<div class="screen hidden" id="screen-quiz">
+  <div class="quiz-header">
+    <button class="quiz-back" onclick="goBack()">← Materie</button>
+    <div class="xp-counter" id="xp-display">⚡ 0 XP</div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+
+  <div class="card-scene">
+    <div class="card-wrap" id="card-wrap" onclick="flipCard()">
+      <div class="card-face card-front">
+        <span class="card-subj-tag" id="card-subj-tag"></span>
+        <div class="card-label">Domanda</div>
+        <div class="card-text" id="card-q"></div>
+        <div class="card-tap">Tocca per vedere la risposta</div>
+      </div>
+      <div class="card-face card-back">
+        <span class="card-subj-tag" id="card-subj-tag-b"></span>
+        <div class="card-label">Risposta</div>
+        <div class="card-text" id="card-a"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="answer-area">
+    <p class="hint-flip" id="hint-flip">Prima leggi la risposta ↑</p>
+    <div class="answer-btns" id="answer-btns" style="display:none">
+      <button class="btn-answer btn-no"   onclick="rate(0)">❌ No</button>
+      <button class="btn-answer btn-hard" onclick="rate(1)">😅 Hard</button>
+      <button class="btn-answer btn-ok"   onclick="rate(2)">✅ Ok</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── END SCREEN ── -->
+<div class="screen hidden" id="screen-end">
+  <div class="end-wrap">
+    <div class="end-emoji">🧠</div>
+    <h2 class="end-title">Deck completato!</h2>
+    <p class="end-sub">Hai appena usato l'algoritmo SRS SM-2 — lo stesso che usa Cortex ogni giorno per farti ricordare tutto senza studiare il doppio.</p>
+    <div class="stats-row">
+      <div class="stat-box"><div class="stat-num" id="end-xp">0</div><div class="stat-lbl">XP guadagnati</div></div>
+      <div class="stat-box"><div class="stat-num" id="end-ok">0</div><div class="stat-lbl">Corrette</div></div>
+      <div class="stat-box"><div class="stat-num" id="end-time">0s</div><div class="stat-lbl">Tempo</div></div>
+    </div>
+    <a href="/" class="btn-signup">Crea account gratis — continua con la tua materia →</a>
+    <button class="btn-replay" onclick="replay()">🔄 Riprova questo deck</button>
+    <p class="end-note">Gratis per sempre · Nessuna carta di credito</p>
+  </div>
+</div>
+
+<script>
+const SUBJECTS = [
+  {
+    id: 'matematica', name: 'Matematica', emoji: '📐', color: '#3b82f6',
+    cards: [
+      { q: 'Cos\'è una derivata?', a: 'La misura della variazione istantanea di una funzione: f\'(x) = lim[h→0] (f(x+h)−f(x))/h' },
+      { q: 'Cosa dice il Teorema di Pitagora?', a: 'In un triangolo rettangolo: a² + b² = c² (dove c è l\'ipotenusa)' },
+      { q: 'Cos\'è un integrale definito?', a: 'L\'area con segno sotto la curva f(x) nell\'intervallo [a,b]: ∫ₐᵇ f(x)dx' },
+      { q: 'Cosa sono i numeri complessi?', a: 'Numeri della forma z = a + bi, dove i = √−1. a è la parte reale, b quella immaginaria' },
+      { q: 'Cos\'è il limite di una funzione?', a: 'Il valore a cui tende f(x) quando x si avvicina a un punto c, indipendentemente dal valore in c' },
+      { q: 'Enuncia il Teorema di Rolle', a: 'Se f è continua in [a,b], derivabile in (a,b) e f(a)=f(b), allora esiste c∈(a,b) con f\'(c)=0' },
+      { q: 'Cos\'è la probabilità condizionata?', a: 'P(A|B) = P(A∩B) / P(B) — probabilità di A dato che B è già avvenuto' },
+      { q: 'Cos\'è una matrice inversa?', a: 'La matrice A⁻¹ tale che A × A⁻¹ = A⁻¹ × A = I (matrice identità). Esiste solo se det(A) ≠ 0' },
+    ]
+  },
+  {
+    id: 'storia', name: 'Storia', emoji: '🏛️', color: '#f59e0b',
+    cards: [
+      { q: 'Quando e perché iniziò la Prima Guerra Mondiale?', a: '28 luglio 1914. L\'assassinio dell\'arciduca Francesco Ferdinando a Sarajevo innescò il sistema di alleanze europee' },
+      { q: 'Cos\'è il Fascismo?', a: 'Ideologia totalitaria nata in Italia con Mussolini (1919). Nazionalismo estremo, corporativismo, culto del capo, repressione delle opposizioni' },
+      { q: 'Cosa fu la Rivoluzione Francese?', a: 'Rivoluzione politico-sociale (1789-1799) che abolì la monarchia assoluta, proclamò i diritti dell\'uomo e aprì l\'era delle democrazie moderne' },
+      { q: 'Quando cadde il Muro di Berlino e cosa significò?', a: '9 novembre 1989. Segnò la fine della Guerra Fredda e la riunificazione della Germania (1990)' },
+      { q: 'Cos\'è il Piano Marshall?', a: 'Piano di aiuti economici USA all\'Europa occidentale (1948-1952) per la ricostruzione post-WWII e per contenere l\'espansione sovietica' },
+      { q: 'Cosa fu il Totalitarismo del \'900?', a: 'Regime politico che controlla ogni aspetto della vita pubblica e privata. Esempi: Nazismo (Germania), Fascismo (Italia), Stalinismo (URSS)' },
+      { q: 'Cos\'è la Shoah?', a: 'Genocidio sistematico di 6 milioni di ebrei europei perpetrato dalla Germania nazista durante la WWII (1941-1945)' },
+      { q: 'Cosa fu la Guerra Fredda?', a: 'Conflitto politico-ideologico (1947-1991) tra USA (blocco occidentale) e URSS (blocco sovietico), senza scontro militare diretto' },
+    ]
+  },
+  {
+    id: 'biologia', name: 'Biologia', emoji: '🧬', color: '#22c55e',
+    cards: [
+      { q: 'Cos\'è il DNA?', a: 'Acido desossiribonucleico: molecola a doppia elica che contiene le informazioni genetiche. Composta da 4 basi: Adenina, Timina, Guanina, Citosina' },
+      { q: 'Cosa sono i mitocondri?', a: '"Centrali energetiche" della cellula. Producono ATP tramite respirazione cellulare aerobica. Hanno il proprio DNA' },
+      { q: 'Cos\'è la fotosintesi clorofilliana?', a: '6CO₂ + 6H₂O + luce → C₆H₁₂O₆ + 6O₂. Le piante convertono energia luminosa in energia chimica (glucosio)' },
+      { q: 'Cos\'è la selezione naturale di Darwin?', a: 'Gli individui con caratteristiche vantaggiose per l\'ambiente sopravvivono e si riproducono di più, trasmettendo quei caratteri. Motore dell\'evoluzione' },
+      { q: 'Cosa sono gli enzimi?', a: 'Proteine catalizzatori biologici: accelerano le reazioni chimiche senza essere consumati. Ogni enzima è specifico per un substrato (chiave-serratura)' },
+      { q: 'Cos\'è la mitosi?', a: 'Divisione cellulare che produce 2 cellule figlie geneticamente identiche alla madre (2n→2n). Fasi: profase, metafase, anafase, telofase' },
+      { q: 'Cos\'è la meiosi?', a: 'Divisione cellulare che produce 4 cellule aploidi (n) geneticamente diverse. Serve per formare i gameti (spermatozoi e ovociti)' },
+      { q: 'Cos\'è un ecosistema?', a: 'Sistema formato da una comunità di organismi (biocenosi) e il loro ambiente fisico (biotopo) in interazione. Es: foresta, lago, prateria' },
+    ]
+  },
+  {
+    id: 'fisica', name: 'Fisica', emoji: '⚡', color: '#a855f7',
+    cards: [
+      { q: 'Enuncia il Primo Principio della Dinamica', a: 'Un corpo rimane in quiete o in moto rettilineo uniforme finché una forza non agisce su di esso (Principio di Inerzia — Newton)' },
+      { q: 'Qual è la formula della forza?', a: 'F = m × a (Secondo Principio della Dinamica). La forza è uguale alla massa per l\'accelerazione. Unità: Newton [N]' },
+      { q: 'Cos\'è l\'energia cinetica?', a: 'Energia posseduta da un corpo in moto: Ec = ½mv². Dipende dalla massa e dal quadrato della velocità' },
+      { q: 'Enuncia la Legge di Ohm', a: 'V = R × I. La tensione (V) è uguale alla resistenza (R) per l\'intensità di corrente (I)' },
+      { q: 'Cos\'è il Campo Elettrico?', a: 'Regione dello spazio in cui una carica elettrica subisce una forza. E = F/q. Si rappresenta con linee di campo che vanno da + a −' },
+      { q: 'Cosa dice il Principio di Conservazione dell\'Energia?', a: 'L\'energia totale di un sistema isolato rimane costante. L\'energia si trasforma ma non si crea né si distrugge' },
+      { q: 'Cos\'è la velocità della luce?', a: 'c ≈ 3 × 10⁸ m/s nel vuoto. È la velocità massima raggiungibile nell\'universo (Relatività Speciale di Einstein)' },
+      { q: 'Cos\'è la Legge di Gravitazione Universale di Newton?', a: 'F = G × (m₁×m₂)/r². Ogni corpo attrae ogni altro con forza proporzionale alle masse e inversamente proporzionale al quadrato della distanza' },
+    ]
+  },
+  {
+    id: 'filosofia', name: 'Filosofia', emoji: '🦉', color: '#ec4899',
+    cards: [
+      { q: 'Cos\'è il Cogito di Cartesio?', a: '"Cogito ergo sum" (penso dunque sono). L\'unica certezza indubitable: anche se tutto è illusione, il dubbio stesso prova l\'esistenza del pensante' },
+      { q: 'Cosa intende Platone per "Idea"?', a: 'Modello eterno, immutabile e perfetto che esiste nel mondo iperuranio. Le cose sensibili sono copie imperfette delle Idee' },
+      { q: 'Cos\'è l\'imperativo categorico di Kant?', a: '"Agisci solo secondo quella massima che puoi volere diventi legge universale." Principio morale assoluto, svincolato dalle conseguenze' },
+      { q: 'Cosa sosteneva Nietzsche con "Dio è morto"?', a: 'La crisi dei valori morali e metafisici tradizionali. L\'uomo deve creare nuovi valori: il Superuomo (Übermensch) che afferma la vita' },
+      { q: 'Cos\'è la dialettica hegeliana?', a: 'Processo di sviluppo della realtà e del pensiero: Tesi → Antitesi → Sintesi. La sintesi supera (Aufhebung) le contraddizioni integrando entrambi' },
+      { q: 'Cos\'è il Mito della Caverna di Platone?', a: 'Gli uomini sono come prigionieri incatenati che scambiano le ombre (apparenze) per la realtà. Il filosofo esce dalla caverna e vede la luce (verità)' },
+      { q: 'Cos\'è l\'esistenzialismo?', a: 'Corrente filosofica (Sartre, Heidegger, Camus) che pone l\'esistenza concreta dell\'individuo al centro. "L\'esistenza precede l\'essenza" (Sartre)' },
+      { q: 'Cos\'è la maieutica socratica?', a: 'Metodo dialogico di Socrate: attraverso domande, aiuta l\'interlocutore a "partorire" la verità già presente in sé. "So di non sapere"' },
+    ]
+  },
+  {
+    id: 'italiano', name: 'Italiano', emoji: '📖', color: '#f97316',
+    cards: [
+      { q: 'Chi scrisse la Divina Commedia e quando?', a: 'Dante Alighieri (1265-1321). Completata intorno al 1320. Tre cantiche: Inferno, Purgatorio, Paradiso. 100 canti totali' },
+      { q: 'Di cosa parlano I Promessi Sposi?', a: 'Romanzo storico di Alessandro Manzoni: storia d\'amore tra Renzo e Lucia nell\'Italia del \'600 spagnolo. Prima grande opera in italiano moderno' },
+      { q: 'Chi fu Leopardi e qual era la sua visione?', a: 'Giacomo Leopardi (1798-1837): poeta del pessimismo cosmico. La natura è matrigna, la felicità impossibile. Opere: Canti, Zibaldone, Operette Morali' },
+      { q: 'Cos\'è il Verismo italiano?', a: 'Corrente letteraria (1870-1900) che rappresenta la realtà sociale senza idealizzazioni. Fondatore: Giovanni Verga. Opere: I Malavoglia, Mastro-don Gesualdo' },
+      { q: 'Cos\'è il Futurismo?', a: 'Movimento artistico-letterario (1909) fondato da Marinetti. Esaltazione di velocità, tecnologia, guerra. Manifesto Futurista: rottura col passato' },
+      { q: 'Chi fu Pirandello e cosa trattava?', a: 'Luigi Pirandello (1867-1936): Teatro dell\'Assurdo. Temi: identità frammentata, relativismo, maschera sociale. Opere: Sei personaggi, Il fu Mattia Pascal' },
+      { q: 'Cos\'è la poetica del Decadentismo?', a: 'Movimento fine \'800: rifiuto del positivismo, estetismo, simbolismo. Il poeta è "vate" o maledetto. In Italia: D\'Annunzio, Pascoli' },
+      { q: 'Chi fu Italo Svevo?', a: 'Romanziere triestino (1861-1928). Pioniere della psicoanalisi in letteratura. Opera principale: La Coscienza di Zeno (1923) — narratore inaffidabile' },
+    ]
+  },
+];
+
+let currentSubj = null;
+let currentCards = [];
+let currentIdx = 0;
+let isFlipped = false;
+let xp = 0;
+let okCount = 0;
+let startTime = 0;
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+  const el = document.getElementById(id);
+  el.classList.remove('hidden');
+  el.style.animation = 'none';
+  requestAnimationFrame(() => { el.style.animation = ''; });
+}
+
+// Build subject grid
+const grid = document.getElementById('subjects-grid');
+SUBJECTS.forEach(s => {
+  const card = document.createElement('div');
+  card.className = 'subj-card';
+  card.innerHTML = `
+    <div class="subj-emoji">${s.emoji}</div>
+    <div class="subj-name">${s.name}</div>
+    <div class="subj-count">${s.cards.length} card</div>
+  `;
+  card.style.borderColor = s.color + '30';
+  card.addEventListener('click', () => startDeck(s));
+  grid.appendChild(card);
+});
+
+function startDeck(subj) {
+  currentSubj = subj;
+  currentCards = [...subj.cards].sort(() => Math.random() - .5);
+  currentIdx = 0;
+  xp = 0;
+  okCount = 0;
+  startTime = Date.now();
+  updateXP();
+  showScreen('screen-quiz');
+  loadCard();
+}
+
+function loadCard() {
+  if (currentIdx >= currentCards.length) { showEnd(); return; }
+  const card = currentCards[currentIdx];
+  const pct = (currentIdx / currentCards.length) * 100;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('card-q').textContent = card.q;
+  document.getElementById('card-a').textContent = card.a;
+  document.getElementById('card-subj-tag').textContent = currentSubj.emoji + ' ' + currentSubj.name;
+  document.getElementById('card-subj-tag-b').textContent = currentSubj.emoji + ' ' + currentSubj.name;
+
+  // Reset card state
+  const wrap = document.getElementById('card-wrap');
+  wrap.classList.remove('flipped');
+  isFlipped = false;
+  document.getElementById('answer-btns').style.display = 'none';
+  document.getElementById('hint-flip').style.display = 'block';
+}
+
+function flipCard() {
+  if (isFlipped) return;
+  isFlipped = true;
+  document.getElementById('card-wrap').classList.add('flipped');
+  document.getElementById('answer-btns').style.display = 'grid';
+  document.getElementById('hint-flip').style.display = 'none';
+}
+
+function rate(score) {
+  const xpGain = [5, 10, 20][score];
+  xp += xpGain;
+  if (score > 0) okCount++;
+  updateXP('+' + xpGain);
+  currentIdx++;
+  setTimeout(loadCard, 150);
+}
+
+function updateXP(delta) {
+  const el = document.getElementById('xp-display');
+  el.textContent = '⚡ ' + xp + ' XP';
+  if (delta) {
+    const pop = document.createElement('span');
+    pop.className = 'xp-float';
+    pop.textContent = delta;
+    el.appendChild(pop);
+    setTimeout(() => pop.remove(), 800);
+  }
+}
+
+function showEnd() {
+  const elapsed = Math.round((Date.now() - startTime) / 1000);
+  document.getElementById('end-xp').textContent = xp;
+  document.getElementById('end-ok').textContent = okCount + '/' + currentCards.length;
+  document.getElementById('end-time').textContent = elapsed + 's';
+  document.getElementById('progress-fill').style.width = '100%';
+  showScreen('screen-end');
+}
+
+function goBack() {
+  showScreen('screen-pick');
+}
+
+function replay() {
+  startDeck(currentSubj);
+}
+</script>
+</body>
+</html>

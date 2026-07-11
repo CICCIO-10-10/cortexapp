@@ -993,12 +993,17 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
     });
 
     // Visite all-time: somma di tutti i documenti 'pageviews_<data>' in 'analytics'
+    // RESET 10/07/2026: i conteggi pre-fix erano ~90% visite di test interne e il
+    // tracking GA4/eventi era rotto. I doc storici restano su Firestore, ma il
+    // contatore "all-time" riparte da questa data (dati finalmente puliti).
+    const ANALYTICS_RESET_DATE = '2026-07-10';
     let allTimeLanding = 0;
     let allTimeApp = 0;
     let trackedDays = 0;
     const allTimeSourceBreakdown = {};
     analyticsAllSnap.docs.forEach(doc => {
       if (!doc.id.startsWith('pageviews_')) return;
+      if (doc.id.slice('pageviews_'.length) < ANALYTICS_RESET_DATE) return;
       trackedDays++;
       const d = doc.data();
       allTimeLanding += d.landing || 0;

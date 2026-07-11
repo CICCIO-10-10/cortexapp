@@ -45,6 +45,22 @@ export function saveAndGeneratePlan() {
     const deck = buildDeckObject();
     if (!deck) return;
 
+    // UX: senza data esame il piano esce come template generico di 30 giorni
+    // in silenzio. Avvisa una volta e punta il campo; il secondo click procede.
+    if (!deck.examDate && !window._planNoDateWarned) {
+        window._planNoDateWarned = true;
+        _deps.showToast('📅 Nessuna data esame: aggiungila per un piano su misura, o ripremi per un piano generico da 30 giorni.', 'info');
+        const dateEl = document.getElementById('exam-date');
+        if (dateEl) {
+            dateEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            dateEl.style.outline = '2px solid var(--accent)';
+            setTimeout(() => { dateEl.style.outline = ''; }, 4000);
+            try { dateEl.focus(); } catch (_) {}
+        }
+        return;
+    }
+    window._planNoDateWarned = false;
+
     // Assign global study method if no specific one exists
     if (!deck.studyMethod && _deps.state.globalStudyMethod) {
         deck.studyMethod = _deps.state.globalStudyMethod;
@@ -76,6 +92,29 @@ export function showStudyPlan(i) {
             <hr style="border:0; border-top:1px solid var(--border); margin:32px 0;">
             <h3>📅 Tabella di Marcia (Metodo Cortex)</h3>
         `;
+    } else if (d.text) {
+        // UX FIX: il riassunto si genera in async dopo il salvataggio, ma la
+        // pagina piano non si aggiornava mai — sembrava che non esistesse.
+        // Placeholder + polling: appena d.aiSummary arriva, re-render.
+        content = `
+            <div id="ai-summary-pending" style="margin-bottom:32px; padding:20px; background:var(--surface); border:1px dashed var(--border); border-radius:12px; color:var(--text-muted); font-size:0.95rem;">
+                ⏳ Riassunto IA in preparazione&hellip; apparira' qui appena pronto.
+            </div>
+        `;
+        const _deckRef = d;
+        let _tries = 0;
+        const _poll = setInterval(() => {
+            _tries++;
+            if (_deckRef.aiSummary) {
+                clearInterval(_poll);
+                // re-render solo se siamo ancora sulla pagina piano
+                if (document.getElementById('ai-summary-pending')) showStudyPlan(i);
+            } else if (_tries > 40 || !document.getElementById('ai-summary-pending')) {
+                clearInterval(_poll);
+                const el = document.getElementById('ai-summary-pending');
+                if (el && _tries > 40) el.innerHTML = 'ℹ️ Riassunto non ancora pronto — riapri il piano tra poco o usa "Rigenera Riassunto" qui sotto.';
+            }
+        }, 2000);
     }
 
     content += generateStudyPlan(d, i);
@@ -92,6 +131,7 @@ export async function regeneratePlanWithAI() {
     const premium = await (window.isPremiumSafe?.() ?? Promise.resolve(window.isPremium?.()));
     if (!premium) {
         if (window.showPaywall) window.showPaywall('studyplan');
+        else _deps.showToast('Funzione premium — aggiorna il piano per usarla 👑', 'info');
         return;
     }
     const currentDeckIndex = _deps.getCurrentDeckIndex();
@@ -120,7 +160,9 @@ Rispondi ESCLUSIVAMENTE in formato JSON: {"summary": "..."}`;
             responseMimeType: 'application/json'
         });
 
-        const result = JSON.parse(text);
+        // Parse robusto: Gemini a volte avvolge il JSON in ```json ... ```
+        const _clean = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/, '').trim();
+        const result = JSON.parse(_clean);
         if (result && result.summary) {
             const htmlSummary = result.summary.replace(/\n/g, '<br>');
             _deps.state.decks[currentDeckIndex].aiSummary = htmlSummary;
@@ -182,7 +224,7 @@ export function generateStudyPlan(d, deckIdx) {
     const hasCards = d.cards && d.cards.length > 0;
     const studyBtn = hasCards
         ? `<button aria-label="Inizia sessione di studio con Spaced Repetition" class="btn btn-primary" data-fn="startStudy" data-params="[${deckIdx}]">▶ Inizia Spaced Repetition</button>`
-        : `<button aria-label="Aggiungi flashcard a ${d.name}" class="btn btn-outline" data-fn="editDeckAndScrollFlashcards" data-params="[${deckIdx}]">+ Aggiungi Flashcard ad ${d.name}</button>`;
+        : `<button aria-label="Aggiungi flashcard a ${d.name}" class="btn btn-outline" data-fn="editDeckAndScrollFlashcards" data-params="[${deckIdx}]">+ Aggiungi Flashcard a ${d.name}</button>`;
     const attHtml = (d.attachments && d.attachments.length > 0) ? `
                 <div style="margin-top:16px; margin-bottom:16px;">
                     <h4 style="font-size:0.85rem;color:var(--accent2);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">📎 Allegati Esame</h4>
@@ -226,7 +268,7 @@ ${attHtml}
   </div>
   <div class="plan-phase phase-red">
     <div class="phase-header"><div class="phase-num">4</div><div><div class="phase-title">${t('plan_phase4_title')}</div><div class="phase-dates">${fmt(p4Start)} → ${examDate ? fmt(p4End) : 'Esame'} (${p4Days}g)</div></div></div>
-    <div class="phase-body">Non studiare materiale nuovo. Solo flashcard in scadenza e mappe. L'ultima sera: niente studio, risposa. Il cervello consolida durante il sonno.</div>
+    <div class="phase-body">Non studiare materiale nuovo. Solo flashcard in scadenza e mappe. L'ultima sera: niente studio, riposa. Il cervello consolida durante il sonno.</div>
     <div class="phase-tech"><span class="tech-chip">⚡ Spaced Repetition</span><span class="tech-chip">🗺️ Rilettura Mind Map</span><span class="tech-chip">😴 Sonno 8h</span></div>
   </div>
 </div>

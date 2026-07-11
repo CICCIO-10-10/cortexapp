@@ -84,6 +84,14 @@ export async function fetchWithTimeout(url, options, timeout = 30000) {
 export function handleAIError(err, context = '', showToast = window.showToast) {
     const toast = showToast || window.showToast || (() => {});
 
+    // FIX 10/07/2026: ospite che tocca l'AI → gate di login Google gratuito
+    // (momento di conversione), non un toast criptico che sparisce.
+    if (err?.isGuestGate || err?.message === 'GUEST_LOGIN_REQUIRED' || err?.message?.includes('Devi essere loggato')) {
+        if (window.showGuestLoginGate) window.showGuestLoginGate(context || 'ai');
+        else toast('✨ Accedi gratis con Google per usare l\'AI — il tuo materiale resta qui.', 'info');
+        return;
+    }
+
     if (err?.isPaywall) {
         if (window.showPaywall) window.showPaywall('ai');
         return;

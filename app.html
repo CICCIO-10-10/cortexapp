@@ -3,6 +3,23 @@
 
 <head>
     <meta charset="UTF-8" />
+    <!-- Google tag (gtag.js) — FIX 10/07/2026: l'app era completamente invisibile a GA4 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-DFJ42477QK"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        // Admin no-track (stesso flag del tracker interno): niente sessioni GA4 dai nostri test
+        // Visita una volta con ?notrack=1 per marcare il browser come no-track (persistente)
+        var _cortexNoTrack = false;
+        try {
+            if (new URLSearchParams(location.search).get('notrack') === '1') localStorage.setItem('cortex_no_track', '1');
+            _cortexNoTrack = localStorage.getItem('cortex_no_track') === '1';
+        } catch(e) {}
+        if (!_cortexNoTrack) {
+            gtag('js', new Date());
+            gtag('config', 'G-DFJ42477QK');
+        }
+    </script>
     <link rel="preconnect" href="https://firebasestorage.googleapis.com">
     <link rel="preconnect" href="https://firestore.googleapis.com">
     <link rel="preconnect" href="https://identitytoolkit.googleapis.com">
@@ -283,9 +300,21 @@
             </button>
 
             <!-- Footer -->
-            <p style="margin-top:24px;font-size:0.75rem;color:rgba(255,255,255,0.22);line-height:1.6;">
-                Gratuito · I tuoi dati rimangono privati<br>
-                Accedi con Google per sincronizzare su tutti i tuoi dispositivi
+            <button onclick="window.enterAsGuestApp && window.enterAsGuestApp()" style="
+                display:inline-flex;align-items:center;justify-content:center;gap:8px;
+                width:100%;max-width:340px;margin-top:14px;
+                padding:14px 28px;border-radius:100px;cursor:pointer;
+                font-family:'Outfit',sans-serif;font-size:0.98rem;font-weight:700;
+                color:rgba(255,255,255,0.82);
+                background:transparent;border:1px solid rgba(255,255,255,0.18);
+                transition:background 0.15s;"
+                onmouseover="this.style.background='rgba(255,255,255,0.06)'"
+                onmouseout="this.style.background='transparent'">
+                Continua come ospite →
+            </button>
+            <p style="margin-top:20px;font-size:0.75rem;color:rgba(255,255,255,0.22);line-height:1.6;">
+                Gratuito · Entri subito, senza registrarti<br>
+                Accedi con Google per salvare e sincronizzare i tuoi dati
             </p>
         </div>
     </div>
@@ -1598,12 +1627,6 @@
                         </div>
                     </div>
 
-                    <!-- Social proof -->
-                    <div style="margin-bottom:18px; padding:10px 14px; background:rgba(255,255,255,0.03); border-radius:10px; border:1px solid rgba(255,255,255,0.06);">
-                        <span style="font-size:0.75rem; color:rgba(255,255,255,0.45);">👩‍🎓 👨‍🔬 👩‍💻 &nbsp;</span>
-                        <span style="font-size:0.75rem; color:rgba(255,255,255,0.5);">2.000+ studenti stanno già studiando con Cortex</span>
-                    </div>
-
                     <button class="btn btn-primary" style="width:100%; padding:18px; border-radius:18px; font-size:1.05rem; font-weight:800; box-shadow:0 10px 40px var(--accent-glow);"
                         data-fn="closeOnboarding">Crea il mio primo mazzo →</button>
                 </div>
@@ -1856,6 +1879,111 @@
             </p>
         </div>
     </div>
+
+    <!-- ── MODALITÀ OSPITE: banner non bloccante + prompt "salva progressi" ── -->
+    <script>
+    (function(){
+      function isGuest(){ return localStorage.getItem('cortex_guest')==='1'; }
+      function isLogged(){ return localStorage.getItem('mm_is_logged_in')==='true' || window._fbLoggedIn===true; }
+
+      // Entra come ospite dall'overlay login (dentro l'app)
+      window.enterAsGuestApp = function(){
+        try{
+          localStorage.setItem('cortex_guest','1');
+          localStorage.removeItem('cortex_redirect_pending');
+          if(!localStorage.getItem('mm_user_name')) localStorage.setItem('mm_user_name','Ospite');
+        }catch(e){}
+        var ov=document.getElementById('auth-overlay'); if(ov) ov.classList.add('hidden');
+        var ar=document.getElementById('app-root'); if(ar) ar.style.display='block';
+        if(typeof window.__initGuestMode==='function') window.__initGuestMode();
+        if(typeof window.showPage==='function') window.showPage('home');
+      };
+
+      // Login Google (converte l'ospite in account, salva i dati)
+      window.__guestLogin = function(){
+        try{ localStorage.removeItem('cortex_guest'); }catch(e){}
+        if(typeof window.loginWithGoogle==='function'){ window.loginWithGoogle(); }
+        else { location.href='/'; }
+      };
+
+      // ── GATE DI CONVERSIONE (FIX 10/07/2026) ──────────────────────────────
+      // Mostrato quando un ospite tocca una funzione AI: invece di un errore
+      // criptico o del paywall €4,99, gli chiediamo il login Google gratuito
+      // NEL momento di massima motivazione (ha appena incollato i suoi appunti).
+      window.showGuestLoginGate = function(context){
+        if(document.getElementById('guest-login-gate')) return;
+        try{ if(typeof gtag==='function' && localStorage.getItem('cortex_no_track')!=='1') gtag('event','guest_ai_gate_shown',{context:String(context||'')}); }catch(e){}
+        var m=document.createElement('div');
+        m.id='guest-login-gate';
+        m.style.cssText='position:fixed;inset:0;z-index:60000;background:rgba(3,3,5,0.88);backdrop-filter:blur(14px);display:flex;align-items:center;justify-content:center;padding:24px;';
+        m.innerHTML=
+          '<div style="background:rgba(18,18,26,0.98);border:1px solid rgba(139,92,246,0.35);border-radius:24px;padding:36px 28px;max-width:420px;width:100%;text-align:center;box-shadow:0 24px 80px rgba(139,92,246,0.25);">'+
+            '<div style="font-size:2.6rem;margin-bottom:14px;">✨</div>'+
+            '<h2 style="color:#fff;font-size:1.35rem;font-weight:800;margin:0 0 10px;font-family:\'Outfit\',sans-serif;">Le tue flashcard sono pronte da generare</h2>'+
+            '<p style="color:rgba(255,255,255,0.65);font-size:0.95rem;line-height:1.6;margin:0 0 24px;">Accedi gratis con Google (1 click) per attivare l\'AI.<br>Il tuo materiale resta esattamente dove l\'hai lasciato.</p>'+
+            '<button id="glg-login" style="display:inline-flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:15px;border:none;border-radius:100px;cursor:pointer;font-family:\'Outfit\',sans-serif;font-size:1.02rem;font-weight:800;color:#fff;background:linear-gradient(135deg,#8b5cf6,#d946ef);box-shadow:0 12px 36px rgba(139,92,246,0.4);">'+
+              '<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" height="20" alt="" style="border-radius:3px;background:#fff;padding:1px;">Continua con Google — è gratis</button>'+
+            '<button id="glg-dismiss" style="display:block;width:100%;background:none;border:none;color:rgba(255,255,255,0.4);font-size:0.85rem;margin-top:14px;cursor:pointer;font-family:inherit;">Non ora</button>'+
+          '</div>';
+        document.body.appendChild(m);
+        document.getElementById('glg-login').onclick=function(){
+          try{ if(typeof gtag==='function' && localStorage.getItem('cortex_no_track')!=='1') gtag('event','guest_ai_gate_login',{context:String(context||'')}); }catch(e){}
+          m.remove(); window.__guestLogin();
+        };
+        document.getElementById('glg-dismiss').onclick=function(){
+          try{ if(typeof gtag==='function' && localStorage.getItem('cortex_no_track')!=='1') gtag('event','guest_ai_gate_dismiss',{context:String(context||'')}); }catch(e){}
+          m.remove();
+        };
+      };
+
+      // Banner fisso in alto, ignorabile
+      window.__initGuestMode = function(){
+        if(!isGuest() || isLogged()) return;
+        if(document.getElementById('guest-banner')) return;
+        var b=document.createElement('div');
+        b.id='guest-banner';
+        b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:15000;display:flex;align-items:center;justify-content:center;gap:12px;padding:8px 14px;font-family:Inter,system-ui,sans-serif;font-size:0.86rem;color:#fff;background:linear-gradient(90deg,rgba(139,92,246,0.96),rgba(217,70,239,0.96));box-shadow:0 4px 20px rgba(0,0,0,0.3);';
+        b.innerHTML='<span>👤 Stai usando Cortex come <b>ospite</b> — i progressi non sono salvati.</span>'+
+          '<button id="guest-save-btn" style="background:#fff;color:#7c3aed;border:none;border-radius:8px;padding:6px 14px;font-weight:800;font-size:0.82rem;cursor:pointer;">Salva i progressi</button>'+
+          '<button id="guest-dismiss-btn" aria-label="Chiudi" style="background:transparent;border:none;color:rgba(255,255,255,0.85);font-size:1.1rem;cursor:pointer;line-height:1;">×</button>';
+        document.body.appendChild(b);
+        document.body.style.paddingTop='38px';
+        document.getElementById('guest-save-btn').onclick=window.__guestLogin;
+        document.getElementById('guest-dismiss-btn').onclick=function(){
+          b.remove(); document.body.style.paddingTop='';
+        };
+      };
+
+      // Prompt one-time al primo traguardo (chiamato da awardXP quando ospite)
+      window.__guestMaybePrompt = function(){
+        if(!isGuest() || isLogged()) return;
+        if(localStorage.getItem('cortex_guest_prompted')==='1') return;
+        try{ localStorage.setItem('cortex_guest_prompted','1'); }catch(e){}
+        var xp = 0;
+        try{ xp = (JSON.parse(localStorage.getItem('mm_gstate')||'{}').xp)||0; }catch(e){}
+        var m=document.createElement('div');
+        m.id='guest-save-modal';
+        m.style.cssText='position:fixed;inset:0;z-index:60000;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(3,3,6,0.82);backdrop-filter:blur(8px);font-family:Inter,system-ui,sans-serif;';
+        m.innerHTML='<div style="max-width:380px;width:100%;background:rgba(18,18,26,0.98);border:1px solid rgba(168,85,247,0.35);border-radius:22px;padding:30px;text-align:center;color:#fff;box-shadow:0 30px 90px rgba(168,85,247,0.25);">'+
+          '<div style="font-size:2.2rem;margin-bottom:8px;">🔥</div>'+
+          '<h3 style="font-family:Outfit,sans-serif;font-weight:900;font-size:1.35rem;margin:0 0 8px;">Ottimo inizio'+(xp?(', +'+xp+' XP!'):'!')+'</h3>'+
+          '<p style="color:rgba(255,255,255,0.62);font-size:0.94rem;line-height:1.5;margin:0 0 22px;">Crea un account gratis in un click per <b>non perdere</b> i tuoi progressi, mazzi e streak — e ritrovarli su ogni dispositivo.</p>'+
+          '<button id="gsm-save" style="width:100%;padding:14px;border:none;border-radius:12px;font-weight:800;font-size:1rem;color:#fff;background:linear-gradient(135deg,#8b5cf6,#d946ef,#3b82f6);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;">'+
+            '<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" height="20" alt=""> Salva con Google</button>'+
+          '<button id="gsm-later" style="width:100%;margin-top:10px;padding:12px;border:1px solid rgba(255,255,255,0.14);border-radius:12px;background:transparent;color:rgba(255,255,255,0.55);font-weight:600;font-size:0.9rem;cursor:pointer;">Continua come ospite</button>'+
+          '</div>';
+        document.body.appendChild(m);
+        document.getElementById('gsm-save').onclick=function(){ m.remove(); window.__guestLogin(); };
+        document.getElementById('gsm-later').onclick=function(){ m.remove(); };
+        m.addEventListener('click',function(e){ if(e.target===m) m.remove(); });
+      };
+
+      // Se l'app parte già in ospite (flag presente al load), inizializza il banner
+      document.addEventListener('DOMContentLoaded', function(){
+        setTimeout(function(){ if(isGuest() && !isLogged()) window.__initGuestMode(); }, 800);
+      });
+    })();
+    </script>
 
 </body>
 </html>

@@ -65,10 +65,15 @@ export function addPair(q = '', a = '') {
     div.className = 'fc-pair';
     div.id = 'pair-' + id;
     div.innerHTML = `
-    <div><label>Domanda</label><input type="text" placeholder="Cos'è la spaced repetition?" value="${q}" /></div>
-    <div><label>Risposta</label><input type="text" placeholder="Una tecnica che..." value="${a}" /></div>
+    <div><label>Domanda</label><input type="text" placeholder="Cos'è la spaced repetition?" /></div>
+    <div><label>Risposta</label><input type="text" placeholder="Una tecnica che..." /></div>
     <div style="padding-top:22px;"><button aria-label="${t('deckform_remove_pair')}" class="btn-icon" data-fn="removePair" data-params='["pair-${id}"]'>🗑️</button></div>
   `;
+    // Assegna i valori via DOM (non in template string): testi con virgolette
+    // o simboli HTML rompevano il markup e la card usciva vuota/corrotta.
+    const inputs = div.querySelectorAll('input');
+    inputs[0].value = q;
+    inputs[1].value = a;
     container.appendChild(div);
 }
 

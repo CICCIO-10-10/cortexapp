@@ -143,6 +143,7 @@ export class CreateDeckView extends Component {
                 <div class="spinner" id="pdf-spinner"></div>
                 <span id="pdf-status-text">Lettura PDF in corso...</span>
             </div>
+            <div id="uploaded-files-list" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;"></div>
             <textarea id="deck-text" aria-label="Incolla qui il testo del materiale" placeholder="...oppure incolla qui appunti, libri, slide."
                 oninput="updateCharCount()" style="min-height:200px;"></textarea>
 

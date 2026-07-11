@@ -393,6 +393,11 @@ async function evaluateOralChat(transcript, answer, typingEl) {
         awardXP(15, '💬 Risposta Chat Prof');
         const nextBtn = document.getElementById('oral-next-btn');
         if (nextBtn) nextBtn.style.display = 'block';
+        // UX: in modalita' chat il bottone globale puo' essere fuori schermo —
+        // offri "prossima domanda" direttamente nella conversazione.
+        _chatAppend('prof',
+            `<button data-fn="nextOralQuestion" style="margin-top:4px; padding:8px 18px; border-radius:10px; border:none; background:var(--accent); color:#fff; font-weight:700; cursor:pointer; font-family:inherit;">➡️ Prossima domanda</button>`
+        );
         return;
     }
 

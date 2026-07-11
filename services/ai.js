@@ -4,7 +4,7 @@
 // valutazione semantica, trascrizione audio (Gemini + Whisper locale),
 // OCR immagini, YouTube, Web scraping.
 
-import { SecurityManager, getFunctions } from './firebase.js';
+import { SecurityManager, getFunctions, callGeminiProxy } from './firebase.js';
 import { t } from '../core/i18n.js';
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta';
@@ -144,7 +144,7 @@ function getApiKey() {
 // ─── Valutazione Semantica (Orale / Quiz) ────────────────────────────────────
 export async function evaluateWithGemini(userText, correctText, settings = {}) {
     const apiKey = getApiKey();
-    if (!apiKey) return null;
+    if (!apiKey && !window._fbLoggedIn) return null;
     const severityLevel   = settings.aiSeverity      || 50;
     const style           = settings.aiFeedbackStyle  || 'standard';
     const temperature     = settings.aiTemperature    || 0.7;
@@ -164,15 +164,30 @@ export async function evaluateWithGemini(userText, correctText, settings = {}) {
 Risposta dello studente: "${userText}"
 Risposta corretta attesa: "${correctText}"
 Severità: ${severityLevel}% → ${severityContext}${styleNote}
-Rispondi SOLO con JSON: {"score":(0-100),"feedback":"(max 12 parole, tono coerente con severità e stile)","match":(true/false se score >= ${threshold})}`;
+Rispondi SOLO con JSON: {"score":(0-100),"feedback":"(max 25 parole; se manca qualcosa alla risposta, di' esattamente COSA manca; se completa, conferma; tono coerente con severità e stile)","match":(true/false se score >= ${threshold})}`;
 
     try {
-        const model = await discoverGeminiModel(apiKey);
-        const data  = await geminiPost(model, apiKey, {
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature, response_mime_type: 'application/json' }
-        });
-        return JSON.parse(data.candidates[0].content.parts[0].text);
+        // FIX Prof AI "56% senza motivo": la valutazione usava SOLO la API key
+        // personale (che l'utente normale non ha) e cadeva sempre sul conteggio
+        // parole. Ora: proxy se loggato, chiave personale come fallback.
+        let raw;
+        if (window._fbLoggedIn) {
+            const result = await callGeminiProxy({
+                model: 'gemini-2.5-flash',
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { temperature, response_mime_type: 'application/json' }
+            });
+            raw = result.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        } else {
+            const model = await discoverGeminiModel(apiKey);
+            const data  = await geminiPost(model, apiKey, {
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { temperature, response_mime_type: 'application/json' }
+            });
+            raw = data.candidates[0].content.parts[0].text;
+        }
+        const clean = raw.replace(/^```json\s*/i, '').replace(/\s*```$/, '').trim();
+        return JSON.parse(clean);
     } catch (e) {
         console.warn('[AI] evaluateWithGemini failed', e);
         return null;
@@ -425,7 +440,9 @@ export async function quickSnapAndAnalyze(file) {
         };
 
         state.decks.push(newDeck);
-        if (window.saveState) window.saveState();
+        // window.saveState non esiste: usa la saveState vera (stesso bug del mazzo sparito)
+        const { saveState: _realSaveState } = await import('../modules/deckUtils.js');
+        _realSaveState();
 
         if (window.showToast) window.showToast(`Mazzo "${newDeck.title}" creato! 📸`, 'success');
 

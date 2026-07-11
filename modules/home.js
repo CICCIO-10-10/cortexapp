@@ -373,8 +373,8 @@ export function renderHome() {
                             <button class="btn btn-primary" data-fn="openQuickMode" style="padding: 15px 36px; border-radius: 100px; font-weight: 800; font-size: 1rem; box-shadow: 0 12px 40px rgba(124,106,247,0.5); background: linear-gradient(135deg, #7c6af7, #a78bfa); border:none; letter-spacing:0.02em;">
                                 ${t('home_btn_quick')}
                             </button>
-                            <button class="btn btn-primary" data-fn="showPage" data-params='["materiale"]' style="padding: 15px 36px; border-radius: 100px; font-weight: 800; font-size: 1rem; box-shadow: 0 12px 40px var(--accent-glow); background:var(--accent-nebula); border:none; letter-spacing:0.02em;">
-                                ${t('home_btn_session')}
+                            <button class="btn btn-primary" data-fn="openTolcSim" style="padding: 15px 36px; border-radius: 100px; font-weight: 800; font-size: 1rem; box-shadow: 0 12px 40px var(--accent-glow); background:var(--accent-nebula); border:none; letter-spacing:0.02em;">
+                                🎯 Simulazione TOLC
                             </button>
                             <button class="btn prof-mode-btn ${window.getProfModeCssClass ? window.getProfModeCssClass() : ''}" data-fn="openProfSelector" title="Interrogazione orale AI (test locale)" style="padding: 15px 28px; border-radius: 100px; font-weight: 800; font-size: 1rem; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.15); color:var(--text-muted); letter-spacing:0.02em;">
                                 ${window.getProfModeLabel ? window.getProfModeLabel() : '🎓 Prof: Normale'}

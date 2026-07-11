@@ -30,7 +30,7 @@ messaging.onBackgroundMessage((payload) => {
     self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-const CACHE_NAME = 'cortex-v9.98.0';
+const CACHE_NAME = 'cortex-v9.99.0'; // bump: sgombra cache stantie (bug overlay studio)
 
 // Solo asset statici — MAI index.html o URL di navigazione
 const PRECACHE_ASSETS = [

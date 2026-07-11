@@ -16,6 +16,7 @@ import { extractTextFromFile } from '../services/fileHandler.js';
 import { discoverGeminiModel } from '../services/ai.js';
 import { SecurityManager, getFunctions, callGeminiProxy } from '../services/firebase.js';
 import { awardXP, earnBadge } from './gamification.js';
+import { saveState } from './deckUtils.js';
 import { TRANSLATIONS } from '../data/translations.js';
 const _t = () => (TRANSLATIONS[localStorage.getItem('mm_lang')||'it'] || TRANSLATIONS.it);
 
@@ -181,7 +182,9 @@ function renderCards(cards, deckTitle) {
     const title = document.getElementById('pdfai-title');
 
     if (title)    title.textContent    = (_t().preview||t('pdffc_preview')) + ' — ' + (deckTitle || (_t().new_deck||t('pdffc_new_deck')));
-    if (nameInput && !nameInput.value) nameInput.value = deckTitle || t('pdffc_ai_deck');
+    // FIX: prima riusava il nome del mazzo PRECEDENTE se il campo era rimasto
+    // valorizzato (es. card di Fisica salvate come "Analisi 2..."). Sempre nuovo.
+    if (nameInput) nameInput.value = deckTitle || t('pdffc_ai_deck');
     if (count)    count.textContent   = `${cards.length} carte`;
     if (!list)    return;
 
@@ -231,8 +234,11 @@ function escapeHtml(str) {
  * @returns {Promise<{title: string, cards: Array<{front, back}>}>}
  */
 async function generateFlashcardsFromText(text, fileName = '') {
-    const premium = await (window.isPremiumSafe?.() ?? Promise.resolve(window.isPremium?.()));
-    if (!premium) { if (window.showPaywall) window.showPaywall('studyplan'); return null; }
+    // FIX 10/07/2026: RIMOSSO il gate premium client-side. Bloccava la feature
+    // core (testo → flashcard AI) per TUTTI i non-Student, col paywall pure
+    // sbagliato ('studyplan'), mentre il server dà già 25 chiamate/giorno gratis
+    // ai free (functions/index.js: limits = { free: 25 }). Il limite lo fa
+    // rispettare il server: PAYWALL_LIMIT_REACHED → paywall 'ai' corretto.
     const truncated = text.length > MAX_TEXT_CHARS
         ? text.substring(0, MAX_TEXT_CHARS) + '\n\n[Testo troncato per ragioni di lunghezza]'
         : text;
@@ -275,7 +281,12 @@ Rispondi ESCLUSIVAMENTE con un oggetto JSON valido in questo formato (nessun tes
 
     // Fallback: chiamata diretta con chiave locale
     const apiKey = SecurityManager.getApiKey();
-    if (!apiKey) throw new Error('Configura la Gemini API Key nelle Impostazioni per usare questa funzionalità.');
+    if (!apiKey) {
+        // FIX 10/07/2026: ospite senza chiave → gate di login gratuito
+        const e = new Error('GUEST_LOGIN_REQUIRED');
+        e.isGuestGate = true;
+        throw e;
+    }
 
     const model = await discoverGeminiModel(apiKey);
     const res = await fetch(
@@ -377,6 +388,13 @@ export async function openPdfAIFromText(text, suggestedName = '') {
     } catch (err) {
         console.error('[PdfAI] Error:', err);
         showLoading(false);
+        // FIX 10/07/2026: ospite/paywall → chiudi l'overlay e mostra il gate
+        // giusto, non un errore criptico dentro l'anteprima vuota.
+        if (err?.isGuestGate || err?.isPaywall) {
+            hideOverlay();
+            if (window.handleAIError) window.handleAIError(err, 'generazione flashcard');
+            return;
+        }
         document.getElementById('pdfai-cards-list').innerHTML = `
             <div style="text-align:center; padding:40px 20px;">
                 <div style="font-size:3rem; margin-bottom:16px;">⚠️</div>
@@ -413,28 +431,47 @@ export function savePdfAIDeck() {
         const d = new Date();
         return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     })();
-    const newDeck = {
-        id: 'deck_' + Date.now(),
-        name: deckName,
-        subject: '',
-        studyMethod: 'cortex',
-        cards: _generatedCards.map(c => ({
-            id:         'card_' + Math.random().toString(36).substr(2, 9),
-            q:          c.front || c.q || '',
-            a:          c.back  || c.a  || '',
-            nextReview: _today,
-            interval:   1,
-            ease:       2.5,
-            reps:       0
-        })),
-        createdAt: now,
-        createdByAI: true
-    };
+    const _newCards = _generatedCards.map(c => ({
+        id:         'card_' + Math.random().toString(36).substr(2, 9),
+        q:          c.front || c.q || '',
+        a:          c.back  || c.a  || '',
+        nextReview: _today,
+        interval:   1,
+        ease:       2.5,
+        reps:       0
+    }));
 
-    state.decks.push(newDeck);
+    // UX FIX "materia sempre a 0 card": se stiamo lavorando su una materia
+    // (form editor aperto con nome compilato), le card generate finiscono
+    // DENTRO quella materia invece che in un mazzo GENERALE separato.
+    const _editorName = (document.getElementById('deck-name')?.value || '').trim();
+    const _materia = _editorName
+        ? state.decks.find(dk => (dk.name || '').trim().toLowerCase() === _editorName.toLowerCase())
+        : null;
 
-    // Salva e sincronizza
-    if (typeof window.saveState === 'function') window.saveState();
+    let newDeck = null;
+    if (_materia) {
+        _materia.cards = [...(_materia.cards || []), ..._newCards];
+        _materia.updatedAt = now;
+    } else {
+        const _subj = (document.getElementById('deck-subject')?.value || '').trim();
+        newDeck = {
+            id: 'deck_' + Date.now(),
+            name: deckName,
+            subject: _subj,
+            studyMethod: 'cortex',
+            cards: _newCards,
+            createdAt: now,
+            createdByAI: true
+        };
+        state.decks.push(newDeck);
+    }
+
+    // Salva e sincronizza.
+    // BUG FIX "mazzo sparito": window.saveState NON e' mai stato esposto su
+    // window — il check falliva in silenzio e il mazzo restava solo in RAM,
+    // svanendo al primo reload. Ora importiamo la saveState vera.
+    saveState();
 
     // XP + Badge
     awardXP(30, '🤖 PDF → AI Mazzo');
@@ -446,7 +483,10 @@ export function savePdfAIDeck() {
     hideOverlay();
     _generatedCards = [];
 
-    if (window.showToast) window.showToast(`🎉 Mazzo "${deckName}" creato con ${newDeck.cards.length} carte!`, 'success');
+    if (window.showToast) {
+        if (newDeck) window.showToast(`🎉 Mazzo "${deckName}" creato con ${newDeck.cards.length} carte!`, 'success');
+        else window.showToast(`🎉 ${_newCards.length} carte aggiunte a "${_editorName}"!`, 'success');
+    }
 
     // Naviga alla pagina Materiale per vedere il mazzo
     setTimeout(() => {

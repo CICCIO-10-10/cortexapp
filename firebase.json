@@ -2,6 +2,7 @@
     "hosting": {
         "target": "cortex",
     "public": "dist",
+    "cleanUrls": true,
         "ignore": [
             "firebase.json",
             "**/.*",
@@ -81,8 +82,19 @@
                 "destination": "/terms.html"
             },
             {
+                "source": "/simulazione-tolc",
+                "destination": "/simulazione-tolc.html"
+            },
+            {
                 "source": "**",
                 "destination": "/index.html"
+            }
+        ],
+        "redirects": [
+            {
+                "source": "/t",
+                "destination": "/?utm_source=tiktok&utm_medium=video",
+                "type": 302
             }
         ],
         "headers": [

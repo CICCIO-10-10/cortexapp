@@ -24,7 +24,7 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    emptyOutDir: false,
+    emptyOutDir: true, // prima false: dist accumulava ~50 bundle vecchi rideployati ogni volta
     sourcemap: false,
     minify: 'terser',
     terserOptions: {
@@ -36,7 +36,25 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: './index.html',
-        app: './app.html'
+        app: './app.html',
+        tolc: './simulazione-tolc.html'
+      },
+      output: {
+        // Code splitting: spezza il monolite (~742KB) in chunk per cartella.
+        // Vantaggi: cache HTTP granulare (modificare un modulo non invalida
+        // tutto il bundle) e download parallelo su HTTP/2. La logica di boot
+        // resta invariata: tutto e' importato staticamente, cambia solo
+        // come Rollup emette i file.
+        manualChunks(id) {
+          // Isola solo data/ (moduli foglia, ~161KB, nessuna dipendenza in
+          // uscita -> nessun chunk circolare). Cambia di rado, quindi si
+          // cachea a lungo separatamente dal resto dell'app. Split piu'
+          // aggressivi (core/services/modules) creano cicli tra i chunk e
+          // sono stati scartati per non rischiare l'ordine di esecuzione.
+          if (!id.includes('node_modules') && id.includes('/data/')) {
+            return 'data';
+          }
+        }
       }
     }
   }

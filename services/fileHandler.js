@@ -111,7 +111,18 @@ export function addAllChunksToDeck(addPair) {
     }
 
     document.getElementById('pdf-chunking-overlay').style.display = 'none';
-    showToast(`${items.length} flashcard aggiunte! ✨`, 'success');
+
+    // Bug UX: le card venivano aggiunte nella sezione flashcard che di default
+    // e' display:none -> sembrava che il bottone non facesse nulla.
+    // Apri la sezione e scrolla li' cosi' l'utente VEDE il risultato.
+    const fcSection = document.getElementById('flashcard-section');
+    if (fcSection) {
+        fcSection.style.display = '';
+        const fcBtn = document.getElementById('fc-toggle-btn');
+        if (fcBtn) fcBtn.textContent = t('deck_hide_flashcard');
+        setTimeout(() => fcSection.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+    }
+    showToast(`${items.length} flashcard aggiunte! ✨ Controlla la sezione flashcard e salva la materia.`, 'success');
 }
 
 /**
@@ -194,11 +205,25 @@ export async function handlePdfFile(file, idx = 1, total = 1, deps = {}) {
     try {
         const text = await extractTextFromFile(file);
 
+        // PDF scannerizzati (solo immagini) estraggono testo vuoto: senza questo
+        // avviso sembrava che il file fosse stato caricato e poi "sparito".
+        if (!text || !text.trim()) {
+            throw new Error(`"${file.name}" non contiene testo estraibile (PDF scannerizzato? Usa Foto Appunti / OCR)`);
+        }
+
         const textarea = document.getElementById('deck-text');
         if (textarea) {
             textarea.value = (textarea.value ? textarea.value + '\n\n' : '') + text.trim();
         }
-        if (typeof deps.updateCharCount === 'function') deps.updateCharCount();
+        // FIX contatore "0 caratteri" dopo l'import: deps.updateCharCount spesso
+        // non veniva iniettata — aggiorna il contatore direttamente come fallback.
+        if (typeof deps.updateCharCount === 'function') {
+            deps.updateCharCount();
+        } else {
+            const _cc = document.getElementById('char-count');
+            const _dt = document.getElementById('deck-text');
+            if (_cc && _dt) _cc.textContent = _dt.value.length;
+        }
 
         const nameInput = document.getElementById('deck-name');
         if (nameInput && !nameInput.value) {

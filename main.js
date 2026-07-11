@@ -82,6 +82,7 @@ import { init as initGamification,
          ALL_BADGES,
          shareStreakMilestone, addStreakFreezes, getStreakStatus } from './modules/gamification.js';
 import { openQuickMode }                                          from './modules/quickMode.js';
+import { openTolcSim }                                            from './modules/tolcSim.js';
 import { init as initDeckForm,
          addPair, removePair,
          handleExamAttachments, renderPendingAttachments,
@@ -214,7 +215,8 @@ console.log('Cortex Version:', APP_VERSION);
 (function preAuthFastPath() {
     const wasLoggedIn    = localStorage.getItem('mm_is_logged_in') === 'true';
     const redirectPending = localStorage.getItem('cortex_redirect_pending') === '1';
-    if (wasLoggedIn || redirectPending) {
+    const isGuest         = localStorage.getItem('cortex_guest') === '1';
+    if (wasLoggedIn || redirectPending || isGuest) {
         const overlay = document.getElementById('auth-overlay');
         if (overlay) {
             overlay.classList.add('hidden');
@@ -322,12 +324,11 @@ setTimeout(() => {
     if (textArea) {
         const savedDraft = localStorage.getItem(KEYS.DRAFT);
         if (savedDraft && savedDraft.trim().length > 0) {
-            if (confirm("Ho trovato una bozza non salvata. Vuoi ripristinarla?")) {
-                textArea.value = savedDraft;
-                if (typeof updateCharCount === 'function') updateCharCount();
-            } else {
-                localStorage.removeItem(KEYS.DRAFT);
-            }
+            // FIX 10/07/2026: il confirm() nativo bloccava il main thread al boot
+            // (e su alcuni mobile/PWA veniva soppresso). Ripristino silenzioso + toast.
+            textArea.value = savedDraft;
+            if (typeof updateCharCount === 'function') updateCharCount();
+            if (window.showToast) window.showToast('📝 Bozza ripristinata dall\'ultima sessione.', 'info');
         }
         textArea.addEventListener('input', () => {
             localStorage.setItem(KEYS.DRAFT, textArea.value);
@@ -793,6 +794,25 @@ hydrateFromIDB().then((updated) => {
     }
 }).catch(() => {});
 
+// ── Deep-link Simulazione TOLC: ?sim=tolc apre DRITTO il simulatore (come ospite)
+// Usato dalla pagina /simulazione-tolc: l'utente clicca e sta già simulando, niente muro.
+(function handleDeepSimTolc() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('sim') !== 'tolc') return;
+    try { localStorage.setItem('cortex_guest', '1'); } catch (e) {}
+    window.history.replaceState({}, '', '/app');
+    let tries = 0;
+    const iv = setInterval(() => {
+        tries++;
+        if (typeof window.openTolcSim === 'function') {
+            clearInterval(iv);
+            try { window.openTolcSim(); } catch (e) {}
+        } else if (tries > 40) {
+            clearInterval(iv);
+        }
+    }, 150);
+})();
+
 // ── PWA Shortcuts handler: gestisce ?action= dall'icona app ──────────────────
 (function handlePWAShortcuts() {
     const params = new URLSearchParams(window.location.search);
@@ -980,6 +1000,7 @@ register('openMindMap',            openMindMap);
 register('closeMindMap',           closeMindMap);
 register('updateCharCount',        updateCharCount);
 register('saveState',              saveState);
+window.saveState = saveState; // esposto: vari moduli lo chiamavano senza che esistesse
 register('startSmartSync',         startSmartSync);
 
 // -- Social Profile --
@@ -1021,6 +1042,7 @@ register('hardRefresh',            () => { localStorage.clear(); location.reload
 // -- Onboarding & Architect --
 register('openArchitect',    openArchitect);
 register('openQuickMode',    openQuickMode);
+register('openTolcSim',      openTolcSim);
 register('closeArchitect',   closeArchitect);
 register('saveArchAnswer',       saveArchAnswer);
 register('saveArchAnswerText',   saveArchAnswerText);

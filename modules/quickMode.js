@@ -35,9 +35,17 @@ let _state = {
     touchStartY: 0,
 };
 
+// BUG FIX "Quick Mode mostra solo card di esempio": leggeva gState.decks,
+// ma gState e' lo stato della GAMIFICATION (xp/badge) e non ha mai avuto
+// i mazzi. I mazzi veri vivono nello state principale.
+function _realDecks() {
+    const st = (typeof window._legacyState === 'function') ? window._legacyState() : window.state;
+    return (st && st.decks) ? st.decks : [];
+}
+
 // ── Entry point ───────────────────────────────────────────────────────────────
 export function openQuickMode() {
-    const decks = gState.decks || [];
+    const decks = _realDecks();
     // Se non ci sono mazzi → demo diretta
     if (decks.length === 0) {
         _state.isDemo = true;
@@ -73,9 +81,9 @@ function _startWithDeck(deck) {
         })
         .map(c => ({
             subject:  deck.name || 'Materia',
-            question: c.front || c.question || '',
-            answer:   c.back  || c.answer   || '',
-            _deckIdx: (gState.decks || []).indexOf(deck),
+            question: c.q || c.front || c.question || '',
+            answer:   c.a || c.back  || c.answer   || '',
+            _deckIdx: _realDecks().indexOf(deck),
             _cardId:  c.id,
         }));
     _state.isDemo = cards.length === 0;
@@ -166,7 +174,7 @@ function _showSubjectPicker(decks) {
 
 // ── Raccoglie card scadute SRS ────────────────────────────────────────────────
 function _getScadedCards() {
-    const decks = gState.decks || [];
+    const decks = _realDecks();
     const now   = Date.now();
     const out   = [];
     for (const deck of decks) {
@@ -176,9 +184,9 @@ function _getScadedCards() {
             if (due <= now) {
                 out.push({
                     subject:  deck.name || 'Materia',
-                    question: card.front || card.question || '',
-                    answer:   card.back  || card.answer   || '',
-                    _deckIdx: (gState.decks || []).indexOf(deck),
+                    question: card.q || card.front || card.question || '',
+                    answer:   card.a || card.back  || card.answer   || '',
+                    _deckIdx: _realDecks().indexOf(deck),
                     _cardId:  card.id,
                 });
             }
@@ -381,7 +389,7 @@ function _updateSRS(rating) {
     const qmCard = _state.cards[_state.index % _state.cards.length];
     if (!qmCard || qmCard._deckIdx === undefined || !qmCard._cardId) return;
 
-    const deck = (gState.decks || [])[qmCard._deckIdx];
+    const deck = _realDecks()[qmCard._deckIdx];
     if (!deck) return;
 
     const cardIdx = (deck.cards || []).findIndex(c => c.id === qmCard._cardId);
