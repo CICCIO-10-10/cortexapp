@@ -122,6 +122,9 @@ function finalizeRecording(stream, mimeType) {
 function initAudioVisualizer(stream) {
     const canvas = document.getElementById('audio-visualizer');
     if (!canvas) return;
+    // FIX 15/07/2026: il contenitore parte nascosto — si mostra solo mentre registri
+    const _vc = document.getElementById('audio-visualizer-container');
+    if (_vc) _vc.style.display = 'block';
     const ctx = optimizeCanvas(canvas);
 
     // Fix 4: ricrea AudioContext se chiuso o stantio dopo navigazione
@@ -421,5 +424,7 @@ export function stopAudioRecording() {
         if (btnStart) btnStart.style.display = 'flex';
         if (btnStop)  btnStop.style.display  = 'none';
         if (timer)    timer.textContent       = '00:00:00';
+        const _vc = document.getElementById('audio-visualizer-container');
+        if (_vc) _vc.style.display = 'none';
     }
 }

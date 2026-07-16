@@ -35,8 +35,10 @@ export class AudioView extends Component {
                 </div>
 
                 <div class="glass" style="padding:24px; text-align:center; margin-bottom:24px;">
+                    <!-- FIX 15/07/2026: visibile solo DURANTE la registrazione —
+                         da fermo era un rettangolo grigio vuoto che stonava -->
                     <div id="audio-visualizer-container"
-                        style="height:80px; background:rgba(0,0,0,0.2); border-radius:12px; margin-bottom:24px; overflow:hidden;">
+                        style="display:none; height:80px; background:rgba(0,0,0,0.2); border-radius:12px; margin-bottom:24px; overflow:hidden;">
                         <canvas id="audio-visualizer" style="width:100%; height:100%;"></canvas>
                     </div>
 

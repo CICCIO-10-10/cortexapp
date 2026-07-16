@@ -319,6 +319,83 @@ export function renderHome() {
                       document.getElementById('page-home');
     if (!container) return;
 
+    // ── Redesign Home 14/07/2026 ──────────────────────────────────────────────
+    // Saluto personale al posto del wordmark gigante + griglia azioni rapide
+    // SEMPRE visibile (anche da ospite: i gate pensano al resto).
+    const _nome   = (localStorage.getItem('mm_user_name') || '').trim().split(' ')[0];
+    const _ospite = !_nome || _nome.toLowerCase() === 'ospite';
+    const _ora    = new Date().getHours();
+    const _fascia = _ora < 13 ? 'Buongiorno' : _ora < 19 ? 'Buon pomeriggio' : 'Buonasera';
+    const _saluto = _ospite ? `${_fascia} 👋` : `${_fascia}, ${_nome} 👋`;
+
+    const _tile = (icon, label, sub, fn, primario = false) => `
+        <button data-fn="${fn}" style="
+            display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+            padding:18px 12px; border-radius:18px; cursor:pointer; font-family:inherit; text-align:center;
+            background:${primario ? 'linear-gradient(135deg, #7c6af7, #a78bfa)' : 'rgba(255,255,255,0.04)'};
+            border:1px solid ${primario ? 'transparent' : 'rgba(255,255,255,0.10)'};
+            color:${primario ? '#fff' : 'var(--text)'};
+            box-shadow:${primario ? '0 12px 36px rgba(124,106,247,0.45)' : 'none'};
+            transition: transform .15s ease, border-color .15s, box-shadow .15s;
+        " onmouseover="this.style.transform='translateY(-3px)';${primario ? '' : `this.style.borderColor='rgba(139,92,246,0.45)'`}"
+          onmouseout="this.style.transform='none';${primario ? '' : `this.style.borderColor='rgba(255,255,255,0.10)'`}">
+            <span style="font-size:1.7rem; line-height:1;">${icon}</span>
+            <span style="font-weight:800; font-size:0.92rem; letter-spacing:0.01em;">${label}</span>
+            <span style="font-size:0.68rem; line-height:1.3; color:${primario ? 'rgba(255,255,255,0.78)' : 'var(--text-muted)'};">${sub}</span>
+        </button>`;
+
+    const _azioni = [
+        _tile('⚡', 'Quick Test', 'quiz lampo sui tuoi mazzi', 'openQuickMode', true),
+        _tile('🎯', 'Simulazione TOLC', 'struttura e tempi ufficiali', 'openTolcSim'),
+        _tile('🎤', 'Interrogazione', (window.getProfModeLabel ? window.getProfModeLabel().replace(/^[^A-Za-zÀ-ù]+/, '') : 'Prof: Normale'), 'openProfSelector'),
+        _tile('➕', 'Nuova materia', 'appunti → flashcard AI', 'openArchitect'),
+    ].join('');
+
+    // LE TUE MATERIE (14/07/2026): il contenuto vero dell'utente in Home —
+    // prima la dashboard mostrava solo cornice e zero sostanza.
+    const _esc = (x) => String(x ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const _decksAll = (window._legacyState?.()?.decks || []);
+    const _decksTop = [..._decksAll]
+        .sort((a, b) => (b.dueCount || 0) - (a.dueCount || 0))
+        .slice(0, 3);
+    const _materieHtml = _decksAll.length ? `
+        <section style="margin-bottom:28px;">
+            <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px;">
+                <div style="font-size:0.65rem; font-weight:900; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.2em;">📚 Le tue materie</div>
+                <button data-fn="showPage" data-params='["materiale"]' style="background:none; border:none; color:var(--accent); font-size:0.8rem; font-weight:700; cursor:pointer; font-family:inherit;">vedi tutte →</button>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px;">
+                ${_decksTop.map(d => {
+                    const due = d.dueCount || 0;
+                    const nCards = (d.cards || []).length;
+                    return `
+                    <article style="
+                        padding:18px; border-radius:16px;
+                        background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08);
+                        display:flex; flex-direction:column; gap:10px;
+                        transition:border-color .2s, transform .15s;
+                    " onmouseover="this.style.borderColor='rgba(139,92,246,0.4)';this.style.transform='translateY(-2px)'"
+                      onmouseout="this.style.borderColor='rgba(255,255,255,0.08)';this.style.transform='none'">
+                        <div>
+                            <div style="font-weight:800; font-size:1rem; color:var(--text); margin-bottom:2px;">${_esc(d.name)}</div>
+                            <div style="font-size:0.72rem; color:var(--text-muted);">${_esc(d.subject || '')}${nCards ? ` · ${nCards} carte` : ''}</div>
+                        </div>
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:auto;">
+                            <span style="font-size:0.75rem; font-weight:800; color:${due > 0 ? '#f59e0b' : '#4ade80'};">
+                                ${due > 0 ? `⏰ ${due} da ripassare` : '✓ tutto ripassato'}
+                            </span>
+                            <button data-fn="startStudyById" data-params='["${_esc(d.id)}"]' style="
+                                background:${due > 0 ? 'var(--accent)' : 'rgba(255,255,255,0.06)'};
+                                color:${due > 0 ? '#fff' : 'var(--text-muted)'};
+                                border:none; border-radius:20px; padding:7px 16px;
+                                font-size:0.78rem; font-weight:800; cursor:pointer; font-family:inherit;
+                            ">Studia</button>
+                        </div>
+                    </article>`;
+                }).join('')}
+            </div>
+        </section>` : '';   // 0 materie → niente sezione: "Nuova materia" sta già nei 4 tasti
+
     container.innerHTML = `
         <div class="dashboard-nebula reveal-anim" style="max-width: 900px; margin: 0 auto; padding: 28px 20px 120px;">
 
@@ -350,43 +427,26 @@ export function renderHome() {
                 <div style="position:absolute; width:350px; height:350px; border-radius:50%; background:var(--accent2); opacity:0.06; filter:blur(80px); bottom:-100px; right:-80px; pointer-events:none;"></div>
 
                 <div style="position:relative; z-index:2; width:100%;">
-                    ${renderQuickStats()}
-                    ${renderDailyGoalRing()}
-                    <h1 class="gradient-text-premium" style="font-size: clamp(3.2rem, 10vw, 5.5rem); line-height: 1; margin: 24px 0 6px; letter-spacing: -0.05em; font-family: 'Outfit', sans-serif;">
-                        CORTEX
-                    </h1>
-                    <p style="color:rgba(255,255,255,0.4); font-size:0.75rem; font-weight:800; letter-spacing:0.35em; text-transform:uppercase; margin-bottom:14px;">Neural Study Engine</p>
-                    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:24px;">
-                        ${[t('home_chip_ai'), t('home_chip_plan'), t('home_chip_duels'), t('home_chip_import')].map(c => `
-                            <span style="
-                                font-size:0.7rem;font-weight:700;
-                                padding:5px 12px;border-radius:20px;
-                                background:rgba(255,255,255,0.06);
-                                border:1px solid rgba(255,255,255,0.1);
-                                color:rgba(255,255,255,0.7);
-                            ">${c}</span>
-                        `).join('')}
+                    <!-- Saluto personale (via il wordmark gigante: sei già dentro l'app) -->
+                    <div style="text-align:left; margin-bottom:18px;">
+                        <div style="font-size:0.6rem; font-weight:900; letter-spacing:0.32em; text-transform:uppercase; color:rgba(255,255,255,0.32); margin-bottom:6px;">Cortex · Neural Study Engine</div>
+                        <h1 style="font-family:'Outfit',sans-serif; font-size:clamp(1.7rem,4.5vw,2.4rem); font-weight:900; letter-spacing:-0.03em; margin:0; line-height:1.1; color:var(--text);">
+                            ${_saluto}
+                        </h1>
                     </div>
 
-                    <div style="display: flex; gap: 14px; justify-content: center; flex-wrap:wrap;">
-                        ${window._fbLoggedIn ? `
-                            <button class="btn btn-primary" data-fn="openQuickMode" style="padding: 15px 36px; border-radius: 100px; font-weight: 800; font-size: 1rem; box-shadow: 0 12px 40px rgba(124,106,247,0.5); background: linear-gradient(135deg, #7c6af7, #a78bfa); border:none; letter-spacing:0.02em;">
-                                ${t('home_btn_quick')}
-                            </button>
-                            <button class="btn btn-primary" data-fn="openTolcSim" style="padding: 15px 36px; border-radius: 100px; font-weight: 800; font-size: 1rem; box-shadow: 0 12px 40px var(--accent-glow); background:var(--accent-nebula); border:none; letter-spacing:0.02em;">
-                                🎯 Simulazione TOLC
-                            </button>
-                            <button class="btn prof-mode-btn ${window.getProfModeCssClass ? window.getProfModeCssClass() : ''}" data-fn="openProfSelector" title="Interrogazione orale AI (test locale)" style="padding: 15px 28px; border-radius: 100px; font-weight: 800; font-size: 1rem; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.15); color:var(--text-muted); letter-spacing:0.02em;">
-                                ${window.getProfModeLabel ? window.getProfModeLabel() : '🎓 Prof: Normale'}
-                            </button>
-                        ` : `
-                            <button class="btn btn-primary" data-fn="openArchitect" style="padding: 15px 36px; border-radius: 100px; font-weight: 800; font-size: 1rem; box-shadow: 0 12px 40px var(--accent-glow); background:var(--accent-nebula); border:none; letter-spacing:0.02em;">
-                                ${t('home_btn_start')}
-                            </button>
-                        `}
+                    ${renderQuickStats()}
+                    ${renderDailyGoalRing()}
+
+                    <!-- AZIONI RAPIDE — sempre visibili, anche da ospite -->
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px; margin-top:22px;">
+                        ${_azioni}
                     </div>
                 </div>
             </section>
+
+            <!-- LE TUE MATERIE — il contenuto dell'utente, subito sotto le azioni -->
+            ${_materieHtml}
 
             <!-- Neural Trainer (AI insight) — full width, async -->
             <div id="neural-trainer-container" style="margin-bottom: 28px;"></div>
@@ -426,7 +486,7 @@ export function renderHome() {
                 </div>
                 <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
                     ${[
-                        [t('home_feat_ai_icon')+''+t('home_feat_ai_title'), t('home_feat_ai_title'), t('home_feat_ai_desc')],
+                        ['🧠', t('home_feat_ai_title'), t('home_feat_ai_desc')],
                         ['📅', t('home_feat_plan_title'), t('home_feat_plan_desc')],
                         ['⚔️', t('home_feat_duels_title'), t('home_feat_duels_desc')],
                     ].map(([icon, title, desc]) => `
@@ -524,76 +584,39 @@ export function renderHome() {
                 return '';
             })()}
 
-            <!-- INVITE CARD: Referral / Condividi con amici -->
-            <div id="invite-card-container" style="margin-bottom: 20px;">
-                <article class="glass nebula-card" style="
-                    padding: 28px 32px;
-                    border-radius: 20px;
-                    border: 1px solid rgba(139,92,246,0.22);
-                    background: linear-gradient(135deg, rgba(139,92,246,0.06) 0%, rgba(6,182,212,0.04) 100%);
-                    display: flex;
-                    align-items: center;
-                    gap: 24px;
-                    flex-wrap: wrap;
-                ">
-                    <div style="font-size:2.6rem; filter:drop-shadow(0 0 12px rgba(139,92,246,0.5)); flex-shrink:0;">🚀</div>
-                    <div style="flex:1; min-width:180px;">
-                        <div style="font-size:0.65rem; font-weight:900; color:var(--accent); text-transform:uppercase; letter-spacing:0.2em; margin-bottom:5px; opacity:0.8;">
-                            ${t('home_invite_label')}
-                        </div>
-                        <div style="font-size:1rem; font-weight:800; color:var(--text); margin-bottom:4px; font-family:'Outfit',sans-serif;">
-                            ${t('home_invite_title')}
-                        </div>
-                        <div style="font-size:0.78rem; color:rgba(255,255,255,0.45); line-height:1.4;">
-                            ${t('home_invite_desc')}
-                        </div>
+            <!-- (Invita-un-amico RIMOSSO dalla Home 14/07/2026 — c'è la
+                 condivisione dopo lo studio, qui era solo rumore) -->
+
+            <!-- FEEDBACK — redesign 14/07/2026: card sobria, form in riga,
+                 messaggi community chiusi in una tendina -->
+            <article class="glass nebula-card" style="padding: 22px 24px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.02); backdrop-filter: var(--glass-blur);">
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+                    <span style="font-size:1.2rem;">💬</span>
+                    <div>
+                        <div style="font-weight:800; font-size:0.95rem; color:var(--text);">Hai un'idea o qualcosa non va?</div>
+                        <div style="font-size:0.75rem; color:var(--text-muted);">Scrivici — leggiamo tutto e rispondiamo qui.</div>
                     </div>
-                    <button
-                        onclick="window._inviteFriend && window._inviteFriend()"
-                        style="
-                            background: linear-gradient(135deg, var(--accent), #6d28d9);
-                            color: #fff;
-                            border: none;
-                            border-radius: 14px;
-                            padding: 13px 28px;
-                            font-weight: 800;
-                            font-size: 0.9rem;
-                            cursor: pointer;
-                            font-family: inherit;
-                            box-shadow: 0 8px 24px rgba(124,58,237,0.35);
-                            white-space: nowrap;
-                            transition: transform 0.15s, box-shadow 0.15s;
-                        "
-                        onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 12px 30px rgba(124,58,237,0.5)'"
-                        onmouseout="this.style.transform='none';this.style.boxShadow='0 8px 24px rgba(124,58,237,0.35)'"
-                    >
-                        ${t('study_share_short')}
+                </div>
+                <div style="display:grid; grid-template-columns:minmax(120px,180px) 1fr auto; gap:10px; align-items:stretch;">
+                    <input type="text" id="feedback-alias" aria-label="Tuo identificativo" placeholder="Nome" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09); border-radius: 10px; color:var(--text); padding: 11px 13px; font-size:0.85rem; font-family:inherit; outline:none;">
+                    <textarea id="feedback-text" aria-label="Feedback" placeholder="Cosa possiamo migliorare?" rows="1" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09); border-radius: 10px; color:var(--text); padding: 11px 13px; font-size:0.85rem; resize:none; font-family:inherit; outline:none; min-height:42px;"></textarea>
+                    <button class="btn btn-primary" data-fn="submitFeedback" style="padding:0 22px; border-radius:10px; font-weight:800; font-size:0.85rem; white-space:nowrap;">
+                        Invia
                     </button>
-                </article>
-            </div>
+                </div>
+                <details style="margin-top:14px;">
+                    <summary style="cursor:pointer; font-size:0.75rem; color:var(--text-muted); font-weight:700; list-style-position:inside;">Messaggi della community</summary>
+                    <div id="feedback-list" style="margin-top:12px; display:flex; flex-direction:column; gap:12px; max-height:320px; overflow-y:auto; padding-right:8px;"></div>
+                </details>
+            </article>
 
-            <!-- PALESTRA WIDGET -->
-            <div id="palestra-widget-slot">
-                \${renderPalestraWidget()}
-            </div>
-
-            <!-- BOTTOM ROW: Feedback -->
-            <div style="display: grid; grid-template-columns: 1fr; gap: 20px;">
-
-                <!-- Feedback Card -->
-                <article class="glass nebula-card" style="padding: 32px; border-radius: 20px; border: 1px solid rgba(239,68,68,0.12); background: rgba(239,68,68,0.03); backdrop-filter: var(--glass-blur);">
-                    <div style="font-size:0.65rem; font-weight:900; color:#ef4444; text-transform:uppercase; letter-spacing:0.2em; margin-bottom:20px; opacity:0.7;">✦ Feedback</div>
-                    <div style="display: grid; gap: 12px;">
-                        <input type="text" id="feedback-alias" aria-label="Tuo identificativo" placeholder="Il tuo nome..." style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09); border-radius: 10px; color:var(--text); padding: 12px 14px; font-size:0.88rem; font-family:inherit; outline:none; transition:border-color 0.2s;">
-                        <textarea id="feedback-text" aria-label="Feedback" placeholder="Cosa possiamo migliorare?" rows="3" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09); border-radius: 10px; color:var(--text); padding: 12px 14px; font-size:0.88rem; resize:none; font-family:inherit; outline:none; transition:border-color 0.2s;"></textarea>
-                        <button class="btn btn-primary" data-fn="submitFeedback" style="width:100%; padding:13px; border-radius:10px; font-weight:800; font-size:0.88rem; letter-spacing:0.04em;">
-                            ${t('home_feedback_send')}
-                        </button>
-                    </div>
-                    <div id="feedback-list" style="margin-top:24px; display:flex; flex-direction:column; gap:12px; max-height:400px; overflow-y:auto; padding-right:8px;"></div>
-                </article>
-
-            </div>
+            <style>
+            @media (max-width: 620px) {
+                article.glass > div[style*="grid-template-columns:minmax"] {
+                    grid-template-columns: 1fr !important;
+                }
+            }
+            </style>
 
         </div>
 

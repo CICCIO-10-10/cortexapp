@@ -9,9 +9,51 @@ import { isGooglePlayAvailable, handleGooglePlayCheckout } from '../js/googlePla
 import { isAdminUser } from './firebase.js';
 
 // ─── Settings Overlay ─────────────────────────────────────────────────────────
+// ── Accordion Impostazioni (14/07/2026) ──────────────────────────────────────
+// Il pannello era un unico scrollone piatto di 11 sezioni: ora ogni sezione
+// diventa una tendina chiusa — apri solo quella che ti serve. Trasformazione
+// una tantum del DOM, nessuna modifica alla logica delle singole voci.
+function _accordionizzaSettings(overlay) {
+    if (!overlay || overlay.dataset.acc === '1') return;
+    overlay.dataset.acc = '1';
+    overlay.querySelectorAll('.settings-section').forEach(sec => {
+        const h3 = sec.querySelector('h3.settings-section-title');
+        if (!h3) return;
+        const det  = document.createElement('details');
+        det.className = 'settings-acc';
+        const sum  = document.createElement('summary');
+        sum.className = 'settings-acc-sum';
+        const body = document.createElement('div');
+        body.className = 'settings-acc-body';
+        const resto = [...sec.childNodes].filter(n => n !== h3);
+        sum.appendChild(h3);                 // l'h3 resta vivo (id/color usati dal codice admin)
+        resto.forEach(n => body.appendChild(n));
+        det.appendChild(sum);
+        det.appendChild(body);
+        sec.appendChild(det);
+    });
+    if (!document.getElementById('settings-acc-style')) {
+        const st = document.createElement('style');
+        st.id = 'settings-acc-style';
+        st.textContent = `
+            .settings-section{margin:0 0 10px !important;padding:0 !important;border:none !important;background:transparent !important;}
+            details.settings-acc{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden;transition:border-color .2s;}
+            details.settings-acc[open]{border-color:rgba(139,92,246,0.4);background:rgba(139,92,246,0.04);}
+            summary.settings-acc-sum{cursor:pointer;padding:14px 18px;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+            summary.settings-acc-sum::-webkit-details-marker{display:none;}
+            summary.settings-acc-sum::after{content:'▾';color:var(--text-muted);font-size:0.85rem;flex-shrink:0;transition:transform .2s;}
+            details.settings-acc[open] summary.settings-acc-sum::after{transform:rotate(180deg);}
+            summary.settings-acc-sum h3{margin:0 !important;padding:0 !important;border:none !important;font-size:0.92rem !important;}
+            .settings-acc-body{padding:4px 16px 16px;}
+        `;
+        document.head.appendChild(st);
+    }
+}
+
 export function openSettings() {
     const overlay = document.getElementById('settings-overlay');
     if (!overlay) return;
+    _accordionizzaSettings(overlay);
     overlay.style.display = 'flex';
     document.documentElement.style.overflow = 'hidden';
     document.body.style.overflow = 'hidden';

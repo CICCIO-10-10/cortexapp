@@ -95,6 +95,16 @@
                 "source": "/t",
                 "destination": "/?utm_source=tiktok&utm_medium=video",
                 "type": 302
+            },
+            {
+                "source": "/ig",
+                "destination": "/?utm_source=instagram&utm_medium=bio",
+                "type": 302
+            },
+            {
+                "source": "/yt",
+                "destination": "/?utm_source=youtube&utm_medium=video",
+                "type": 302
             }
         ],
         "headers": [

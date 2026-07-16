@@ -44,6 +44,80 @@ export async function openNeuralDuels() {
     document.getElementById('duel-arena').style.display = 'none';
 }
 
+// ── NEUROBOT (15/07/2026) ─────────────────────────────────────────────────────
+// Con pochi utenti online l'Arena era una sala d'attesa infinita: se dopo
+// 12s nessuno entra, si presenta 🤖 NeuroBot — risponde con tempi umani
+// (3-7s) e precisione ~62%, così il duello è SEMPRE giocabile.
+let _botWaitTimer = null;
+let _botAnswerTimer = null;
+let _botScheduledIdx = -1;
+
+function _botCleanup() {
+    if (_botWaitTimer)   { clearTimeout(_botWaitTimer);   _botWaitTimer = null; }
+    if (_botAnswerTimer) { clearTimeout(_botAnswerTimer); _botAnswerTimer = null; }
+    _botScheduledIdx = -1;
+}
+
+async function _attivaBot(duelId) {
+    _botWaitTimer = null;
+    try {
+        const db = getFirestoreDB();
+        const ref = db.collection('duels').doc(duelId);
+        const snap = await ref.get();
+        if (!snap.exists || snap.data().status !== 'waiting') return; // è arrivato un umano
+        await ref.update({
+            player2: { id: 'neurobot', name: '🤖 NeuroBot', score: 0, bot: true },
+            status: 'playing',
+            startedAt: Date.now()
+        });
+    } catch (e) {
+        console.error('[NeuroBot] attivazione fallita:', e);
+    }
+}
+
+function _gestisciBot(state) {
+    // Orchestrato dal client di player1 (il creatore della stanza)
+    if (!state || state.player1?.id !== window._fbUserId) return;
+    if (state.status === 'playing' && state.player2 && !state.player2.bot && _botWaitTimer) {
+        // è entrato un umano prima del bot: annulla l'ingresso del bot
+        clearTimeout(_botWaitTimer); _botWaitTimer = null;
+    }
+    if (state.status !== 'playing' || !state.player2?.bot) {
+        if (state.status === 'finished') _botCleanup();
+        return;
+    }
+    const idx = state.questionIndex || 0;
+    if (idx === _botScheduledIdx) return;           // già programmata per questa domanda
+    if (_botAnswerTimer) clearTimeout(_botAnswerTimer);
+    _botScheduledIdx = idx;
+    const delay = 3000 + Math.random() * 4000;      // 3-7s: tempi umani
+    _botAnswerTimer = setTimeout(async () => {
+        try {
+            const db = getFirestoreDB();
+            const ref = db.collection('duels').doc(state.id);
+            const corretto = Math.random() < 0.62;  // precisione del bot
+            if (!corretto) return;                  // sbaglia: non succede nulla, come per gli umani
+            await db.runTransaction(async (tx) => {
+                const doc = await tx.get(ref);
+                if (!doc.exists) return;
+                const data = doc.data();
+                if (data.status !== 'playing') return;
+                if ((data.questionIndex || 0) !== idx) return;   // l'umano ha già risposto
+                const newScore = (data.player2.score || 0) + 1;
+                const nextIdx = (idx + 1) % SHARED_QUESTIONS.length;
+                tx.update(ref, {
+                    'player2.score': newScore,
+                    currentQuestion: getSharedQuestion(nextIdx),
+                    questionIndex: nextIdx
+                });
+                if (newScore >= 5) tx.update(ref, { status: 'finished', winner: 'player2' });
+            });
+        } catch (e) {
+            console.error('[NeuroBot] risposta fallita:', e);
+        }
+    }, delay);
+}
+
 export async function startMatchmaking() {
     const db = getFirestoreDB();
     if (!db) {
@@ -90,6 +164,8 @@ export async function startMatchmaking() {
                 questionIndex: 0
             });
             duelId = newDoc.id;
+            // Nessuno in coda: se entro 12s non arriva un umano, entra NeuroBot
+            _botWaitTimer = setTimeout(() => _attivaBot(duelId), 12000);
         }
 
         // Ascolta i cambiamenti in tempo reale
@@ -97,6 +173,7 @@ export async function startMatchmaking() {
             if (doc.exists) {
                 duelState = doc.data();
                 duelState.id = doc.id;
+                _gestisciBot(duelState);
                 renderDuelState(duelState);
             }
         });
@@ -207,6 +284,7 @@ async function submitDuelAnswer(duelId, playerField, isCorrect) {
 }
 
 export function closeNeuralDuels() {
+    _botCleanup();
     if (currentDuelUnsubscribe) currentDuelUnsubscribe();
     currentDuelUnsubscribe = null;
     

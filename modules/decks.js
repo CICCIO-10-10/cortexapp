@@ -177,6 +177,21 @@ export function renderDecks() {
             </div>`;
     }).join('');
 
-    container.innerHTML = headerHtml + '<div class="nebula-grid">' + listHtml + '</div>';
+    // FIX 15/07/2026: ghost-card "+ Nuova Materia" in coda alla griglia —
+    // riempie il vuoto quando le materie sono poche e invita a crearne altre.
+    const ghostHtml = `
+        <button data-fn="showView" data-params='["CreateDeckView"]' style="
+            min-height:220px; border-radius:18px; cursor:pointer; font-family:inherit;
+            background:rgba(139,92,246,0.04); border:2px dashed rgba(139,92,246,0.30);
+            display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;
+            color:var(--text-muted); transition:border-color .2s, background .2s, transform .15s;
+        " onmouseover="this.style.borderColor='rgba(139,92,246,0.6)';this.style.background='rgba(139,92,246,0.08)';this.style.transform='translateY(-2px)'"
+          onmouseout="this.style.borderColor='rgba(139,92,246,0.30)';this.style.background='rgba(139,92,246,0.04)';this.style.transform='none'">
+            <span style="font-size:2.2rem; line-height:1; color:var(--accent);">+</span>
+            <span style="font-weight:800; font-size:0.95rem; color:var(--text);">Nuova Materia</span>
+            <span style="font-size:0.72rem;">appunti o foto → flashcard AI</span>
+        </button>`;
+
+    container.innerHTML = headerHtml + '<div class="nebula-grid">' + listHtml + ghostHtml + '</div>';
     window.cortexUpdateUIStrings?.();
 }

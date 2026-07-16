@@ -119,4 +119,52 @@ ul.tips li::before{content:'⚡';position:absolute;left:4px}
 <div><h4>Guide</h4><a href="/come-funziona-il-tolc">Come funziona il TOLC</a><a href="/punteggio-tolc">Punteggio TOLC: come si calcola</a><a href="/ripetere-il-tolc">Ripetere il TOLC</a><a href="/quale-tolc-scegliere">Quale TOLC scegliere</a><a href="/prepararsi-al-tolc-in-un-mese">Prepararsi in un mese</a><a href="/iscrizione-tolc">Iscrizione al TOLC</a></div>
 <div><h4>Cortex</h4><a href="/">Home</a><a href="/simulazione-tolc?sim=tolc">Simulazione TOLC gratis</a><a href="/app">Apri l'app</a><a href="/privacy">Privacy</a><a href="/terms">Termini</a></div>
 </div><p style="text-align:center;color:var(--muted2);margin-top:36px;font-size:.8rem">© 2026 Cortex — cortexapp.it · Le informazioni sui TOLC sono indicative: fanno sempre fede il regolamento CISIA e il bando del tuo ateneo.</p></footer>
+
+<!-- ═══ CORTEX FX (14/07/2026): stesse atmosfere della landing madre —
+     particelle fluttuanti, fade-in on-scroll, orbs animati, mesh ═══ -->
+<style id="cortex-fx-style">
+@keyframes cfxFloatUp{0%{transform:translateY(0);opacity:0}10%{opacity:.7}90%{opacity:.5}100%{transform:translateY(-110vh);opacity:0}}
+@keyframes cfxFadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes cfxOrb1{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,20px)}}
+@keyframes cfxOrb2{0%,100%{transform:translate(0,0)}50%{transform:translate(-25px,-18px)}}
+.cfx-particles{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
+.cfx-particles span{position:absolute;bottom:-10px;border-radius:50%;background:rgba(196,181,253,.55);animation:cfxFloatUp linear infinite}
+.cfx-mesh{position:fixed;inset:0;z-index:-2;pointer-events:none;background:
+ radial-gradient(ellipse at 15% 15%,rgba(168,85,247,.10) 0%,transparent 55%),
+ radial-gradient(ellipse at 85% 75%,rgba(59,130,246,.09) 0%,transparent 55%),
+ radial-gradient(ellipse at 50% 50%,rgba(124,58,237,.04) 0%,transparent 70%)}
+.cfx-orb{position:fixed;border-radius:50%;pointer-events:none;z-index:-1;filter:blur(110px)}
+.cfx-orb1{width:520px;height:520px;background:rgba(168,85,247,.13);top:-180px;right:-160px;animation:cfxOrb1 14s ease-in-out infinite}
+.cfx-orb2{width:420px;height:420px;background:rgba(59,130,246,.10);bottom:-140px;left:-140px;animation:cfxOrb2 17s ease-in-out infinite}
+.cfx-reveal{opacity:0;transform:translateY(16px);transition:opacity .7s ease,transform .7s ease}
+.cfx-reveal.cfx-in{opacity:1;transform:none}
+@media (prefers-reduced-motion: reduce){.cfx-particles,.cfx-orb{display:none}.cfx-reveal{opacity:1;transform:none;transition:none}}
+</style>
+<script id="cortex-fx">
+(function(){
+  // mesh + orbs solo se la pagina non li ha già
+  if(!document.querySelector('.bg-mesh,.cfx-mesh')){var m=document.createElement('div');m.className='cfx-mesh';document.body.appendChild(m);}
+  if(!document.querySelector('.orb,.cfx-orb')){
+    var o1=document.createElement('div');o1.className='cfx-orb cfx-orb1';
+    var o2=document.createElement('div');o2.className='cfx-orb cfx-orb2';
+    document.body.appendChild(o1);document.body.appendChild(o2);
+  }
+  // particelle come la landing
+  var wrap=document.createElement('div');wrap.className='cfx-particles';
+  var n=window.innerWidth<768?16:32;
+  for(var i=0;i<n;i++){var s=document.createElement('span');var sz=(Math.random()*3+1).toFixed(1);
+    s.style.width=sz+'px';s.style.height=sz+'px';s.style.left=(Math.random()*100).toFixed(1)+'%';
+    s.style.animationDelay=(Math.random()*20).toFixed(1)+'s';s.style.animationDuration=(Math.random()*15+12).toFixed(1)+'s';
+    wrap.appendChild(s);}
+  document.body.appendChild(wrap);
+  // fade-in on scroll sulle sezioni principali
+  var targets=document.querySelectorAll('main > *, main section > h2, .card, .cta, .cgrid > a, details');
+  var io=('IntersectionObserver' in window)?new IntersectionObserver(function(es){
+    es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('cfx-in');io.unobserve(e.target);}});
+  },{threshold:.08}):null;
+  targets.forEach(function(el,i){el.classList.add('cfx-reveal');el.style.transitionDelay=Math.min(i%6*60,300)+'ms';
+    if(io)io.observe(el);else el.classList.add('cfx-in');});
+})();
+</script>
+
 </body></html>
