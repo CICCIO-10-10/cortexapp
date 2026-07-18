@@ -328,8 +328,8 @@ export function renderHome() {
     const _fascia = _ora < 13 ? 'Buongiorno' : _ora < 19 ? 'Buon pomeriggio' : 'Buonasera';
     const _saluto = _ospite ? `${_fascia} 👋` : `${_fascia}, ${_nome} 👋`;
 
-    const _tile = (icon, label, sub, fn, primario = false) => `
-        <button data-fn="${fn}" style="
+    const _tile = (icon, label, sub, fn, primario = false, params = '') => `
+        <button data-fn="${fn}" ${params ? `data-params='${params}'` : ''} style="
             display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
             padding:18px 12px; border-radius:18px; cursor:pointer; font-family:inherit; text-align:center;
             background:${primario ? 'linear-gradient(135deg, #7c6af7, #a78bfa)' : 'rgba(255,255,255,0.04)'};
@@ -348,7 +348,9 @@ export function renderHome() {
         _tile('⚡', 'Quick Test', 'quiz lampo sui tuoi mazzi', 'openQuickMode', true),
         _tile('🎯', 'Simulazione TOLC', 'struttura e tempi ufficiali', 'openTolcSim'),
         _tile('🎤', 'Interrogazione', (window.getProfModeLabel ? window.getProfModeLabel().replace(/^[^A-Za-zÀ-ù]+/, '') : 'Prof: Normale'), 'openProfSelector'),
-        _tile('➕', 'Nuova materia', 'appunti → flashcard AI', 'openArchitect'),
+        // FIX 17/07/2026: apriva il test attitudinale (openArchitect) come la ghost-card di decks.js —
+        // deve aprire la creazione materia. Il test attitudinale resta SOLO per sbloccare network/stats/community.
+        _tile('➕', 'Nuova materia', 'appunti → flashcard AI', 'showView', false, '["CreateDeckView"]'),
     ].join('');
 
     // LE TUE MATERIE (14/07/2026): il contenuto vero dell'utente in Home —

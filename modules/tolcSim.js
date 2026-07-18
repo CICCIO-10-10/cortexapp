@@ -6,7 +6,7 @@
  * Strutture e banche in data/tolc.js. Domande ORIGINALI in stile TOLC.
  */
 
-import { TOLC_TESTS, tolcTotQ, tolcTotMin } from '../data/tolc.js';
+import { TOLC_TESTS, TOLC_ENG_BANCA, tolcTotQ, tolcTotMin } from '../data/tolc.js';
 
 let _state = null;
 let _timer = null;
@@ -36,7 +36,7 @@ function _clearTimer() { if (_timer) { clearInterval(_timer); _timer = null; } }
 function _remove() { _clearTimer(); const ov = _el('tolc-sim-overlay'); if (ov) ov.remove(); _state = null; }
 
 function _shell(inner) {
-  return '<div style="max-width:660px;width:100%;max-height:92vh;overflow-y:auto;background:rgba(16,16,22,0.96);border:1px solid rgba(168,85,247,0.28);border-radius:22px;padding:28px;box-shadow:0 40px 120px rgba(168,85,247,0.18);color:#e8e8ee;font-family:Inter,system-ui,sans-serif;">' + inner + '</div>';
+  return '<div style="max-width:940px;width:min(94vw,940px);max-height:92vh;overflow-y:auto;background:rgba(16,16,22,0.96);border:1px solid rgba(168,85,247,0.28);border-radius:22px;padding:28px;box-shadow:0 40px 120px rgba(168,85,247,0.18);color:#e8e8ee;font-family:Inter,system-ui,sans-serif;">' + inner + '</div>';
 }
 
 export function openTolcSim() {
@@ -124,15 +124,20 @@ function _sample(t) {
     out = out.concat(pool.slice(0, take));
   });
   if (!out.length) out = _shuffle(t.banca.slice());
-  return out;
+  // Sezione Inglese: comune a tutti i TOLC, sempre in fondo
+  var eng = _shuffle(TOLC_ENG_BANCA.slice()).slice(0, Math.min(t.engQ || TOLC_ENG_BANCA.length, TOLC_ENG_BANCA.length));
+  return { qs: out.concat(eng), nBase: out.length, nEng: eng.length };
 }
 function _start(key) {
   const t = TOLC_TESTS[key];
   if (!t.banca || !t.banca.length) return;
-  const qs = _sample(t);
-  const totMin = tolcTotMin(t) || (qs.length * 1.5);
-  const secs = Math.max(180, Math.round(totMin * 60 * qs.length / (tolcTotQ(t) || qs.length)));
-  _state = { key: key, test: t, qs: qs, i: 0, answers: new Array(qs.length).fill(null), left: secs };
+  const smp = _sample(t);
+  const qs = smp.qs;
+  const totMin = tolcTotMin(t) || (smp.nBase * 1.5);
+  const baseSecs = Math.round(totMin * 60 * smp.nBase / (tolcTotQ(t) || smp.nBase));
+  const engSecs = Math.round((t.engMin || 15) * 60 * smp.nEng / (t.engQ || smp.nEng || 1));
+  const secs = Math.max(180, baseSecs + engSecs);
+  _state = { key: key, test: t, qs: qs, i: 0, answers: new Array(qs.length).fill(null), checked: new Array(qs.length).fill(false), left: secs };
   _renderQ();
   _clearTimer();
   _timer = setInterval(function () {
@@ -147,29 +152,78 @@ function _renderQ() {
   const st = _state, d = st.qs[st.i];
   const ov = _el('tolc-sim-overlay'); if (!ov) return;
   const prog = Math.round(st.i / st.qs.length * 100);
+  const isChecked = st.checked[st.i];
   const opts = d.o.map(function (o, idx) {
     const sel = st.answers[st.i] === idx;
-    return '<button class="tolc-opt" data-idx="' + idx + '" style="text-align:left;padding:12px 15px;border-radius:12px;border:1px solid ' + (sel ? 'rgba(168,85,247,.7)' : 'rgba(255,255,255,.12)') + ';background:' + (sel ? 'rgba(168,85,247,.15)' : 'rgba(255,255,255,.03)') + ';color:#e8e8ee;font-size:.94rem;cursor:pointer;">' +
-      '<b style="color:#c084fc;margin-right:8px;">' + String.fromCharCode(65 + idx) + '</b>' + _math(o) + '</button>';
+    var bd, bg, lc = '#c084fc';
+    if (isChecked) {
+      if (idx === d.c) { bd = 'rgba(34,197,94,.7)'; bg = 'rgba(34,197,94,.14)'; lc = '#4ade80'; }
+      else if (sel) { bd = 'rgba(239,68,68,.7)'; bg = 'rgba(239,68,68,.14)'; lc = '#f87171'; }
+      else { bd = 'rgba(255,255,255,.10)'; bg = 'rgba(255,255,255,.02)'; }
+    } else {
+      bd = sel ? 'rgba(168,85,247,.7)' : 'rgba(255,255,255,.12)';
+      bg = sel ? 'rgba(168,85,247,.15)' : 'rgba(255,255,255,.03)';
+    }
+    return '<button class="tolc-opt" data-idx="' + idx + '" style="text-align:left;padding:12px 15px;border-radius:12px;border:1px solid ' + bd + ';background:' + bg + ';color:#e8e8ee;font-size:.94rem;cursor:' + (isChecked ? 'default' : 'pointer') + ';">' +
+      '<b style="color:' + lc + ';margin-right:8px;">' + String.fromCharCode(65 + idx) + '</b>' + _math(o) + '</button>';
   }).join('');
+  const fb = !isChecked ? '' : (st.answers[st.i] === d.c
+    ? '<div style="margin-top:12px;padding:10px 14px;border-radius:12px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.4);color:#4ade80;font-weight:700;font-size:.9rem;">✔ Corretta</div>'
+    : '<div style="margin-top:12px;padding:10px 14px;border-radius:12px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);color:#f87171;font-weight:700;font-size:.9rem;">✘ Sbagliata — la risposta corretta è ' + String.fromCharCode(65 + d.c) + '</div>');
+  const canCheck = st.answers[st.i] !== null && !isChecked;
   const nextTxt = (st.i === st.qs.length - 1) ? 'Termina ✓' : 'Prossima →';
+  // Dashboard navigazione ad accordion: chip sezioni colorate; clic su una
+  // sezione -> si aprono i suoi numeri domanda (cliccabili per saltare).
+  var PAL = ['#a855f7', '#d946ef', '#06b6d4', '#3b82f6', '#f59e0b', '#22c55e'];
+  var groups = [];
+  st.qs.forEach(function (q, gi) {
+    var g = groups[groups.length - 1];
+    if (!g || g.name !== q.s) { g = { name: q.s, idxs: [] }; groups.push(g); }
+    g.idxs.push(gi);
+  });
+  if (st.navSec === undefined) st.navSec = d.s;
+  var chips = groups.map(function (g, i) {
+    var col = PAL[i % PAL.length];
+    var open = g.name === st.navSec;
+    var done = g.idxs.filter(function (gi) { return st.answers[gi] !== null; }).length;
+    return '<button class="tolc-sec" data-sec="' + g.name + '" style="padding:7px 13px;border-radius:20px;border:1px solid ' + col + (open ? '' : '55') + ';background:' + (open ? col : col + '1a') + ';color:' + (open ? '#fff' : col) + ';font-size:.7rem;font-weight:800;letter-spacing:.4px;text-transform:uppercase;cursor:pointer;">' + g.name + ' <span style="opacity:.75;font-weight:700;">' + done + '/' + g.idxs.length + '</span></button>';
+  }).join('');
+  var numsRow = '';
+  groups.forEach(function (g, i) {
+    if (g.name !== st.navSec) return;
+    var col = PAL[i % PAL.length];
+    var nChk = 0, nOk = 0;
+    var btns = g.idxs.map(function (gi, k) {
+      var cur = gi === st.i, ans = st.answers[gi] !== null;
+      var c = col;
+      if (st.checked[gi]) { var ok = st.answers[gi] === st.qs[gi].c; c = ok ? '#22c55e' : '#ef4444'; nChk++; if (ok) nOk++; }
+      return '<button class="tolc-jump" data-jump="' + gi + '" style="min-width:28px;height:28px;padding:0 5px;border-radius:8px;border:1px solid ' + (cur ? c : (ans ? c + '88' : 'rgba(255,255,255,.14)')) + ';background:' + (cur ? c : (ans ? c + '2e' : 'rgba(255,255,255,.05)')) + ';color:' + (cur ? '#fff' : (ans ? c : 'rgba(255,255,255,.55)')) + ';font-size:.72rem;font-weight:800;cursor:pointer;">' + (k + 1) + '</button>';
+    }).join('');
+    numsRow = '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:10px;align-items:center;">' + btns +
+      '<button class="tolc-checksec" data-sec="' + g.name + '" style="height:28px;padding:0 10px;border-radius:8px;border:1px solid rgba(34,197,94,.45);background:rgba(34,197,94,.10);color:#4ade80;font-size:.68rem;font-weight:800;cursor:pointer;">Verifica sezione ✓</button>' +
+      (nChk ? '<span style="font-size:.7rem;font-weight:800;color:' + (nOk === nChk ? '#4ade80' : '#e8e8ee') + ';">' + nOk + '/' + nChk + ' corrette</span>' : '') +
+      '</div>';
+  });
+  var nav = '<div style="display:flex;flex-wrap:wrap;gap:6px;">' + chips + '</div>' + numsRow;
   ov.innerHTML = _shell(
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">' +
       '<span style="font-size:.76rem;font-weight:700;color:#c084fc;text-transform:uppercase;letter-spacing:.5px;">' + st.test.nome + ' · ' + d.s + '</span>' +
       '<span style="font-size:.9rem;font-weight:800;color:#fff;background:rgba(168,85,247,.18);padding:4px 12px;border-radius:20px;">⏱ <span id="tolc-timer">' + _fmt(st.left) + '</span></span>' +
     '</div>' +
+    '<div style="margin-bottom:12px;padding:10px 12px;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:rgba(255,255,255,.02);">' + nav + '</div>' +
     '<div style="height:5px;background:rgba(255,255,255,.08);border-radius:4px;margin-bottom:16px;overflow:hidden;"><div style="height:100%;width:' + prog + '%;background:linear-gradient(90deg,#a855f7,#6366f1);"></div></div>' +
     '<div style="font-size:.78rem;color:rgba(255,255,255,.45);margin-bottom:6px;">Domanda ' + (st.i + 1) + ' di ' + st.qs.length + '</div>' +
     '<h3 style="font-size:1.1rem;font-weight:700;line-height:1.4;margin:0 0 16px;">' + _math(d.q) + '</h3>' +
-    '<div style="display:flex;flex-direction:column;gap:9px;">' + opts + '</div>' +
+    '<div style="display:flex;flex-direction:column;gap:9px;">' + opts + '</div>' + fb +
     '<div style="display:flex;gap:10px;margin-top:18px;">' +
       '<button id="tolc-skip" style="flex:1;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(255,255,255,.6);font-weight:700;cursor:pointer;">Salta</button>' +
+      (canCheck ? '<button id="tolc-check" style="flex:1;padding:12px;border-radius:12px;border:1px solid rgba(34,197,94,.5);background:rgba(34,197,94,.12);color:#4ade80;font-weight:800;cursor:pointer;">Verifica ✓</button>' : '') +
       '<button id="tolc-next" style="flex:2;padding:12px;border-radius:12px;border:none;font-weight:800;color:#fff;background:linear-gradient(135deg,#a855f7,#6366f1);cursor:pointer;">' + nextTxt + '</button>' +
     '</div>'
   );
 }
 
-function _next() { if (_state.i < _state.qs.length - 1) { _state.i++; _renderQ(); } else _finish(); }
+function _next() { if (_state.i < _state.qs.length - 1) { _state.i++; _state.navSec = _state.qs[_state.i].s; _renderQ(); } else _finish(); }
 
 function _finish() {
   _clearTimer();
@@ -200,14 +254,25 @@ document.addEventListener('click', function (e) {
   const id = e.target && e.target.id;
   const pick = e.target.closest && e.target.closest('.tolc-pick');
   const opt = e.target.closest && e.target.closest('.tolc-opt');
+  const jump = e.target.closest && e.target.closest('.tolc-jump');
+  if (jump && _state) { _state.i = parseInt(jump.getAttribute('data-jump'), 10); _state.navSec = _state.qs[_state.i].s; _renderQ(); return; }
+  const sec = e.target.closest && e.target.closest('.tolc-sec');
+  if (sec && _state) { var sn = sec.getAttribute('data-sec'); _state.navSec = (_state.navSec === sn ? '' : sn); _renderQ(); return; }
+  const cs = e.target.closest && e.target.closest('.tolc-checksec');
+  if (cs && _state) {
+    var nm = cs.getAttribute('data-sec');
+    _state.qs.forEach(function (q, gi) { if (q.s === nm && _state.answers[gi] !== null) _state.checked[gi] = true; });
+    _renderQ(); return;
+  }
+  if (id === 'tolc-check') { if (_state && _state.answers[_state.i] !== null) { _state.checked[_state.i] = true; _renderQ(); } return; }
   if (pick) return _intro(pick.getAttribute('data-key'));
   if (id === 'tolc-close') return _remove();
   if (id === 'tolc-back') { ov.innerHTML = _selectorHTML(); return; }
   if (id === 'tolc-start' && !e.target.disabled) return _start(e.target.getAttribute('data-key'));
   if (id === 'tolc-retry') return _start(e.target.getAttribute('data-key'));
-  if (id === 'tolc-skip') { if (_state) { _state.answers[_state.i] = null; _next(); } return; }
+  if (id === 'tolc-skip') { if (_state) { if (!_state.checked[_state.i]) _state.answers[_state.i] = null; _next(); } return; }
   if (id === 'tolc-next') return _next();
-  if (opt && _state) { _state.answers[_state.i] = parseInt(opt.getAttribute('data-idx'), 10); _renderQ(); }
+  if (opt && _state) { if (_state.checked[_state.i]) return; _state.answers[_state.i] = parseInt(opt.getAttribute('data-idx'), 10); _renderQ(); }
 });
 
 if (typeof window !== 'undefined') window.openTolcSim = openTolcSim;

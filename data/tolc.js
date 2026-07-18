@@ -68,5 +68,30 @@ export const TOLC_TESTS = {
   },
 };
 
+// Sezione Inglese — comune a TUTTI i TOLC (ufficiale CISIA: 30 quesiti / 15 min).
+// Domande ORIGINALI stile placement (A2-B2), non quesiti ufficiali.
+export const TOLC_ENG_BANCA = [
+  {"s": "Inglese", "q": "She ___ to London twice this year.", "o": ["went", "is going", "has been", "was", "had gone"], "c": 2},
+  {"s": "Inglese", "q": "If I ___ more time, I would learn another language.", "o": ["have", "had", "would have", "will have", "am having"], "c": 1},
+  {"s": "Inglese", "q": "The report must ___ by Friday.", "o": ["finish", "finished", "to finish", "being finished", "be finished"], "c": 4},
+  {"s": "Inglese", "q": "I'm not used to ___ up so early.", "o": ["getting", "get", "got", "have got", "be getting"], "c": 0},
+  {"s": "Inglese", "q": "He asked me where ___.", "o": ["do I live", "did I live", "am I living", "I lived", "I am live"], "c": 3},
+  {"s": "Inglese", "q": "This is the ___ film I've ever seen.", "o": ["more boring", "most boring", "boringest", "much boring", "more bored"], "c": 1},
+  {"s": "Inglese", "q": "We've been waiting ___ two hours.", "o": ["since", "from", "during", "for", "by"], "c": 3},
+  {"s": "Inglese", "q": "You ___ smoke in here — it's forbidden.", "o": ["mustn't", "don't have to", "shouldn't have", "couldn't", "won't"], "c": 0},
+  {"s": "Inglese", "q": "The meeting was called ___ because of the strike.", "o": ["out", "off", "down", "away", "up"], "c": 1},
+  {"s": "Inglese", "q": "___ the rain, the match went ahead.", "o": ["Although", "Despite", "Even", "However", "Unless"], "c": 1},
+  {"s": "Inglese", "q": "By the time we arrived, the film ___.", "o": ["already started", "has already started", "had already started", "was already starting", "would start"], "c": 2},
+  {"s": "Inglese", "q": "Could you tell me ___?", "o": ["where is the station", "where the station is", "the station where is", "where does the station be", "is where the station"], "c": 1},
+  {"s": "Inglese", "q": "She suggested ___ to the museum.", "o": ["to go", "go", "going", "that going", "gone"], "c": 2},
+  {"s": "Inglese", "q": "I look forward to ___ from you.", "o": ["hear", "hearing", "heard", "be hearing", "have heard"], "c": 1},
+  {"s": "Inglese", "q": "'I'll help you,' she said. → She said she ___ me.", "o": ["will help", "would help", "helps", "helped", "is helping"], "c": 1},
+  {"s": "Inglese", "q": "There isn't ___ milk left in the fridge.", "o": ["much", "many", "a lot", "few", "some"], "c": 0},
+  {"s": "Inglese", "q": "The house ___ in 1920.", "o": ["built", "has built", "is building", "was built", "had building"], "c": 3},
+  {"s": "Inglese", "q": "He's the man ___ car was stolen.", "o": ["who", "which", "whose", "whom", "that"], "c": 2},
+  {"s": "Inglese", "q": "The word 'reliable' most nearly means:", "o": ["famous", "expensive", "friendly", "fast", "trustworthy"], "c": 4},
+  {"s": "Inglese", "q": "Hardly ___ the door when the phone rang.", "o": ["I had closed", "had I closed", "I closed", "did I closed", "have I closed"], "c": 1},
+];
+
 export function tolcTotQ(t) { if (t.totQ) return t.totQ; const s = t.sezioni.reduce((a, x) => a + (x.q || 0), 0); return s || null; }
 export function tolcTotMin(t) { const m = t.sezioni.reduce((a, x) => a + (x.min || 0), 0); return m || null; }

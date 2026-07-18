@@ -274,9 +274,29 @@ export function updatePomoDisplay() {
 
 // ── Open / Close ──────────────────────────────────────────────────────────────
 
+function _ensureLavaBg(overlay) {
+    // Lo sfondo va DENTRO .pomo-modal: il modal ha background:var(--bg) opaco che
+    // coprirebbe i blob se stessero dietro. Rendiamo il modal trasparente (resta
+    // il dark --bg-alpha-90 dell'overlay come base) e mettiamo i blob dietro al contenuto.
+    if (!document.getElementById('lava-bg-style')) {
+        const st = document.createElement('style');
+        st.id = 'lava-bg-style';
+        st.textContent = "#pomo-overlay .pomo-modal{background:transparent!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;overflow:hidden}.pomo-modal>*:not(.lava-bg):not(.pomo-close){position:relative;z-index:1}.lava-bg{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none}.lava-bg .blob{position:absolute;border-radius:50%;opacity:.7;will-change:transform;transform:translateZ(0)}.lava-bg .blob::before{content:'';position:absolute;inset:0;border-radius:50%;will-change:transform}.lava-bg .b1{width:60vmin;height:60vmin;left:0;top:0;animation:lava1 26s ease-in-out -7s infinite}.lava-bg .b1::before{background:radial-gradient(circle closest-side,rgba(139,92,246,.85),rgba(139,92,246,0) 70%);animation:pulseA 11s ease-in-out -3s infinite}.lava-bg .b2{width:56vmin;height:56vmin;right:-2%;top:10%;animation:lava2 33s ease-in-out -19s infinite}.lava-bg .b2::before{background:radial-gradient(circle closest-side,rgba(217,70,239,.8),rgba(217,70,239,0) 70%);animation:pulseB 9s ease-in-out -6s infinite}.lava-bg .b3{width:64vmin;height:64vmin;left:8%;bottom:0;animation:lava3 29s ease-in-out -13s infinite}.lava-bg .b3::before{background:radial-gradient(circle closest-side,rgba(6,182,212,.8),rgba(6,182,212,0) 70%);animation:pulseA 13s ease-in-out -9s infinite}.lava-bg .b4{width:52vmin;height:52vmin;right:6%;bottom:4%;animation:lava4 23s ease-in-out -11s infinite}.lava-bg .b4::before{background:radial-gradient(circle closest-side,rgba(59,130,246,.8),rgba(59,130,246,0) 70%);animation:pulseB 7s ease-in-out -2s infinite}@keyframes lava1{0%,100%{transform:translate(0,0)}22%{transform:translate(26vmin,14vmin)}48%{transform:translate(8vmin,38vmin)}74%{transform:translate(-10vmin,16vmin)}}@keyframes lava2{0%,100%{transform:translate(0,0)}30%{transform:translate(-30vmin,22vmin)}55%{transform:translate(-12vmin,-8vmin)}80%{transform:translate(-36vmin,10vmin)}}@keyframes lava3{0%,100%{transform:translate(0,0)}26%{transform:translate(18vmin,-26vmin)}52%{transform:translate(-14vmin,-12vmin)}78%{transform:translate(10vmin,-34vmin)}}@keyframes lava4{0%,100%{transform:translate(0,0)}35%{transform:translate(-22vmin,-28vmin)}60%{transform:translate(6vmin,-10vmin)}82%{transform:translate(-30vmin,-16vmin)}}@keyframes pulseA{0%,100%{transform:scale(1)}38%{transform:scale(1.28)}72%{transform:scale(.82)}}@keyframes pulseB{0%,100%{transform:scale(.88)}33%{transform:scale(1.22)}61%{transform:scale(.95)}84%{transform:scale(1.12)}}";
+        document.head.appendChild(st);
+    }
+    const modal = overlay ? overlay.querySelector('.pomo-modal') : null;
+    if (modal && !modal.querySelector('.lava-bg')) {
+        const bg = document.createElement('div');
+        bg.className = 'lava-bg';
+        bg.innerHTML = '<div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="blob b4"></div>';
+        modal.insertBefore(bg, modal.firstChild);
+    }
+}
+
 export function openPomodoro() {
     const overlay = document.getElementById('pomo-overlay');
     overlay.style.display = 'flex';
+    _ensureLavaBg(overlay);
     document.body.style.overflow = 'hidden'; // blocca scroll + copre nav mobile
     updatePomoDisplay();
     document.getElementById('pomo-mode-label').textContent = pomoModes[pomoState.mode].label;

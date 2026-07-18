@@ -99,13 +99,7 @@ function _showSubjectPicker(decks) {
         overlay.id = 'quick-mode-overlay';
         document.body.appendChild(overlay);
     }
-    overlay.style.cssText = `
-        position:fixed; inset:0; z-index:99999;
-        background:#0A0A14;
-        display:flex; flex-direction:column;
-        font-family:'Outfit',Arial,sans-serif;
-        overflow:hidden;
-    `;
+    overlay.style.cssText = _qmOverlayCss();
 
     const items = decks.map((d, i) => {
         const now = Date.now();
@@ -131,7 +125,7 @@ function _showSubjectPicker(decks) {
         </button>`;
     }).join('');
 
-    overlay.innerHTML = `
+    overlay.innerHTML = _qmCard(`
         <div style="display:flex; align-items:center; justify-content:space-between; padding:20px 20px 12px;">
             <button id="qm-close" style="background:none; border:none; color:rgba(255,255,255,0.5); font-size:22px; cursor:pointer; padding:4px 8px;">✕</button>
             <div style="text-align:center;">
@@ -152,7 +146,7 @@ function _showSubjectPicker(decks) {
                 ">⚡ Tutte le materie</button>
             </div>
         </div>
-    `;
+    `);
 
     // Chiudi
     overlay.querySelector('#qm-close').onclick = () => overlay.remove();
@@ -197,6 +191,15 @@ function _getScadedCards() {
     return out;
 }
 
+// ── Card centrata (17/07/2026): il Quick Mode non è più fullscreen — stessa
+// taglia del modal Simulazione TOLC (940px), overlay scuro sfocato dietro.
+function _qmOverlayCss() {
+    return "position:fixed;inset:0;z-index:99999;background:rgba(3,3,6,0.94);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:20px;font-family:'Outfit',Arial,sans-serif;";
+}
+function _qmCard(inner, fixedH) {
+    return '<div style="width:min(94vw,940px);' + (fixedH ? 'height:min(92vh,820px);' : 'max-height:92vh;') + 'overflow-y:auto;background:#0A0A14;border:1px solid rgba(168,85,247,0.28);border-radius:22px;box-shadow:0 40px 120px rgba(168,85,247,0.18);display:flex;flex-direction:column;">' + inner + '</div>';
+}
+
 // ── Render principale ─────────────────────────────────────────────────────────
 function _render() {
     // Crea overlay fullscreen sopra tutto
@@ -207,14 +210,8 @@ function _render() {
         document.body.appendChild(overlay);
     }
 
-    overlay.innerHTML = _html();
-    overlay.style.cssText = `
-        position: fixed; inset: 0; z-index: 99999;
-        background: #0A0A14;
-        display: flex; flex-direction: column;
-        font-family: 'Outfit', Arial, sans-serif;
-        overflow: hidden;
-    `;
+    overlay.innerHTML = _qmCard(_html(), true);
+    overlay.style.cssText = _qmOverlayCss();
 
     _bindEvents(overlay);
     _startTimer();
@@ -440,7 +437,7 @@ function _showRecap(msg) {
         awardXP(_state.xp, 'quickmode');
     }
 
-    overlay.innerHTML = `
+    overlay.innerHTML = _qmCard(`
     <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 24px; text-align:center; gap:20px;">
         <div style="font-size:52px;">🎯</div>
         <div style="color:var(--text); font-size:22px; font-weight:800;">${msg}</div>
@@ -470,10 +467,9 @@ function _showRecap(msg) {
         </div>
         `}
         <button id="recap-close" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:14px; padding:14px 32px; color:var(--text); font-size:14px; font-weight:600; cursor:pointer; margin-top:8px;">Torna alla Home</button>
-    </div>`;
+    </div>`, true);
 
     overlay.style.display = 'flex';
-    overlay.style.flexDirection = 'column';
 
     document.getElementById('recap-close')?.addEventListener('click', _close);
     document.getElementById('recap-upload')?.addEventListener('click', () => {

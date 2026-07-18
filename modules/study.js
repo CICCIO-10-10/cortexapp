@@ -45,6 +45,40 @@ let _deps = {
 
 export function init(deps) {
     _deps = { ..._deps, ...deps };
+
+    // Aggiungi listener per scorciatoie da tastiera nella sessione di studio (FCP/UX fix)
+    document.addEventListener('keydown', (e) => {
+        const studyOverlay = document.getElementById('study-overlay');
+        const studySession = document.getElementById('study-session');
+
+        // Attivo solo se l'overlay di studio è visibile e non siamo nella schermata di fine sessione
+        if (!studyOverlay || !studyOverlay.classList.contains('active')) return;
+        if (!studySession || studySession.style.display === 'none') return;
+
+        // Se l'utente sta digitando in un input o textarea, non intercettare
+        const activeTag = document.activeElement?.tagName?.toLowerCase();
+        if (activeTag === 'input' || activeTag === 'textarea' || document.activeElement?.isContentEditable) {
+            return;
+        }
+
+        if (e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
+            if (!studyFlipped) {
+                flipCard();
+            }
+        } else if (studyFlipped) {
+            if (e.key === '1') {
+                e.preventDefault();
+                rateCard(0);
+            } else if (e.key === '2') {
+                e.preventDefault();
+                rateCard(1);
+            } else if (e.key === '3') {
+                e.preventDefault();
+                rateCard(2);
+            }
+        }
+    });
 }
 
 // ── Stato privato della sessione ─────────────────────────────────────────────

@@ -27,6 +27,51 @@ export function init(ctx) {
 
 let quizState = { qs: [], idx: 0, score: 0, deckIdx: null, mode: 'classic', timer: null, timeLeft: 15 };
 
+// Numero di domande scelto dall'utente nel selettore (default 10, cap alla dimensione del mazzo)
+let _quizCount = 10;
+window.__setQuizCount = function(n, el) {
+    _quizCount = n;
+    document.querySelectorAll('.quiz-count-chip').forEach(c => {
+        c.style.background = 'var(--surface2)';
+        c.style.borderColor = 'var(--border)';
+        c.style.color = 'var(--text)';
+    });
+    if (el) {
+        el.style.background = 'var(--accent)';
+        el.style.borderColor = 'var(--accent)';
+        el.style.color = '#fff';
+    }
+};
+
+// ─── Distrattori intelligenti (Classico) ────────────────────────────────────
+// Prima i distrattori erano risposte a caso di ALTRE carte: spesso di tipo
+// completamente diverso (un numero vs una definizione) → esclusione immediata.
+// Ora scegliamo distrattori "simili" alla risposta corretta (stesso tipo
+// numerico/testo e lunghezza vicina), così le opzioni riguardano davvero la domanda.
+function _answerShape(s) {
+    s = String(s == null ? '' : s).trim();
+    const digits = s.replace(/[^0-9]/g, '').length;
+    const isNum  = digits >= 1 && digits >= s.replace(/\s/g, '').length * 0.4;
+    return { isNum, len: s.length };
+}
+function _pickDistractors(correct, pool) {
+    const cs   = _answerShape(correct);
+    const uniq = [...new Set(pool.filter(x => x && x !== correct))];
+    const scored = uniq.map(x => {
+        const xs = _answerShape(x);
+        const score = (xs.isNum === cs.isNum ? 100 : 0) - Math.abs(xs.len - cs.len);
+        return { x, score };
+    }).sort((a, b) => b.score - a.score);
+    // prendi i ~6 candidati più affini, poi scegline 3 a caso (varietà tra un tentativo e l'altro)
+    const top    = scored.slice(0, Math.max(3, Math.min(6, scored.length)));
+    const chosen = fisherYatesShuffle(top.map(s => s.x)).slice(0, 3);
+    if (chosen.length < 3) {
+        const rest = fisherYatesShuffle(uniq.filter(x => !chosen.includes(x)));
+        while (chosen.length < 3 && rest.length) chosen.push(rest.pop());
+    }
+    return chosen;
+}
+
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
 export function startQuiz(deckIdx) {
@@ -57,11 +102,36 @@ export function startQuiz(deckIdx) {
 
 function _buildModeSelector(deckIdx, deck) {
     const hasKey = !!window._fbLoggedIn || !!SecurityManager.getApiKey();
+
+    // Selettore numero domande: opzioni valide in base alla dimensione del mazzo
+    const _dn = deck.cards.length;
+    let _cnts = [5, 10, 20].filter(v => v < _dn);
+    _cnts.push(_dn);                     // "Tutte"
+    _cnts = [...new Set(_cnts)];
+    if (!_cnts.includes(_quizCount)) {
+        _quizCount = _cnts.find(v => v >= 10) || _cnts[_cnts.length - 1];
+    }
+    const chipStyle = (active) =>
+        `padding:8px 16px;border-radius:20px;border:1px solid ${active ? 'var(--accent)' : 'var(--border)'};` +
+        `background:${active ? 'var(--accent)' : 'var(--surface2)'};color:${active ? '#fff' : 'var(--text)'};` +
+        `font-family:inherit;font-weight:700;font-size:0.85rem;cursor:pointer;`;
+    const countRow = _cnts.length <= 1 ? '' : `
+        <div style="display:flex;flex-direction:column;gap:10px;align-items:center;">
+            <span style="font-size:0.8rem;color:var(--text-muted);font-weight:700;">Quante domande?</span>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+                ${_cnts.map(v => `
+                    <button class="quiz-count-chip" onclick="window.__setQuizCount(${v},this)"
+                        style="${chipStyle(v === _quizCount)}">${v === _dn ? 'Tutte' : v}</button>`).join('')}
+            </div>
+        </div>`;
+
     return `
     <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 20px;text-align:center;gap:24px;">
         <div style="font-size:2.8rem;">🧠</div>
         <h2 style="font-size:1.6rem;font-weight:900;margin:0;">${t('quiz_choose_mode')}</h2>
         <p style="color:var(--text-muted);font-size:0.9rem;margin:0;">${deck.name} · ${deck.cards.length} carte</p>
+
+        ${countRow}
 
         <div style="display:flex;flex-direction:column;gap:14px;width:100%;max-width:360px;">
 
@@ -116,10 +186,14 @@ window.__quizStartClassic = function(deckIdx) {
     const deck = _ctx.state.decks[deckIdx];
     quizState = { qs: [], idx: 0, score: 0, deckIdx, mode: 'classic' };
 
-    const cards = fisherYatesShuffle([...deck.cards]);
-    quizState.qs = cards.map(p => {
-        const wrongs  = cards.filter(x => x !== p).map(x => x.a);
-        const opts    = fisherYatesShuffle([p.a, ...fisherYatesShuffle(wrongs).slice(0, 3)]);
+    const all = fisherYatesShuffle([...deck.cards]);
+    const n   = Math.min(_quizCount || all.length, all.length);
+    const chosen = all.slice(0, n);
+    quizState.qs = chosen.map(p => {
+        // pool di distrattori da TUTTO il mazzo (più varietà), poi scelta "intelligente"
+        const pool   = all.filter(x => x !== p).map(x => x.a);
+        const wrongs = _pickDistractors(p.a, pool);
+        const opts   = fisherYatesShuffle([p.a, ...wrongs]);
         return { q: p.q, correct: p.a, opts, img: p.img || null };
     });
 
@@ -128,7 +202,7 @@ window.__quizStartClassic = function(deckIdx) {
 
 function _startTimer() {
     _stopTimer();
-    quizState.timeLeft = 15;
+    quizState.timeLeft = 30;
     const bar = document.getElementById('quiz-timer-bar');
     if (bar) {
         bar.style.width = '100%';
@@ -137,7 +211,7 @@ function _startTimer() {
     
     quizState.timer = setInterval(() => {
         quizState.timeLeft--;
-        const pct = (quizState.timeLeft / 15) * 100;
+        const pct = (quizState.timeLeft / 30) * 100;
         if (bar) {
             bar.style.transition = 'width 1s linear';
             bar.style.width = pct + '%';
@@ -147,8 +221,9 @@ function _startTimer() {
         
         if (quizState.timeLeft <= 0) {
             _stopTimer();
-            // Passa alla prossima (timeout = errore)
-            answerQuiz(-1, '', '');
+            // FIX 17/07: NIENTE auto-risposta. Il timer è solo un indicatore di ritmo;
+            // l'utente risponde quando vuole (prima "rispondeva da solo" al timeout e
+            // mostrava solo la verde, mai la rossa sulla scelta sbagliata).
         }
     }, 1000);
 }
@@ -166,10 +241,11 @@ window.__quizStartAI = async function(deckIdx) {
     const deck = _ctx.state.decks[deckIdx];
     quizState = { qs: [], idx: 0, score: 0, deckIdx, mode: 'ai' };
 
-    _showAILoading(deck.cards.length);
+    const _nAI = Math.min(_quizCount || 15, deck.cards.length, 25); // cap 25 per costo/tempo
+    _showAILoading(_nAI);
 
     try {
-        const cards = fisherYatesShuffle([...deck.cards]).slice(0, 15); // max 15 domande per chiamata
+        const cards = fisherYatesShuffle([...deck.cards]).slice(0, _nAI);
         const aiQs  = await _generateAIDistractors(cards, deck.name);
         quizState.qs = aiQs;
         _renderQ();
