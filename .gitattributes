@@ -1,0 +1,19 @@
+# Normalizzazione fine-riga (23/07/2026) — stop ai file "M" fantasma su Windows.
+# git salva LF nel repo; sul working tree Windows resta CRLF senza churn.
+* text=auto eol=lf
+
+# Binari: mai trattati come testo (niente diff/normalizzazione)
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.ico  binary
+*.pdf  binary
+*.docx binary
+*.mp4  binary
+*.mov  binary
+*.zip  binary
+*.woff  binary
+*.woff2 binary
+*.ttf  binary
