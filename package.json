@@ -8,6 +8,8 @@
     "build:fast": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "deploy:preview": "npm test && npm run build && firebase hosting:channel:deploy staging --expires 7d",
+    "deploy:prod": "npm test && npm run build && firebase deploy --only hosting",
     "i18n:validate": "node --experimental-vm-modules scripts/i18n-validate.js",
     "i18n:add": "node --experimental-vm-modules scripts/i18n-add-language.js",
     "i18n:translate": "node --experimental-vm-modules scripts/i18n-translate.js"
