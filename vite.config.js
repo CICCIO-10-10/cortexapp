@@ -37,7 +37,10 @@ export default defineConfig({
       input: {
         main: './index.html',
         app: './app.html',
-        tolc: './simulazione-tolc.html'
+        tolc: './simulazione-tolc.html',
+        home: './home.html',
+        scuola: './scuola.html',
+        unime: './unime.html'
       },
       output: {
         // Code splitting: spezza il monolite (~742KB) in chunk per cartella.

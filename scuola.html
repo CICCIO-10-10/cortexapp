@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trova la tua scuola e il tuo programma · Cortex</title>
+<meta name="description" content="Scegli regione, provincia e la tua scuola superiore: Cortex ti mostra subito le materie e il programma del tuo indirizzo. Gratis, senza registrarti.">
+<script>try{if(new URLSearchParams(location.search).get('notrack')==='1'){localStorage.setItem('cortex_no_track','1');}}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg0:#050509;--border:rgba(255,255,255,.09);
+  --purple:#a855f7;--purple2:#7c3aed;--pink:#ec4899;--blue:#3b82f6;--green:#34d399;
+  --t1:#f5f6fa;--t2:#9aa4b6;--t3:#5b6577;
+  --glass:rgba(255,255,255,.04);--glassb:rgba(255,255,255,.09);
+}
+html{scroll-behavior:smooth;}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;color:var(--t1);
+  background:var(--bg0);min-height:100vh;line-height:1.6;overflow-x:hidden;
+  display:flex;flex-direction:column;align-items:center;padding:22px 16px 54px;}
+h1,.brand,.tile .nm,.mat-nm,.srow .sn{font-family:'Outfit',sans-serif;letter-spacing:-.02em;}
+/* sfondo mesh + orbs + particelle */
+.bg-mesh{position:fixed;inset:0;z-index:-3;background:
+  radial-gradient(ellipse at 15% 12%,rgba(168,85,247,.15) 0%,transparent 55%),
+  radial-gradient(ellipse at 85% 82%,rgba(59,130,246,.11) 0%,transparent 55%),
+  radial-gradient(ellipse at 50% 45%,rgba(124,58,237,.05) 0%,transparent 70%),var(--bg0);}
+.orb{position:fixed;border-radius:50%;filter:blur(120px);z-index:-2;pointer-events:none;}
+.orb1{width:460px;height:460px;background:rgba(168,85,247,.16);top:-160px;right:-150px;animation:orbA 15s ease-in-out infinite;}
+.orb2{width:380px;height:380px;background:rgba(59,130,246,.12);bottom:-140px;left:-130px;animation:orbB 18s ease-in-out infinite;}
+@keyframes orbA{0%,100%{transform:translate(0,0)}50%{transform:translate(28px,22px)}}
+@keyframes orbB{0%,100%{transform:translate(0,0)}50%{transform:translate(-24px,-18px)}}
+.parts{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;}
+.parts span{position:absolute;bottom:-12px;border-radius:50%;background:rgba(196,181,253,.5);animation:floatUp linear infinite;}
+@keyframes floatUp{0%{transform:translateY(0);opacity:0}12%{opacity:.65}88%{opacity:.4}100%{transform:translateY(-108vh);opacity:0}}
+@media(prefers-reduced-motion:reduce){.orb,.parts{display:none;}}
+.wrap{width:100%;max-width:600px;position:relative;z-index:1;}
+.reveal{opacity:0;transform:translateY(14px);animation:rev .55s ease forwards;}
+@keyframes rev{to{opacity:1;transform:none;}}
+.top{display:flex;align-items:center;gap:11px;margin-bottom:20px;}
+.back{background:var(--glass);border:1px solid var(--border);border-radius:12px;color:var(--t2);
+  font-size:16px;padding:9px 13px;cursor:pointer;backdrop-filter:blur(12px);transition:.2s;}
+.back:hover{color:var(--t1);border-color:rgba(168,85,247,.45);transform:translateX(-2px);}
+.logo{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--purple2),var(--purple));display:flex;align-items:center;justify-content:center;box-shadow:0 6px 22px rgba(124,58,237,.4);}
+.brand{font-weight:800;font-size:15px;}
+.steps{display:flex;gap:7px;margin-bottom:26px;}
+.step{flex:1;height:5px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden;position:relative;transition:.4s;}
+.step.on{background:linear-gradient(90deg,var(--purple2),var(--pink));box-shadow:0 0 14px rgba(168,85,247,.5);}
+.screen{display:none;} .screen.active{display:block;}
+h1{font-size:clamp(1.55rem,5.5vw,1.9rem);font-weight:900;line-height:1.15;margin-bottom:7px;text-align:center;
+  background:linear-gradient(115deg,#ffffff,#d8b4fe 55%,#a5b4fc);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.sub{color:var(--t2);font-size:14.5px;text-align:center;margin-bottom:24px;}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.tile{background:var(--glass);backdrop-filter:blur(16px);border:1px solid var(--border);border-radius:16px;
+  padding:16px 14px;cursor:pointer;transition:transform .15s,border-color .2s,background .2s,box-shadow .2s;
+  text-align:left;font-family:inherit;color:var(--t1);position:relative;overflow:hidden;}
+.tile::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(168,85,247,.12),transparent 60%);opacity:0;transition:.25s;}
+.tile:hover{border-color:rgba(168,85,247,.5);transform:translateY(-3px);box-shadow:0 14px 40px rgba(124,58,237,.22);}
+.tile:hover::after{opacity:1;}
+.tile:active{transform:scale(.97);}
+.tile.center{text-align:center;display:flex;align-items:center;justify-content:center;min-height:56px;}
+.tile .emo{font-size:24px;display:block;margin-bottom:7px;position:relative;}
+.tile .nm{font-size:14.5px;font-weight:800;position:relative;display:block;}
+.tile .ds{font-size:11.5px;color:var(--t2);margin-top:3px;position:relative;display:block;}
+.search{width:100%;padding:15px 17px;background:var(--glass);border:1px solid var(--border);border-radius:14px;
+  color:var(--t1);font-size:15px;font-family:inherit;outline:none;margin-bottom:13px;backdrop-filter:blur(12px);transition:.2s;}
+.search:focus{border-color:var(--purple);box-shadow:0 0 0 3px rgba(168,85,247,.15);}
+.slist{display:flex;flex-direction:column;gap:9px;max-height:52vh;overflow-y:auto;padding-right:2px;}
+.srow{background:var(--glass);border:1px solid var(--border);border-radius:13px;padding:14px 16px;cursor:pointer;font-family:inherit;text-align:left;color:var(--t1);backdrop-filter:blur(12px);transition:.18s;}
+.srow:hover{border-color:rgba(168,85,247,.5);transform:translateX(3px);}
+.srow .sn{font-size:14px;font-weight:700;}
+.srow .sc{font-size:12px;color:var(--t2);margin-top:2px;}
+.skip{display:block;text-align:center;color:var(--t2);font-size:13.5px;margin-top:18px;text-decoration:none;cursor:pointer;background:none;border:none;font-family:inherit;width:100%;transition:.2s;}
+.skip:hover{color:var(--purple);}
+.msg{background:var(--glass);border:1px solid var(--border);border-radius:13px;padding:15px;font-size:13px;color:var(--t2);text-align:center;}
+.schoolbar{background:linear-gradient(135deg,rgba(124,58,237,.2),rgba(236,72,153,.1));border:1px solid rgba(168,85,247,.4);
+  border-radius:14px;padding:14px 16px;margin-bottom:18px;font-size:13.5px;backdrop-filter:blur(12px);}
+.schoolbar b{color:#fff;}
+.schoolbar a{color:#d8b4fe;font-weight:700;text-decoration:none;}
+.schoolbar a:hover{text-decoration:underline;}
+.mat{background:var(--glass);backdrop-filter:blur(16px);border:1px solid var(--border);border-radius:16px;margin-bottom:10px;overflow:hidden;transition:border-color .2s;}
+.mat:hover{border-color:rgba(168,85,247,.32);}
+.mat-h{display:flex;align-items:center;gap:13px;padding:16px;cursor:pointer;user-select:none;}
+.mat-emo{font-size:21px;width:27px;text-align:center;flex-shrink:0;}
+.mat-nm{font-size:15px;font-weight:700;flex:1;}
+.mat-cnt{font-size:11px;color:var(--t3);}
+.mat-arr{color:var(--t3);transition:transform .25s;font-size:12px;}
+.mat.open .mat-arr{transform:rotate(90deg);color:var(--purple);}
+.mat-body{display:none;padding:0 16px 15px;}
+.mat.open .mat-body{display:block;}
+.arg{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--border);font-size:13.5px;color:var(--t2);}
+.arg .dot{width:6px;height:6px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--pink));flex-shrink:0;}
+.mat-cta{display:block;width:100%;margin-top:13px;padding:12px;border:none;border-radius:11px;cursor:pointer;font-family:'Outfit',sans-serif;
+  font-size:13.5px;font-weight:800;color:#fff;background:linear-gradient(120deg,var(--purple2),var(--purple));text-decoration:none;text-align:center;transition:.2s;}
+.mat-cta:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(168,85,247,.4);}
+.note{font-size:11.5px;color:var(--t3);text-align:center;margin:8px 0 18px;line-height:1.55;}
+.enter{position:sticky;bottom:14px;margin-top:22px;}
+.enter a{display:block;width:100%;padding:17px;border-radius:15px;font-size:16px;font-weight:800;color:#fff;text-decoration:none;text-align:center;
+  font-family:'Outfit',sans-serif;background:linear-gradient(120deg,var(--purple2),var(--purple));box-shadow:0 12px 38px rgba(124,58,237,.5);transition:.2s;}
+.enter a:hover{transform:translateY(-2px);box-shadow:0 18px 50px rgba(124,58,237,.6);}
+.free{display:block;text-align:center;font-size:12px;color:var(--green);margin-top:9px;}
+</style>
+</head>
+<body>
+<div class="bg-mesh"></div><div class="orb orb1"></div><div class="orb orb2"></div><div class="parts" id="parts"></div>
+<div class="wrap">
+
+  <div class="top">
+    <button class="back" id="btn-back" onclick="goBack()">←</button>
+    <div class="logo"><svg width="16" height="16" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="3.5" fill="white"/><circle cx="7.5" cy="7.5" r="6.5" stroke="white" stroke-width="1.5" fill="none" opacity=".4"/></svg></div>
+    <span class="brand">Cortex · Scuola superiore</span>
+  </div>
+  <div class="steps"><div class="step" id="st0"></div><div class="step" id="st1"></div><div class="step" id="st2"></div><div class="step" id="st3"></div></div>
+
+  <div class="screen active" id="s-regione">
+    <h1>Da dove vieni?</h1>
+    <p class="sub">Scegli la tua regione per trovare la tua scuola.</p>
+    <div class="grid3" id="grid-regioni"></div>
+    <button class="skip" onclick="toIndirizzo()">Salta e scegli solo l'indirizzo →</button>
+  </div>
+
+  <div class="screen" id="s-provincia">
+    <h1 id="tit-provincia">Scegli la provincia</h1>
+    <p class="sub" id="sub-provincia"></p>
+    <div class="grid3" id="grid-province"></div>
+  </div>
+
+  <div class="screen" id="s-scuola">
+    <h1>Cerca la tua scuola</h1>
+    <p class="sub" id="sub-scuola"></p>
+    <input class="search" id="search-scuola" placeholder="Scrivi il nome della scuola…" oninput="filterScuole()">
+    <div id="box-scuole"></div>
+    <button class="skip" onclick="toIndirizzo()">Non trovi la tua scuola? Scegli l'indirizzo →</button>
+  </div>
+
+  <div class="screen" id="s-indirizzo">
+    <h1>Qual è il tuo indirizzo?</h1>
+    <p class="sub">Trova subito le tue materie e il programma.</p>
+    <div class="grid" id="grid-indirizzi"></div>
+  </div>
+
+  <div class="screen" id="s-materie">
+    <div id="schoolbar"></div>
+    <h1 id="titolo-indirizzo"></h1>
+    <p class="sub">Le tue materie e il programma tipico</p>
+    <div id="lista-materie"></div>
+    <p class="note">📚 Programma standard nazionale del tuo indirizzo. Le tue dispense e quelle del prof le aggiungi dentro l'app.</p>
+    <div class="enter">
+      <a id="enter-app" href="/app?guest=1&area=scuola">Entra in Cortex e inizia gratis →</a>
+      <span class="free">Senza registrarti · i progressi li salvi dopo con 1 click</span>
+    </div>
+  </div>
+</div>
+
+<script>
+// particelle fluttuanti
+(function(){var w=document.getElementById('parts');var n=window.innerWidth<768?14:26;
+for(var i=0;i<n;i++){var s=document.createElement('span');var sz=(Math.random()*3+1).toFixed(1);
+s.style.width=sz+'px';s.style.height=sz+'px';s.style.left=(Math.random()*100).toFixed(1)+'%';
+s.style.animationDelay=(Math.random()*22).toFixed(1)+'s';s.style.animationDuration=(Math.random()*16+13).toFixed(1)+'s';w.appendChild(s);}})();
+
+const REG = {
+  "Abruzzo":["Chieti","L'Aquila","Pescara","Teramo"],
+  "Basilicata":["Matera","Potenza"],
+  "Calabria":["Catanzaro","Cosenza","Crotone","Reggio Calabria","Vibo Valentia"],
+  "Campania":["Avellino","Benevento","Caserta","Napoli","Salerno"],
+  "Emilia-Romagna":["Bologna","Ferrara","Forlì-Cesena","Modena","Parma","Piacenza","Ravenna","Reggio Emilia","Rimini"],
+  "Friuli-Venezia Giulia":["Gorizia","Pordenone","Trieste","Udine"],
+  "Lazio":["Frosinone","Latina","Rieti","Roma","Viterbo"],
+  "Liguria":["Genova","Imperia","La Spezia","Savona"],
+  "Lombardia":["Bergamo","Brescia","Como","Cremona","Lecco","Lodi","Mantova","Milano","Monza e Brianza","Pavia","Sondrio","Varese"],
+  "Marche":["Ancona","Ascoli Piceno","Fermo","Macerata","Pesaro e Urbino"],
+  "Molise":["Campobasso","Isernia"],
+  "Piemonte":["Alessandria","Asti","Biella","Cuneo","Novara","Torino","Verbano-Cusio-Ossola","Vercelli"],
+  "Puglia":["Bari","Barletta-Andria-Trani","Brindisi","Foggia","Lecce","Taranto"],
+  "Sardegna":["Cagliari","Nuoro","Oristano","Sassari","Sud Sardegna"],
+  "Sicilia":["Agrigento","Caltanissetta","Catania","Enna","Messina","Palermo","Ragusa","Siracusa","Trapani"],
+  "Toscana":["Arezzo","Firenze","Grosseto","Livorno","Lucca","Massa-Carrara","Pisa","Pistoia","Prato","Siena"],
+  "Trentino-Alto Adige":["Bolzano","Trento"],
+  "Umbria":["Perugia","Terni"],
+  "Valle d'Aosta":["Aosta"],
+  "Veneto":["Belluno","Padova","Rovigo","Treviso","Venezia","Verona","Vicenza"]
+};
+function slugReg(s){return s.toLowerCase().replace(/à/g,'a').replace(/è|é/g,'e').replace(/ì/g,'i').replace(/ò/g,'o').replace(/ù/g,'u').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');}
+
+const ARG = {
+  "Matematica":["Insiemi, logica e numeri","Equazioni e disequazioni","Geometria analitica (retta, parabola, circonferenza, ellisse, iperbole)","Funzioni e loro proprietà","Goniometria e trigonometria","Esponenziali e logaritmi","Limiti e continuità","Derivate e studio di funzione","Integrali","Probabilità e statistica"],
+  "Fisica":["Grandezze fisiche e misure","Cinematica","Dinamica e leggi di Newton","Lavoro, energia e quantità di moto","Termodinamica","Onde, suono e ottica","Elettrostatica e campo elettrico","Corrente elettrica","Campo magnetico ed elettromagnetismo","Fisica moderna (relatività e quanti)"],
+  "Italiano":["Le origini e il Duecento","Dante, Petrarca, Boccaccio","Umanesimo e Rinascimento","Barocco e Illuminismo","Foscolo, Leopardi, Manzoni","Verismo e Verga","Decadentismo: Pascoli e D'Annunzio","Svevo e Pirandello","Ungaretti, Montale, Quasimodo","Neorealismo e secondo Novecento"],
+  "Latino":["Fonetica e morfologia (declinazioni, verbi)","Sintassi dei casi","Sintassi del periodo","Cesare e Cicerone","Catullo e la poesia lirica","Virgilio e l'epica","Orazio","Seneca e Tacito"],
+  "Greco":["Alfabeto, fonetica e accenti","Morfologia (nome e verbo)","Sintassi del periodo","Omero e l'epica","Erodoto e Tucidide","Tragedia: Sofocle ed Euripide","Platone e la filosofia"],
+  "Filosofia":["I presocratici","Socrate, Platone, Aristotele","Ellenismo e filosofia antica","Filosofia medievale (Agostino, Tommaso)","Rivoluzione scientifica e Cartesio","Empirismo e razionalismo","Kant","Hegel e l'idealismo","Schopenhauer, Kierkegaard, Marx","Nietzsche, Freud, Novecento"],
+  "Storia":["Restaurazione e moti risorgimentali","Unità d'Italia","Seconda rivoluzione industriale","Imperialismo e Belle Époque","Prima guerra mondiale","Rivoluzione russa","Fascismo e Nazismo","Seconda guerra mondiale","Guerra fredda","Italia repubblicana"],
+  "Scienze naturali":["Chimica: atomo e tavola periodica","Legami chimici e reazioni","La mole e la stechiometria","Acidi, basi e pH","Biologia: la cellula","Genetica ed ereditarietà","Evoluzione e classificazione","Corpo umano e apparati","Scienze della Terra: rocce e minerali","Tettonica delle placche"],
+  "Inglese":["Grammar: tempi verbali","Condizionali e forma passiva","Reading comprehension","Shakespeare e il teatro","Romanticism","The Victorian Age","Modernism (Joyce, Woolf)","Writing e speaking"],
+  "Informatica":["Algoritmi e pensiero computazionale","Programmazione (Python / C++)","Strutture dati","Basi di dati e SQL","Reti e Internet","Sistemi operativi","Sviluppo web (HTML, CSS, JS)"],
+  "Sistemi e reti":["Architettura delle reti","Modello ISO/OSI e TCP/IP","Indirizzamento IP e subnetting","Routing e switching","Sicurezza di rete","Servizi e protocolli (DNS, HTTP, DHCP)"],
+  "Telecomunicazioni":["Segnali analogici e digitali","Trasmissione dati","Modulazioni","Mezzi trasmissivi","Reti di telecomunicazione"],
+  "TPSIT":["Sistemi distribuiti","Programmazione di rete (socket)","Architetture client-server","Servizi web e API","Sicurezza applicativa"],
+  "Economia aziendale":["La partita doppia e la contabilità","Il bilancio d'esercizio","Analisi di bilancio per indici","Gestione e finanziamenti","Marketing e mercato","Calcolo e matematica finanziaria"],
+  "Diritto":["Le fonti del diritto","La Costituzione italiana","Stato e ordinamento","Obbligazioni e contratti","Diritto commerciale e impresa"],
+  "Economia politica":["Domanda, offerta e mercato","Il reddito nazionale (PIL)","Moneta e inflazione","Il ruolo dello Stato","Commercio internazionale"],
+  "Diritto ed Economia":["Le regole e il diritto","La Costituzione","Stato, cittadino e diritti","Bisogni, beni e mercato","Il sistema economico"],
+  "Scienze umane":["Psicologia: mente e comportamento","Pedagogia e storia dell'educazione","Sociologia: società e istituzioni","Antropologia culturale","Metodologia della ricerca"],
+  "Storia dell'arte":["Arte greca e romana","Arte medievale","Il Rinascimento","Il Barocco","Neoclassicismo e Romanticismo","Impressionismo","Le avanguardie del Novecento"],
+  "Lingua straniera 2":["Grammatica di base","Comprensione e produzione","Cultura e civiltà","Letteratura"],
+  "Lingua straniera 3":["Grammatica di base","Comprensione e produzione","Cultura e civiltà"],
+  "Scienze motorie":["Capacità motorie","Sport di squadra e individuali","Anatomia e benessere","Primo soccorso"],
+  "Elettrotecnica ed Elettronica":["Circuiti in continua e alternata","Componenti elettronici","Amplificatori operazionali","Elettronica digitale","Macchine elettriche"],
+  "Sistemi automatici":["Sistemi di controllo","Retroazione","PLC e automazione","Acquisizione dati"],
+  "Meccanica, macchine ed energia":["Statica e dinamica","Resistenza dei materiali","Termodinamica applicata","Macchine a fluido e motori"],
+  "Sistemi e automazione":["Pneumatica e oleodinamica","PLC","Robotica","Controllo di processo"],
+  "Tecnologie meccaniche":["Lavorazioni e macchine utensili","CNC","Metrologia","Materiali e trattamenti"],
+  "Chimica analitica e strumentale":["Equilibri chimici","Titolazioni","Spettrofotometria","Cromatografia"],
+  "Chimica organica e biochimica":["Idrocarburi e gruppi funzionali","Biomolecole","Metabolismo","Fermentazioni"],
+  "Tecnologie chimiche industriali":["Operazioni unitarie","Reattori chimici","Bilanci di materia ed energia","Impianti"],
+  "Progettazione multimediale":["Teoria del colore e composizione","Software grafici","Progetto editoriale","Fotografia e video"],
+  "Tecnologie dei processi grafici":["Prestampa","Stampa","Supporti e formati","Gestione del colore"],
+  "Progettazione, Costruzioni e Impianti":["Statica delle strutture","Cemento armato e acciaio","Impianti","Storia dell'architettura"],
+  "Gestione cantiere e sicurezza":["Organizzazione del cantiere","Sicurezza (D.Lgs 81/08)","Computo metrico"],
+  "Topografia":["Strumenti di misura","Rilievo e livellazioni","GPS","Restituzione cartografica"],
+  "Estimo":["Estimo civile","Estimo catastale","Valutazioni","Geopedologia"],
+  "Enogastronomia (Cucina)":["Tecniche di cucina","HACCP e igiene","Menu e food cost","Cucina regionale italiana","Pasticceria di base"],
+  "Scienza dell'alimentazione":["Principi nutritivi","Dieta equilibrata","Conservazione degli alimenti","Allergeni e HACCP"],
+  "Sala e vendita":["Servizio di sala","Enologia e abbinamenti","Bar e caffetteria","Banqueting"],
+  "Diritto e tecniche amministrative":["Impresa turistico-ristorativa","Contratti","Marketing","Bilancio d'esercizio"],
+  "Discipline turistiche e aziendali":["Impresa turistica","Marketing del turismo","Bilancio","Programmazione e budget"],
+  "Geografia turistica":["Risorse e flussi turistici","Destinazioni italiane","Destinazioni mondiali"],
+  "Arte e territorio":["Beni culturali","Patrimonio artistico italiano","Valorizzazione turistica"],
+  "Diritto e legislazione turistica":["Normativa del turismo","Contratti di viaggio","Enti pubblici del turismo"]
+};
+const EMO = {"Matematica":"📐","Fisica":"⚛️","Italiano":"📖","Latino":"🏛️","Greco":"🏺","Filosofia":"💭","Storia":"📜","Scienze naturali":"🧬","Inglese":"🇬🇧","Informatica":"💻","Sistemi e reti":"🌐","Telecomunicazioni":"📡","TPSIT":"🖧","Economia aziendale":"📊","Diritto":"⚖️","Economia politica":"💶","Diritto ed Economia":"⚖️","Scienze umane":"🧠","Storia dell'arte":"🎨","Lingua straniera 2":"🗣️","Lingua straniera 3":"🗣️","Scienze motorie":"🏃"};
+const INDIRIZZI = {
+  scientifico:{nome:"Liceo Scientifico",emo:"🔬",ds:"Matematica, Fisica, Scienze",materie:["Italiano","Latino","Inglese","Storia","Filosofia","Matematica","Fisica","Scienze naturali","Storia dell'arte","Scienze motorie"]},
+  applicate:{nome:"Scientifico · Scienze Applicate",emo:"🧪",ds:"Scientifico + Informatica",materie:["Italiano","Inglese","Storia","Filosofia","Matematica","Fisica","Scienze naturali","Informatica","Storia dell'arte","Scienze motorie"]},
+  classico:{nome:"Liceo Classico",emo:"🏛️",ds:"Latino, Greco, umanistico",materie:["Italiano","Latino","Greco","Inglese","Storia","Filosofia","Matematica","Fisica","Scienze naturali","Storia dell'arte","Scienze motorie"]},
+  linguistico:{nome:"Liceo Linguistico",emo:"🌍",ds:"3 lingue straniere",materie:["Italiano","Inglese","Lingua straniera 2","Lingua straniera 3","Storia","Filosofia","Matematica","Fisica","Scienze naturali","Storia dell'arte","Scienze motorie"]},
+  umane:{nome:"Liceo Scienze Umane",emo:"🧠",ds:"Psicologia, Pedagogia",materie:["Italiano","Latino","Inglese","Scienze umane","Storia","Filosofia","Diritto ed Economia","Matematica","Scienze naturali","Storia dell'arte","Scienze motorie"]},
+  informatica:{nome:"Tecnico · Informatica",emo:"💻",ds:"Informatica, Sistemi e reti",materie:["Italiano","Storia","Inglese","Matematica","Informatica","Sistemi e reti","Telecomunicazioni","TPSIT","Scienze motorie"]},
+  afm:{nome:"Tecnico · Economico (AFM)",emo:"📊",ds:"Economia, Diritto, Marketing",materie:["Italiano","Storia","Inglese","Lingua straniera 2","Matematica","Economia aziendale","Diritto","Economia politica","Informatica","Scienze motorie"]},
+  elettronica:{nome:"Tecnico · Elettronica ed Elettrotecnica",emo:"🔌",ds:"Elettronica, automazione",materie:["Italiano","Storia","Inglese","Matematica","Elettrotecnica ed Elettronica","Sistemi automatici","Scienze motorie"]},
+  meccanica:{nome:"Tecnico · Meccanica e Meccatronica",emo:"⚙️",ds:"Meccanica, automazione",materie:["Italiano","Storia","Inglese","Matematica","Meccanica, macchine ed energia","Sistemi e automazione","Tecnologie meccaniche","Scienze motorie"]},
+  chimica:{nome:"Tecnico · Chimica e Biotecnologie",emo:"🧪",ds:"Chimica, biotecnologie",materie:["Italiano","Storia","Inglese","Matematica","Chimica analitica e strumentale","Chimica organica e biochimica","Tecnologie chimiche industriali","Scienze motorie"]},
+  grafica:{nome:"Tecnico · Grafica e Comunicazione",emo:"🎨",ds:"Grafica, multimedia",materie:["Italiano","Storia","Inglese","Matematica","Progettazione multimediale","Tecnologie dei processi grafici","Scienze motorie"]},
+  cat:{nome:"Tecnico · Costruzioni (CAT)",emo:"🏗️",ds:"Costruzioni, territorio",materie:["Italiano","Storia","Inglese","Matematica","Progettazione, Costruzioni e Impianti","Gestione cantiere e sicurezza","Topografia","Estimo","Scienze motorie"]},
+  alberghiero:{nome:"Professionale · Enogastronomia",emo:"🍳",ds:"Cucina, sala, alimentazione",materie:["Italiano","Storia","Inglese","Matematica","Enogastronomia (Cucina)","Scienza dell'alimentazione","Sala e vendita","Diritto e tecniche amministrative","Scienze motorie"]},
+  turismo:{nome:"Tecnico · Turismo",emo:"✈️",ds:"Turismo, lingue, territorio",materie:["Italiano","Storia","Inglese","Lingua straniera 2","Lingua straniera 3","Matematica","Discipline turistiche e aziendali","Diritto e legislazione turistica","Geografia turistica","Arte e territorio","Scienze motorie"]},
+  sia:{nome:"Tecnico · Sistemi Informativi (SIA)",emo:"🖥️",ds:"Informatica + economia",materie:["Italiano","Storia","Inglese","Matematica","Informatica","Economia aziendale","Diritto","Economia politica","Scienze motorie"]}
+};
+
+// Articolazioni STANDARD nazionali: un tipo (es. "Istituto Tecnico") si espande
+// nelle sue articolazioni ufficiali. Così la scuola mostra elettronica/meccanica/
+// informatica/grafica ecc. senza dover analizzare il sito di ogni scuola.
+const ARTIC = {
+  "Istituto Tecnico":[
+    {label:"Informatica e Telecomunicazioni",emo:"💻",key:"informatica"},
+    {label:"Elettronica ed Elettrotecnica",emo:"🔌",key:"elettronica"},
+    {label:"Meccanica e Meccatronica",emo:"⚙️",key:"meccanica"},
+    {label:"Chimica, Materiali e Biotecnologie",emo:"🧪",key:"chimica"},
+    {label:"Grafica e Comunicazione",emo:"🎨",key:"grafica"},
+    {label:"Costruzioni, Ambiente e Territorio",emo:"🏗️",key:"cat"},
+    {label:"Trasporti e Logistica",emo:"🚢",key:null},
+    {label:"Agraria e Agroalimentare",emo:"🌾",key:null},
+    {label:"Moda",emo:"👗",key:null}
+  ],
+  "Tecnico · Informatica/Tecnologico":[
+    {label:"Informatica e Telecomunicazioni",emo:"💻",key:"informatica"},
+    {label:"Elettronica ed Elettrotecnica",emo:"🔌",key:"elettronica"},
+    {label:"Meccanica e Meccatronica",emo:"⚙️",key:"meccanica"},
+    {label:"Chimica, Materiali e Biotecnologie",emo:"🧪",key:"chimica"},
+    {label:"Grafica e Comunicazione",emo:"🎨",key:"grafica"}
+  ],
+  "Tecnico · Economico (AFM)":[
+    {label:"Amministrazione, Finanza e Marketing",emo:"📊",key:"afm"},
+    {label:"Sistemi Informativi Aziendali (SIA)",emo:"🖥️",key:"sia"},
+    {label:"Relazioni Internazionali (RIM)",emo:"🌐",key:null},
+    {label:"Turismo",emo:"✈️",key:"turismo"}
+  ],
+  "Istituto Professionale":[
+    {label:"Manutenzione e Assistenza Tecnica",emo:"🔧",key:null},
+    {label:"Industria e Artigianato (Made in Italy)",emo:"🏭",key:null},
+    {label:"Servizi Commerciali",emo:"🛍️",key:null},
+    {label:"Enogastronomia e Ospitalità (Alberghiero)",emo:"🍽️",key:"alberghiero"},
+    {label:"Servizi per la Sanità e Assistenza Sociale",emo:"🩺",key:null},
+    {label:"Agricoltura e Sviluppo Rurale",emo:"🌱",key:null}
+  ],
+  "Professionale · Alberghiero":[
+    {label:"Enogastronomia (Cucina)",emo:"🍳",key:"alberghiero"},
+    {label:"Sala e Vendita",emo:"🍷",key:"alberghiero"},
+    {label:"Accoglienza Turistica",emo:"🏨",key:null},
+    {label:"Prodotti Dolciari e Arte Bianca",emo:"🧁",key:null}
+  ],
+  "Liceo Artistico":[
+    {label:"Arti Figurative",emo:"🖼️",key:null},
+    {label:"Architettura e Ambiente",emo:"📐",key:null},
+    {label:"Design",emo:"🎨",key:null},
+    {label:"Grafica",emo:"✏️",key:null},
+    {label:"Audiovisivo e Multimediale",emo:"🎬",key:null},
+    {label:"Scenografia",emo:"🎭",key:null}
+  ],
+  "Istituto Magistrale":[{label:"Scienze Umane",emo:"🧠",key:"umane"}],
+  "Liceo Musicale e Coreutico":[{label:"Musicale",emo:"🎵",key:null},{label:"Coreutico",emo:"🩰",key:null}]
+};
+
+function slugMat(s){return s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');}
+let stack=[], scuoleData=null, scuoleProv=[], curReg=null, curProv=null, curScuola=null;
+
+function show(id,step){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const el=document.getElementById(id); el.classList.add('active');
+  el.classList.remove('reveal'); void el.offsetWidth; el.classList.add('reveal');
+  for(let i=0;i<4;i++)document.getElementById('st'+i).classList.toggle('on',i<=step);
+  window.scrollTo(0,0);
+}
+function goTo(id,step){ stack.push({id,step}); show(id,step); }
+function goBack(){ if(stack.length>1){ stack.pop(); const p=stack[stack.length-1]; show(p.id,p.step); } else { location.href='/'; } }
+
+const gr=document.getElementById('grid-regioni');
+Object.keys(REG).forEach(r=>{
+  const b=document.createElement('button'); b.className='tile center';
+  b.innerHTML='<span class="nm" style="font-size:13px">'+r+'</span>';
+  b.onclick=()=>openRegione(r); gr.appendChild(b);
+});
+stack=[{id:'s-regione',step:0}];
+
+function openRegione(r){
+  curReg=r; scuoleData=null;
+  document.getElementById('tit-provincia').textContent=r;
+  document.getElementById('sub-provincia').textContent='Scegli la tua provincia';
+  const gp=document.getElementById('grid-province'); gp.innerHTML='';
+  REG[r].forEach(p=>{
+    const b=document.createElement('button'); b.className='tile center';
+    b.innerHTML='<span class="nm" style="font-size:13px">'+p+'</span>';
+    b.onclick=()=>openProvincia(p); gp.appendChild(b);
+  });
+  fetch('/scuole/'+slugReg(r)+'.json').then(res=>res.ok?res.json():null).then(d=>{scuoleData=d;}).catch(()=>{scuoleData=null;});
+  goTo('s-provincia',1);
+}
+function openProvincia(p){
+  curProv=p;
+  if(scuoleData && scuoleData[p] && scuoleData[p].length){
+    scuoleProv=scuoleData[p];
+    document.getElementById('sub-scuola').textContent=p+' · '+scuoleProv.length+' scuole';
+    document.getElementById('search-scuola').value='';
+    renderScuole(scuoleProv); goTo('s-scuola',2);
+  } else { toIndirizzo(); }
+}
+function renderScuole(list){
+  const box=document.getElementById('box-scuole');
+  const html=list.slice(0,60).map(s=>'<button class="srow" onclick="pickScuola('+scuoleProv.indexOf(s)+')"><div class="sn">'+s.nome+'</div><div class="sc">'+s.comune+(s.sito?' · 🌐 sito disponibile':'')+'</div></button>').join('');
+  box.innerHTML='<div class="slist">'+(html||'<div class="msg">Nessun risultato.</div>')+'</div>';
+}
+function filterScuole(){
+  const q=document.getElementById('search-scuola').value.toLowerCase();
+  renderScuole(scuoleProv.filter(s=>s.nome.toLowerCase().includes(q)||s.comune.toLowerCase().includes(q)));
+}
+function pickScuola(i){
+  curScuola=scuoleProv[i]||null;
+  const inds=curScuola&&curScuola.indirizzi;
+  if(inds&&inds.length){ renderIndirizziScuola(inds); goTo('s-indirizzo',2); }
+  else { toIndirizzo(); }
+}
+function toIndirizzo(){ buildGenericIndirizzi(); goTo('s-indirizzo',2); }
+
+const gi=document.getElementById('grid-indirizzi');
+function buildGenericIndirizzi(){
+  document.querySelector('#s-indirizzo h1').textContent='Qual è il tuo indirizzo?';
+  gi.innerHTML='';
+  Object.entries(INDIRIZZI).forEach(([k,v])=>{
+    const b=document.createElement('button'); b.className='tile';
+    b.innerHTML='<span class="emo">'+v.emo+'</span><span class="nm">'+v.nome+'</span><span class="ds">'+v.ds+'</span>';
+    b.onclick=()=>openIndirizzo(k); gi.appendChild(b);
+  });
+}
+function renderIndirizziScuola(list){
+  document.querySelector('#s-indirizzo h1').textContent='Indirizzi · '+curScuola.nome;
+  gi.innerHTML='';
+  // espandi ogni tipo nelle sue articolazioni standard nazionali
+  const items=[], seen=new Set();
+  list.forEach(it=>{
+    const arts=ARTIC[it.label];
+    (arts||[it]).forEach(a=>{ if(!seen.has(a.label)){ seen.add(a.label); items.push(a); } });
+  });
+  items.forEach(it=>{
+    const known=it.key&&INDIRIZZI[it.key];
+    const b=document.createElement('button'); b.className='tile';
+    const emo=it.emo||(known?INDIRIZZI[it.key].emo:'🎓');
+    const ds=known?INDIRIZZI[it.key].ds:'entra e inizia';
+    b.innerHTML='<span class="emo">'+emo+'</span><span class="nm">'+it.label+'</span><span class="ds">'+ds+'</span>';
+    if(known){ b.onclick=()=>openIndirizzo(it.key); }
+    else { b.onclick=()=>{ try{localStorage.setItem('cortex_indirizzo_label',it.label);}catch(e){} location.href='/app?guest=1&area=scuola'; }; }
+    gi.appendChild(b);
+  });
+}
+buildGenericIndirizzi();
+
+let current=null;
+function openIndirizzo(k){
+  current=k; const v=INDIRIZZI[k];
+  document.getElementById('titolo-indirizzo').textContent=v.emo+' '+v.nome;
+  try{ localStorage.setItem('cortex_indirizzo',k); if(curScuola)localStorage.setItem('cortex_scuola',curScuola.nome); }catch(e){}
+  const sb=document.getElementById('schoolbar');
+  if(curScuola){
+    sb.className='schoolbar';
+    sb.innerHTML='🏫 <b>'+curScuola.nome+'</b> · '+curScuola.comune+
+      (curScuola.sito?' — <a href="'+curScuola.sito+'" target="_blank" rel="noopener">verifica il programma sul sito della scuola →</a>':'');
+  } else { sb.className=''; sb.innerHTML=''; }
+  renderMaterie(); goTo('s-materie',3);
+}
+function renderMaterie(){
+  const v=INDIRIZZI[current], box=document.getElementById('lista-materie'); box.innerHTML='';
+  v.materie.forEach(m=>{
+    const args=ARG[m]||[];
+    const el=document.createElement('div'); el.className='mat';
+    el.innerHTML=
+      '<div class="mat-h"><span class="mat-emo">'+(EMO[m]||'📘')+'</span><span class="mat-nm">'+m+'</span>'+
+      '<span class="mat-cnt">'+(args.length||'—')+' argomenti</span><span class="mat-arr">▶</span></div>'+
+      '<div class="mat-body">'+args.map(a=>'<div class="arg"><span class="dot"></span>'+a+'</div>').join('')+
+        '<a class="mat-cta" href="/app?guest=1&area=scuola&materia='+slugMat(m)+'">Studia '+m+' con Cortex →</a></div>';
+    el.querySelector('.mat-h').onclick=()=>el.classList.toggle('open');
+    box.appendChild(el);
+  });
+}
+</script>
+</body>
+</html>

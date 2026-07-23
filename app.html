@@ -1899,6 +1899,29 @@
         if(typeof window.showPage==='function') window.showPage('home');
       };
 
+      // ── AUTO-GUEST DA URL (hub link-in-bio) ───────────────────────────────
+      // Un link tipo /app?guest=1&area=tolc entra in guest DA SOLO, senza il
+      // click sul bottone: serve all'hub che smista il traffico social.
+      // area= viene salvata (uso futuro per preselezionare il tema).
+      window.__autoGuestFromURL = function(){
+        try{
+          var p = new URLSearchParams(location.search);
+          var sim = p.get('sim'), area = p.get('area');
+          // Scatta su guest=1 OPPURE su sim=/area= (così funzionano anche i link
+          // di simulazione-tolc.html e dell'hub, senza toccarli uno per uno).
+          if((p.get('guest')==='1' || sim || area) && !isLogged()){
+            if(area){ try{ localStorage.setItem('cortex_area', area); }catch(e){} }
+            if(sim){ try{ localStorage.setItem('cortex_sim', sim); }catch(e){} }
+            if(typeof window.enterAsGuestApp==='function') window.enterAsGuestApp();
+          }
+        }catch(e){}
+      };
+      if(document.readyState==='complete'){
+        setTimeout(window.__autoGuestFromURL, 0);
+      } else {
+        window.addEventListener('load', function(){ setTimeout(window.__autoGuestFromURL, 0); });
+      }
+
       // Login Google (converte l'ospite in account, salva i dati)
       window.__guestLogin = function(){
         try{ localStorage.removeItem('cortex_guest'); }catch(e){}
@@ -1982,6 +2005,37 @@
       document.addEventListener('DOMContentLoaded', function(){
         setTimeout(function(){ if(isGuest() && !isLogged()) window.__initGuestMode(); }, 800);
       });
+    })();
+    </script>
+
+    <!-- ═══ UNIME: banner "Genera kit di studio" per l'insegnamento scelto su /unime ═══ -->
+    <script>
+    (function(){
+      function showUnimeKitBanner(){
+        var ins=''; try{ ins=(localStorage.getItem('cortex_uni_insegnamento')||'').trim(); }catch(e){}
+        if(!ins) return;
+        if(document.getElementById('unime-kit-banner')) return;
+        var bar=document.createElement('div'); bar.id='unime-kit-banner';
+        bar.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:9998;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(120deg,#7c3aed,#a855f7);box-shadow:0 -6px 30px rgba(124,58,237,.5);display:flex;align-items:center;gap:10px;justify-content:center;flex-wrap:wrap;font-family:inherit;';
+        var name=ins.length>44?ins.slice(0,42)+'…':ins;
+        bar.innerHTML='<span style="color:#fff;font-weight:700;font-size:13.5px">📚 '+name+'</span>'
+          +'<button id="unime-kit-btn" style="background:#fff;color:#7c3aed;border:none;border-radius:10px;padding:10px 18px;font-weight:800;font-size:13.5px;cursor:pointer;font-family:inherit">✨ Genera il kit di studio (flashcard + quiz)</button>'
+          +'<button id="unime-kit-x" aria-label="Chiudi" style="background:transparent;border:none;color:rgba(255,255,255,.85);font-size:22px;line-height:1;cursor:pointer">×</button>';
+        document.body.appendChild(bar);
+        document.getElementById('unime-kit-x').onclick=function(){ bar.remove(); try{localStorage.removeItem('cortex_uni_insegnamento');}catch(e){} };
+        document.getElementById('unime-kit-btn').onclick=function(){
+          var b=this; b.disabled=true; b.style.opacity='.75'; b.textContent='⏳ Genero il kit…';
+          var tries=0;
+          (function go(){
+            if(typeof window.generateUnimeKit==='function'){
+              Promise.resolve(window.generateUnimeKit()).catch(function(){}).finally(function(){ if(bar.parentNode) bar.remove(); });
+            } else if(tries++<40){ setTimeout(go,150); }
+            else { b.disabled=false; b.style.opacity='1'; b.textContent='Riprova ✨'; }
+          })();
+        };
+      }
+      if(document.readyState==='complete') setTimeout(showUnimeKitBanner,900);
+      else window.addEventListener('load', function(){ setTimeout(showUnimeKitBanner,900); });
     })();
     </script>
 

@@ -949,12 +949,14 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
       db.collection('analytics').get(),
     ]);
 
+    const ADMIN_UID = 'f8oLEt3LDpT7VN9zFOa10mVE2Cf2';  // account di Francesco: escluso dalle statistiche
     const usersByPlan = { free: 0, student: 0, pro: 0, other: 0 };
     let usersWithFCM = 0;
     let usersWithSparks = 0;
     const registrationByMonth = {};
 
     usersSnap.docs.forEach(doc => {
+      if (doc.id === ADMIN_UID) return;  // non contare l'admin tra gli utenti reali
       const d = doc.data();
       const plan = d.plan || 'free';
       if (plan === 'free') usersByPlan.free++;
@@ -1040,8 +1042,8 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
         recentPayments,
       },
       firestore: {
-        totalUsers: usersSnap.size,
-        newUsersToday: newUsersSnap.size,
+        totalUsers: usersSnap.docs.filter(x => x.id !== ADMIN_UID).length,
+        newUsersToday: newUsersSnap.docs.filter(x => x.id !== ADMIN_UID).length,
         usersByPlan,
         usersWithFCM,
         usersWithSparks,

@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trova il tuo corso UNIME e il programma · Cortex</title>
+<meta name="description" content="Studi all'Università di Messina? Scegli il tuo corso di laurea: Cortex ti mostra tutti gli insegnamenti e gli argomenti, pronti per il ripasso. Gratis, senza registrarti.">
+<script>try{if(new URLSearchParams(location.search).get('notrack')==='1'){localStorage.setItem('cortex_no_track','1');}}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg0:#050509;--border:rgba(255,255,255,.09);
+  --purple:#a855f7;--purple2:#7c3aed;--pink:#ec4899;--blue:#3b82f6;--green:#34d399;
+  --t1:#f5f6fa;--t2:#9aa4b6;--t3:#5b6577;
+  --glass:rgba(255,255,255,.04);--glassb:rgba(255,255,255,.09);
+}
+html{scroll-behavior:smooth;}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;color:var(--t1);
+  background:var(--bg0);min-height:100vh;line-height:1.6;overflow-x:hidden;
+  display:flex;flex-direction:column;align-items:center;padding:22px 16px 54px;}
+h1,.brand,.tile .nm,.mat-nm,.srow .sn{font-family:'Outfit',sans-serif;letter-spacing:-.02em;}
+/* Sfondo come la /home: grande glow viola centrale dietro il contenuto + orbs a colore pieno */
+.bg-mesh{position:fixed;inset:0;z-index:-3;background:
+  radial-gradient(760px 760px at 50% 30%,rgba(124,58,237,.30) 0%,rgba(124,58,237,.10) 40%,transparent 66%),
+  var(--bg0);}
+.orb{position:fixed;border-radius:50%;filter:blur(90px);z-index:-2;pointer-events:none;opacity:.55;}
+.orb1{width:520px;height:520px;background:radial-gradient(circle,#7c3aed 0%,transparent 70%);top:-140px;right:-120px;animation:orbA 16s ease-in-out infinite;}
+.orb2{width:460px;height:460px;background:radial-gradient(circle,#6366f1 0%,transparent 70%);bottom:-130px;left:-120px;animation:orbB 20s ease-in-out infinite;}
+.orb3{width:560px;height:560px;background:radial-gradient(circle,#a855f7 0%,transparent 70%);top:20%;left:50%;transform:translateX(-50%);opacity:.4;animation:orbA 24s ease-in-out infinite 5s;}
+@keyframes orbA{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,24px)}}
+@keyframes orbB{0%,100%{transform:translate(0,0)}50%{transform:translate(-26px,-20px)}}
+.parts{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;}
+.parts span{position:absolute;bottom:-12px;border-radius:50%;background:rgba(196,181,253,.5);animation:floatUp linear infinite;}
+@keyframes floatUp{0%{transform:translateY(0);opacity:0}12%{opacity:.65}88%{opacity:.4}100%{transform:translateY(-108vh);opacity:0}}
+@media(prefers-reduced-motion:reduce){.orb,.parts{display:none;}}
+.wrap{width:100%;max-width:620px;position:relative;z-index:1;}
+.reveal{opacity:0;transform:translateY(14px);animation:rev .55s ease forwards;}
+@keyframes rev{to{opacity:1;transform:none;}}
+.top{display:flex;align-items:center;gap:11px;margin-bottom:20px;}
+.back{background:var(--glass);border:1px solid var(--border);border-radius:12px;color:var(--t2);
+  font-size:16px;padding:9px 13px;cursor:pointer;backdrop-filter:blur(12px);transition:.2s;}
+.back:hover{color:var(--t1);border-color:rgba(168,85,247,.45);transform:translateX(-2px);}
+.logo{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--purple2),var(--purple));display:flex;align-items:center;justify-content:center;box-shadow:0 6px 22px rgba(124,58,237,.4);}
+.brand{font-weight:800;font-size:15px;}
+.steps{display:flex;gap:7px;margin-bottom:26px;}
+.step{flex:1;height:5px;border-radius:99px;background:rgba(255,255,255,.07);transition:.4s;}
+.step.on{background:linear-gradient(90deg,var(--purple2),var(--pink));box-shadow:0 0 14px rgba(168,85,247,.5);}
+.screen{display:none;} .screen.active{display:block;}
+h1{font-size:clamp(1.5rem,5.3vw,1.9rem);font-weight:900;line-height:1.15;margin-bottom:7px;text-align:center;
+  background:linear-gradient(115deg,#ffffff,#d8b4fe 55%,#a5b4fc);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.sub{color:var(--t2);font-size:14.5px;text-align:center;margin-bottom:22px;}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.tile{background:var(--glass);backdrop-filter:blur(16px);border:1px solid var(--border);border-radius:16px;
+  padding:16px 14px;cursor:pointer;transition:transform .15s,border-color .2s,background .2s,box-shadow .2s;
+  text-align:left;font-family:inherit;color:var(--t1);position:relative;overflow:hidden;}
+.tile::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(168,85,247,.12),transparent 60%);opacity:0;transition:.25s;}
+.tile:hover{border-color:rgba(168,85,247,.5);transform:translateY(-3px);box-shadow:0 14px 40px rgba(124,58,237,.22);}
+.tile:hover::after{opacity:1;}
+.tile:active{transform:scale(.97);}
+.tile .emo{font-size:24px;display:block;margin-bottom:7px;position:relative;}
+.tile .nm{font-size:14px;font-weight:800;position:relative;display:block;line-height:1.25;}
+.tile .ds{font-size:11.5px;color:var(--t2);margin-top:4px;position:relative;display:block;}
+.search{width:100%;padding:15px 17px;background:var(--glass);border:1px solid var(--border);border-radius:14px;
+  color:var(--t1);font-size:15px;font-family:inherit;outline:none;margin-bottom:14px;backdrop-filter:blur(12px);transition:.2s;}
+.search:focus{border-color:var(--purple);box-shadow:0 0 0 3px rgba(168,85,247,.15);}
+.slist{display:flex;flex-direction:column;gap:9px;max-height:56vh;overflow-y:auto;padding-right:2px;}
+.srow{background:var(--glass);border:1px solid var(--border);border-radius:13px;padding:14px 16px;cursor:pointer;font-family:inherit;text-align:left;color:var(--t1);backdrop-filter:blur(12px);transition:.18s;display:flex;align-items:center;gap:12px;}
+.srow:hover{border-color:rgba(168,85,247,.5);transform:translateX(3px);}
+.srow .em{font-size:20px;flex-shrink:0;}
+.srow .sn{font-size:13.5px;font-weight:700;line-height:1.25;}
+.srow .sc{font-size:11.5px;color:var(--t2);margin-top:2px;}
+.tag{display:inline-block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;padding:2px 7px;border-radius:99px;margin-left:6px;vertical-align:middle;}
+.tag.tr{background:rgba(52,211,153,.14);color:var(--green);}
+.tag.mag{background:rgba(168,85,247,.16);color:#d8b4fe;}
+.tag.cu{background:rgba(59,130,246,.16);color:#93c5fd;}
+.secttl{font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin:16px 0 9px;}
+.msg{background:var(--glass);border:1px solid var(--border);border-radius:13px;padding:15px;font-size:13px;color:var(--t2);text-align:center;}
+.cbar{background:linear-gradient(135deg,rgba(124,58,237,.2),rgba(236,72,153,.1));border:1px solid rgba(168,85,247,.4);
+  border-radius:14px;padding:14px 16px;margin-bottom:18px;font-size:13.5px;backdrop-filter:blur(12px);}
+.cbar b{color:#fff;}
+.yearttl{font-family:'Outfit',sans-serif;font-size:13px;font-weight:800;color:#d8b4fe;margin:20px 0 10px;display:flex;align-items:center;gap:8px;}
+.yearttl::before{content:'';width:16px;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--purple),transparent);}
+.mat{background:var(--glass);backdrop-filter:blur(16px);border:1px solid var(--border);border-radius:16px;margin-bottom:10px;overflow:hidden;transition:border-color .2s;}
+.mat:hover{border-color:rgba(168,85,247,.32);}
+.mat-h{display:flex;align-items:center;gap:13px;padding:15px 16px;cursor:pointer;user-select:none;}
+.mat-emo{font-size:19px;width:24px;text-align:center;flex-shrink:0;}
+.mat-nm{font-size:14px;font-weight:700;flex:1;line-height:1.3;}
+.mat-cnt{font-size:10.5px;color:var(--t3);white-space:nowrap;}
+.mat-arr{color:var(--t3);transition:transform .25s;font-size:11px;}
+.mat.open .mat-arr{transform:rotate(90deg);color:var(--purple);}
+.mat-body{display:none;padding:0 16px 15px;}
+.mat.open .mat-body{display:block;}
+.meta{display:flex;flex-wrap:wrap;gap:7px;margin:4px 0 10px;}
+.chip{font-size:11px;color:var(--t2);background:rgba(255,255,255,.045);border:1px solid var(--border);border-radius:99px;padding:3px 10px;}
+.sechead{font-family:'Outfit',sans-serif;font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--t3);margin:12px 0 5px;}
+.setext{font-size:13px;color:var(--t2);line-height:1.6;}
+.arg{display:flex;align-items:flex-start;gap:9px;padding:7px 0;border-top:1px solid var(--border);font-size:13px;color:var(--t2);line-height:1.5;}
+.arg .dot{width:6px;height:6px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--pink));flex-shrink:0;margin-top:7px;}
+.mat-cta{display:block;width:100%;margin-top:13px;padding:12px;border:none;border-radius:11px;cursor:pointer;font-family:'Outfit',sans-serif;
+  font-size:13.5px;font-weight:800;color:#fff;background:linear-gradient(120deg,var(--purple2),var(--purple));text-decoration:none;text-align:center;transition:.2s;}
+.mat-cta:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(168,85,247,.4);}
+.note{font-size:11.5px;color:var(--t3);text-align:center;margin:8px 0 18px;line-height:1.55;}
+.enter{position:sticky;bottom:14px;margin-top:22px;}
+.enter a{display:block;width:100%;padding:17px;border-radius:15px;font-size:16px;font-weight:800;color:#fff;text-decoration:none;text-align:center;
+  font-family:'Outfit',sans-serif;background:linear-gradient(120deg,var(--purple2),var(--purple));box-shadow:0 12px 38px rgba(124,58,237,.5);transition:.2s;}
+.enter a:hover{transform:translateY(-2px);box-shadow:0 18px 50px rgba(124,58,237,.6);}
+.free{display:block;text-align:center;font-size:12px;color:var(--green);margin-top:9px;}
+.loading{text-align:center;color:var(--t2);font-size:14px;padding:40px 0;}
+</style>
+</head>
+<body>
+<div class="bg-mesh"></div><div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div><div class="parts" id="parts"></div>
+<div class="wrap">
+
+  <div class="top">
+    <button class="back" id="btn-back" onclick="goBack()">←</button>
+    <div class="logo"><svg width="16" height="16" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="3.5" fill="white"/><circle cx="7.5" cy="7.5" r="6.5" stroke="white" stroke-width="1.5" fill="none" opacity=".4"/></svg></div>
+    <span class="brand">Cortex · Università di Messina</span>
+  </div>
+  <div class="steps"><div class="step" id="st0"></div><div class="step" id="st1"></div><div class="step" id="st2"></div></div>
+
+  <div class="screen active" id="s-area">
+    <h1>Che corso studi?</h1>
+    <p class="sub">Università di Messina — trova il tuo corso di laurea e tutti gli insegnamenti.</p>
+    <input class="search" id="search-corso" placeholder="🔎 Cerca il tuo corso (es. Ingegneria, Medicina, Giurisprudenza)…" oninput="onSearch()">
+    <div id="area-box"></div>
+    <div id="search-box"></div>
+  </div>
+
+  <div class="screen" id="s-corso">
+    <h1 id="tit-area">Corsi</h1>
+    <p class="sub" id="sub-area"></p>
+    <input class="search" id="search-corso2" placeholder="Filtra i corsi…" oninput="filterCorsi()">
+    <div id="corso-box"></div>
+  </div>
+
+  <div class="screen" id="s-ins">
+    <div id="cbar"></div>
+    <h1 id="tit-corso"></h1>
+    <p class="sub" id="sub-corso">Tutti gli insegnamenti, pronti per il ripasso</p>
+    <div id="ins-box"><div class="loading">Carico gli insegnamenti…</div></div>
+    <p class="note">📚 Dati ufficiali del catalogo UNIME · <b>Anno Accademico 2026/2027</b>. ⚠️ Docenti e programmi possono cambiare ogni anno — verifica sempre col tuo corso. Apri un insegnamento e Cortex ti prepara flashcard e ripasso.</p>
+    <div class="enter">
+      <a id="enter-app" href="/app?guest=1&area=universita">Entra in Cortex e inizia gratis →</a>
+      <span class="free">Senza registrarti · i progressi li salvi dopo con 1 click</span>
+    </div>
+  </div>
+</div>
+
+<script>
+// particelle
+(function(){var w=document.getElementById('parts');var n=window.innerWidth<768?20:40;
+for(var i=0;i<n;i++){var s=document.createElement('span');var sz=(Math.random()*3+1).toFixed(1);
+s.style.width=sz+'px';s.style.height=sz+'px';s.style.left=(Math.random()*100).toFixed(1)+'%';
+s.style.animationDelay=(Math.random()*22).toFixed(1)+'s';s.style.animationDuration=(Math.random()*16+13).toFixed(1)+'s';w.appendChild(s);}})();
+
+const AREA_EMO={AR_UM:'📜',AR_ES:'📊',AR_GIUR:'⚖️',AR_ING:'⚙️',AR_VET:'🐾',AR_PED:'🩺',AR_SCI:'🦷',AR_FAR:'🧪',AR_SDF:'🧠',AR_MAT:'🔬',AR_POL:'🏛️',AR_MED:'⚕️',AR_PSI:'🧩',AR_SOC:'👥',AR_AGR:'🌾',AR_FORD:'🎓'};
+function tagFor(g){g=(g||'').toLowerCase();if(g.includes('trienn'))return'<span class="tag tr">Triennale</span>';if(g.includes('ciclo unico'))return'<span class="tag cu">Ciclo unico</span>';if(g.includes('magistrale'))return'<span class="tag mag">Magistrale</span>';return'<span class="tag mag">'+(g||'Corso')+'</span>';}
+function norm(s){return (s||'').toLowerCase().replace(/à/g,'a').replace(/è|é/g,'e').replace(/ì/g,'i').replace(/ò/g,'o').replace(/ù/g,'u');}
+
+let CORSI=[], stack=[], curArea=null, curAreaName='', curCorso=null, corsiArea=[];
+
+function show(id,step){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const el=document.getElementById(id); el.classList.add('active');
+  el.classList.remove('reveal'); void el.offsetWidth; el.classList.add('reveal');
+  for(let i=0;i<3;i++)document.getElementById('st'+i).classList.toggle('on',i<=step);
+  window.scrollTo(0,0);
+}
+function goTo(id,step){ stack.push({id,step}); show(id,step); }
+function goBack(){ if(stack.length>1){ stack.pop(); const p=stack[stack.length-1]; show(p.id,p.step); } else { location.href='/'; } }
+stack=[{id:'s-area',step:0}];
+
+fetch('/unime/corsi.json').then(r=>r.ok?r.json():null).then(d=>{
+  CORSI=(d&&d.corsi)||[];
+  buildAree();
+}).catch(()=>{document.getElementById('area-box').innerHTML='<div class="msg">Impossibile caricare i corsi. Riprova.</div>';});
+
+function buildAree(){
+  // solo aree con corsi
+  const byArea={};
+  CORSI.forEach(c=>{ if(!byArea[c.area_cod])byArea[c.area_cod]={cod:c.area_cod,nome:c.area,n:0}; byArea[c.area_cod].n++; });
+  const list=Object.values(byArea).sort((a,b)=>b.n-a.n);
+  const box=document.getElementById('area-box');
+  box.innerHTML='<div class="grid">'+list.map(a=>
+    '<button class="tile" onclick="openArea(\''+a.cod+'\')"><span class="emo">'+(AREA_EMO[a.cod]||'🎓')+'</span><span class="nm">'+a.nome+'</span><span class="ds">'+a.n+' corsi</span></button>'
+  ).join('')+'</div>';
+}
+
+function onSearch(){
+  const q=norm(document.getElementById('search-corso').value.trim());
+  const ab=document.getElementById('area-box'), sb=document.getElementById('search-box');
+  if(!q){ ab.style.display=''; sb.innerHTML=''; return; }
+  ab.style.display='none';
+  const res=CORSI.filter(c=>norm(c.nome).includes(q)).slice(0,40);
+  sb.innerHTML='<div class="slist">'+(res.map(c=>rowCorso(c)).join('')||'<div class="msg">Nessun corso trovato.</div>')+'</div>';
+}
+function rowCorso(c){
+  return '<button class="srow" onclick="openCorso(\''+c.cod+'\')"><span class="em">'+(AREA_EMO[c.area_cod]||'🎓')+'</span><span><span class="sn">'+c.nome+tagFor(c.gruppo)+'</span><span class="sc">'+c.area+'</span></span></button>';
+}
+
+function openArea(cod){
+  curArea=cod; corsiArea=CORSI.filter(c=>c.area_cod===cod);
+  curAreaName=(corsiArea[0]&&corsiArea[0].area)||'Corsi';
+  document.getElementById('tit-area').textContent=(AREA_EMO[cod]||'🎓')+' '+curAreaName;
+  document.getElementById('sub-area').textContent=corsiArea.length+' corsi di laurea';
+  document.getElementById('search-corso2').value='';
+  renderCorsi(corsiArea);
+  goTo('s-corso',1);
+}
+function renderCorsi(list){
+  const box=document.getElementById('corso-box');
+  const groups=[['Triennale',c=>norm(c.gruppo).includes('trienn')],
+                ['Magistrale a ciclo unico',c=>norm(c.gruppo).includes('ciclo unico')],
+                ['Magistrale',c=>norm(c.gruppo).includes('magistrale')&&!norm(c.gruppo).includes('ciclo unico')],
+                ['Altro',c=>!/(trienn|magistrale)/.test(norm(c.gruppo))]];
+  let html='';
+  groups.forEach(([lbl,f])=>{
+    const g=list.filter(f); if(!g.length)return;
+    html+='<div class="secttl">'+lbl+' · '+g.length+'</div><div class="slist">'+g.map(c=>rowCorso(c)).join('')+'</div>';
+  });
+  box.innerHTML=html||'<div class="msg">Nessun corso.</div>';
+}
+function filterCorsi(){
+  const q=norm(document.getElementById('search-corso2').value);
+  renderCorsi(corsiArea.filter(c=>norm(c.nome).includes(q)));
+}
+
+function openCorso(cod){
+  curCorso=CORSI.find(c=>c.cod===cod)||{cod:cod,nome:'Corso'};
+  document.getElementById('tit-corso').textContent=curCorso.nome;
+  const cb=document.getElementById('cbar');
+  cb.className='cbar';
+  cb.innerHTML='🎓 <b>'+curCorso.nome+'</b> '+tagFor(curCorso.gruppo)+' · Università di Messina · <span style="color:#d8b4fe;font-weight:700">A.A. 2026/2027</span>';
+  document.getElementById('ins-box').innerHTML='<div class="loading">Carico gli insegnamenti…</div>';
+  try{ localStorage.setItem('cortex_uni_corso',curCorso.nome); }catch(e){}
+  goTo('s-ins',2);
+  fetch('/unime/corso/'+cod+'.json').then(r=>r.ok?r.json():null).then(renderInsegnamenti).catch(()=>{
+    document.getElementById('ins-box').innerHTML='<div class="msg">Impossibile caricare gli insegnamenti.</div>';
+  });
+}
+
+function slugMat(s){return norm(s).replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');}
+function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function splitArg(t){ // trasforma i contenuti in punti-argomento
+  if(!t)return[];
+  let parts=t.split(/\r?\n|•|·|;|–\s|(?:\d+[\).]\s)/).map(x=>x.trim()).filter(x=>x.length>3);
+  if(parts.length<2) parts=t.split(/\.\s+(?=[A-ZÀ-Ù])/).map(x=>x.trim()).filter(x=>x.length>3);
+  return parts.slice(0,14);
+}
+
+function renderInsegnamenti(d){
+  const box=document.getElementById('ins-box');
+  if(!d||!d.insegnamenti||!d.insegnamenti.length){
+    box.innerHTML='<div class="msg">Per questo corso il catalogo non elenca insegnamenti (spesso è così per dottorati e master).</div>';
+    document.getElementById('sub-corso').textContent='';
+    return;
+  }
+  document.getElementById('sub-corso').textContent=d.n_insegnamenti+' insegnamenti · '+(d.durata||'')+(d.crediti?' · '+d.crediti:'');
+  // raggruppa per anno
+  const byYear={};
+  d.insegnamenti.forEach(ins=>{ const y=ins.annoCorso||0; (byYear[y]=byYear[y]||[]).push(ins); });
+  const years=Object.keys(byYear).map(Number).sort((a,b)=>a-b);
+  let html='';
+  years.forEach(y=>{
+    html+='<div class="yearttl">'+(y?y+'° anno':'Altri insegnamenti')+'</div>';
+    byYear[y].forEach((ins,idx)=>{ html+=cardIns(ins, y+'_'+idx); });
+  });
+  box.innerHTML=html;
+  box.querySelectorAll('.mat-h').forEach(h=>h.onclick=()=>h.parentElement.classList.toggle('open'));
+  box.querySelectorAll('.mat-cta').forEach(a=>a.addEventListener('click',function(){
+    try{ localStorage.setItem('cortex_uni_insegnamento',this.getAttribute('data-ins')||''); localStorage.setItem('cortex_area','universita'); }catch(e){}
+  }));
+}
+
+function secTxt(label,txt,max){ if(!txt||(''+txt).trim().length<15)return ''; var t=(''+txt).trim(); return '<div class="sechead">'+label+'</div><div class="setext">'+esc(t.slice(0,max))+(t.length>max?'…':'')+'</div>'; }
+function cardIns(ins, id){
+  const args=splitArg(ins.contenuti);
+  const has=f=>ins[f]&&(''+ins[f]).trim().length>15;
+  const hasProg=has('obiettivi')||has('contenuti')||has('testi')||has('verifica');
+  let body='<div class="meta">';
+  if(ins.cfu)body+='<span class="chip">'+ins.cfu+' CFU</span>';
+  if(ins.ssd)body+='<span class="chip">'+esc(ins.ssd)+'</span>';
+  if(ins.periodo)body+='<span class="chip">'+esc(ins.periodo)+'</span>';
+  if(ins.docenti&&ins.docenti.length)body+='<span class="chip">👤 '+esc(ins.docenti.slice(0,2).join(', '))+'</span>';
+  if(hasProg)body+='<span class="chip" style="color:#d8b4fe;border-color:rgba(168,85,247,.4)">📅 Programma A.A. 2026/2027</span>';
+  body+='</div>';
+  body+=secTxt('Obiettivi',ins.obiettivi,650);
+  if(args.length){ body+='<div class="sechead">Argomenti del programma</div>'+args.map(a=>'<div class="arg"><span class="dot"></span>'+esc(a)+'</div>').join(''); }
+  else body+=secTxt('Contenuti',ins.contenuti,650);
+  body+=secTxt('Prerequisiti',ins.prerequisiti,320);
+  body+=secTxt("Modalità d'esame",ins.verifica,320);
+  body+=secTxt('Testi / bibliografia',ins.testi,450);
+  if(!hasProg){ body+='<div class="setext" style="color:var(--t3)">Programma non ancora pubblicato dal docente per il 2026/2027 — puoi comunque studiare: Cortex genera flashcard e ripasso dal titolo dell\'insegnamento.</div>'; }
+  const cta='/app?guest=1&area=universita&materia='+slugMat(ins.nome);
+  body+='<a class="mat-cta" data-ins="'+esc(ins.nome).replace(/"/g,'&quot;')+'" href="'+cta+'">Studia '+esc(ins.nome.length>30?'questo insegnamento':ins.nome)+' con Cortex →</a>';
+  return '<div class="mat"><div class="mat-h"><span class="mat-emo">📘</span><span class="mat-nm">'+esc(ins.nome)+'</span>'+
+    '<span class="mat-cnt">'+(hasProg?'programma ✓':(ins.cfu?ins.cfu+' CFU':''))+'</span><span class="mat-arr">▶</span></div>'+
+    '<div class="mat-body">'+body+'</div></div>';
+}
+</script>
+</body>
+</html>

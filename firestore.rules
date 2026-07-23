@@ -17,13 +17,10 @@ service cloud.firestore {
       return str is string && str.size() <= maxLength;
     }
 
-    // Helper: conta i mazzi pubblici creati oggi dall'utente (per rate limit)
-    function publicDecksToday() {
-      return firestore.collection('publicDecks')
-        .where('ownerId', '==', request.auth.uid)
-        .where('createdAt', '>', request.time.toMillis() - 86400000)
-        .count();
-    }
+    // NOTA sicurezza (22/07/2026): le regole Firestore NON supportano query/count(),
+    // quindi il rate-limit "max N mazzi pubblici al giorno" va fatto in una Cloud Function
+    // (o con un doc contatore per-utente aggiornato via transazione). Qui restano solo i
+    // limiti per-documento (ownerId, lunghezze, max 200 card).
 
     // 📦 Mazzi Pubblici: Chiunque può leggerli (per importare).
     // Creazione: Utenti autenticati, con limiti anti-spam:
@@ -62,9 +59,9 @@ service cloud.firestore {
         isAdmin() || (
           request.resource.data.uid == request.auth.uid &&
           (!resource.exists || resource.data.uid == request.auth.uid) &&
-          (!('xp' in request.resource.data) || (request.resource.data.xp is int && request.resource.data.xp >= 0)) &&
-          (!('totalXP' in request.resource.data) || (request.resource.data.totalXP is int && request.resource.data.totalXP >= 0)) &&
-          (!('weeklyXP' in request.resource.data) || (request.resource.data.weeklyXP is int && request.resource.data.weeklyXP >= 0))
+          (!('xp' in request.resource.data) || (request.resource.data.xp is int && request.resource.data.xp >= 0 && request.resource.data.xp <= 100000000)) &&
+          (!('totalXP' in request.resource.data) || (request.resource.data.totalXP is int && request.resource.data.totalXP >= 0 && request.resource.data.totalXP <= 100000000)) &&
+          (!('weeklyXP' in request.resource.data) || (request.resource.data.weeklyXP is int && request.resource.data.weeklyXP >= 0 && request.resource.data.weeklyXP <= 10000000))
         )
       );
     }
@@ -128,10 +125,14 @@ service cloud.firestore {
         // L'utente aggiorna il proprio profilo
         resource.data.uid == request.auth.uid
         // Oppure un altro utente aggiorna i contatori follow sul profilo altrui
-        // (batch atomico in followUser/unfollowUser): solo i campi contatore sono permessi
+        // (batch atomico in followUser/unfollowUser): SOLO i campi contatore, e devono
+        // essere interi >= 0 entro un massimo (blocca type-confusion e valori assurdi).
         || (request.auth != null
             && request.resource.data.diff(resource.data).affectedKeys()
-               .hasOnly(['followersCount', 'followingCount', 'friendsCount']))
+               .hasOnly(['followersCount', 'followingCount', 'friendsCount'])
+            && (!('followersCount' in request.resource.data) || (request.resource.data.followersCount is int && request.resource.data.followersCount >= 0 && request.resource.data.followersCount <= 100000000))
+            && (!('followingCount' in request.resource.data) || (request.resource.data.followingCount is int && request.resource.data.followingCount >= 0 && request.resource.data.followingCount <= 100000000))
+            && (!('friendsCount' in request.resource.data) || (request.resource.data.friendsCount is int && request.resource.data.friendsCount >= 0 && request.resource.data.friendsCount <= 100000000)))
       );
       allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
     }

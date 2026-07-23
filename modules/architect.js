@@ -42,6 +42,7 @@ let _deps = {
 
 export function init(deps) {
     _deps = { ..._deps, ...deps };
+    try { window.generateUnimeKit = generateUnimeKit; } catch (e) {}
 }
 
 // Proxy locali per retrocompatibilità con il codice estratto che usa i nomi originali
@@ -710,6 +711,70 @@ Le domande devono essere brevi e precise. Le risposte complete ma concise (max 2
         } else {
             _deps.showToast(`❌ Errore: ${e.message}`, 'error');
         }
+    }
+}
+
+/**
+ * generateUnimeKit — genera al volo il kit di studio (flashcard, con quiz automatico
+ * a partire dal mazzo) per l'insegnamento UNIME scelto su /unime.
+ * Legge cortex_uni_insegnamento / cortex_uni_corso da localStorage.
+ */
+export async function generateUnimeKit() {
+    let ins = '', corso = '';
+    try { ins = (localStorage.getItem('cortex_uni_insegnamento') || '').trim(); corso = (localStorage.getItem('cortex_uni_corso') || '').trim(); } catch (e) {}
+    if (!ins) { _deps.showToast('Nessun insegnamento selezionato.', 'warning'); return; }
+
+    _deps.showToast('⏳ Preparo il tuo kit di studio…', 'info');
+
+    const ctx = corso ? ` (corso di ${corso}, Università di Messina)` : '';
+    const prompt_text = `Sei un professore universitario esperto. Crea un mazzo di 18 flashcard per preparare l'esame universitario di "${ins}"${ctx}.
+Copri definizioni, concetti chiave, teoremi/formule ed esempi tipici dell'esame. Livello universitario, in italiano.
+Rispondi SOLO con un JSON valido in questo formato esatto, senza markdown, senza testo extra:
+{
+  "name": "Nome breve del mazzo",
+  "cards": [
+    {"q": "Domanda o termine", "a": "Risposta o definizione"}
+  ]
+}
+Domande brevi e precise. Risposte complete ma concise (max 3 righe).`;
+
+    try {
+        const rawText = await callGemini(prompt_text, {
+            generationConfig: { temperature: 0.5, responseMimeType: 'application/json' }
+        });
+        let data;
+        try { data = JSON.parse(rawText.trim()); }
+        catch { const m = rawText.match(/\{[\s\S]*\}/); if (!m) throw new Error('JSON non trovato nella risposta AI'); data = JSON.parse(m[0]); }
+        if (!data.cards || !Array.isArray(data.cards) || data.cards.length === 0) throw new Error('Nessuna card generata');
+
+        const newDeck = {
+            id: Date.now(),
+            name: data.name || ins,
+            subject: ins,
+            examDate: '',
+            studyMethod: 'cortex',
+            cards: data.cards.map((c, i) => ({
+                id: Date.now() + i,
+                q: c.q || c.front || '',
+                a: c.a || c.back || '',
+                interval: 1, ease: 2.5, nextReview: todayStr(), reps: 0
+            }))
+        };
+        if (_deps.state && Array.isArray(_deps.state.decks)) { _deps.state.decks.push(newDeck); _deps.saveState(); }
+        try { localStorage.removeItem('cortex_uni_insegnamento'); } catch (e) {}
+
+        _deps.showToast(`✅ Kit "${newDeck.name}" pronto: ${newDeck.cards.length} flashcard + quiz!`, 'success');
+        if (typeof window.showPage === 'function') window.showPage('materiale');
+        setTimeout(() => {
+            if (typeof window.renderDecks === 'function') window.renderDecks();
+            else if (typeof _deps.renderDecks === 'function') _deps.renderDecks();
+        }, 100);
+    } catch (e) {
+        console.error('[generateUnimeKit]', e);
+        if (e.name === 'AbortError') _deps.showToast(t('ai_too_slow'), 'warning');
+        else if (e.isPaywall) _deps.showToast(t('ai_limit_reached'), 'warning');
+        else if (e.isNoApiKey) _deps.showToast(t('ai_no_key_login'), 'error');
+        else _deps.showToast(`❌ Errore nella generazione: ${e.message}`, 'error');
     }
 }
 
