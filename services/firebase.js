@@ -213,6 +213,15 @@ export async function initFirebase() {
         if (!_authListenerActive) {
             _authListenerActive = true;
             firebase.auth().onAuthStateChanged((user) => {
+                // AUTO NO-TRACK ADMIN (11/08/2026): se accede Francesco, marca questo
+                // browser come no-track per sempre → le sue visite (telefono, PC, test)
+                // non gonfiano più visite/presence/conversione. Niente più conteggi finti.
+                try {
+                    if (user && (user.uid === 'f8oLEt3LDpT7VN9zFOa10mVE2Cf2' ||
+                        (user.email || '').toLowerCase() === 'francesco1cutugno@gmail.com')) {
+                        localStorage.setItem('cortex_no_track', '1');
+                    }
+                } catch (_) {}
                 onAuthStateChangedHandler(user, {
                     updateUserUI,
                     loadFromCloud,

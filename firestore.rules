@@ -68,8 +68,31 @@ service cloud.firestore {
 
     // 👤 Dati Privati Utente (Cloud Sync): Solo il proprietario può accedere.
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-      
+      allow read: if request.auth != null && request.auth.uid == userId;
+
+      // 🔒 SICUREZZA (11/08/2026 — fix falla "premium gratis"): i campi di
+      // abbonamento e crediti sono FONTE DI VERITÀ e vengono scritti SOLO dal
+      // backend (Cloud Functions via Admin SDK, che bypassa queste regole).
+      // Il client NON può auto-assegnarseli: senza questo blocco un utente poteva
+      // scriversi plan:'pro' e sparksBalance enorme dalla console → premium + AI
+      // illimitata gratis. Campi protetti dal client:
+      function _billingProtetti() {
+        return [
+          'plan','planCycle','planSource','planUpdatedAt','planExpiresAt',
+          'sparksBalance','trialPlan','trialExpiresAt','stripeCustomerId',
+          'googlePlaySubscription'
+        ];
+      }
+      allow create: if request.auth != null && request.auth.uid == userId
+        && (!('plan' in request.resource.data) || request.resource.data.plan == 'free')
+        && (!('sparksBalance' in request.resource.data) || request.resource.data.sparksBalance == 0)
+        && !request.resource.data.keys().hasAny([
+             'planCycle','planSource','planUpdatedAt','planExpiresAt',
+             'trialPlan','trialExpiresAt','stripeCustomerId','googlePlaySubscription']);
+      allow update: if request.auth != null && request.auth.uid == userId
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(_billingProtetti());
+      allow delete: if request.auth != null && request.auth.uid == userId;
+
       // 📚 Sub-collection per i mazzi
       match /decks/{deckId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
