@@ -89,16 +89,14 @@ export function setObGoal(goal) {
 // ── API KEY ONBOARDING ────────────────────────────────────────────────────────
 
 export function checkApiKeyOnboarding() {
-    const sm = _deps.SecurityManager || window.SecurityManager;
-    if (!sm) return;
-    const apiKey = sm.getApiKey();
-    if (!apiKey) {
-        const onboardingModal = document.getElementById('api-onboarding-modal');
-        if (onboardingModal) {
-            onboardingModal.classList.remove('hidden');
-            onboardingModal.classList.add('flex');
-        }
-    }
+    // DISATTIVATO (12/08/2026) — l'AI ora passa dal PROXY server (callGeminiProxy →
+    // /api/gemini) per gli utenti loggati: la chiave personale NON serve più
+    // (vedi services/ai.js: se _fbLoggedIn usa il proxy, la chiave è solo fallback
+    // per gli ospiti). Il vecchio modal "Attiva Motore IA / porta la tua chiave"
+    // partiva al boot e bloccava/confondeva gli utenti normali → grosso killer di
+    // attivazione. Lo NON mostriamo più in automatico. La chiave personale resta
+    // impostabile a mano (opzione avanzata), ma non la chiediamo al primo accesso.
+    return;
 }
 
 // ── CLOSE / COMPLETE ONBOARDING ───────────────────────────────────────────────

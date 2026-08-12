@@ -1967,11 +1967,13 @@
         b.id='guest-banner';
         b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:15000;display:flex;align-items:center;justify-content:center;gap:12px;padding:8px 14px;font-family:Inter,system-ui,sans-serif;font-size:0.86rem;color:#fff;background:linear-gradient(90deg,rgba(139,92,246,0.96),rgba(217,70,239,0.96));box-shadow:0 4px 20px rgba(0,0,0,0.3);';
         b.innerHTML='<span>👤 Stai usando Cortex come <b>ospite</b> — i progressi non sono salvati.</span>'+
+          '<button id="guest-demo-btn" style="background:rgba(255,255,255,0.18);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-weight:800;font-size:0.82rem;cursor:pointer;">▶ Esempio</button>'+
           '<button id="guest-save-btn" style="background:#fff;color:#7c3aed;border:none;border-radius:8px;padding:6px 14px;font-weight:800;font-size:0.82rem;cursor:pointer;">Salva i progressi</button>'+
           '<button id="guest-dismiss-btn" aria-label="Chiudi" style="background:transparent;border:none;color:rgba(255,255,255,0.85);font-size:1.1rem;cursor:pointer;line-height:1;">×</button>';
         document.body.appendChild(b);
         document.body.style.paddingTop='38px';
         document.getElementById('guest-save-btn').onclick=window.__guestLogin;
+        var _gd=document.getElementById('guest-demo-btn'); if(_gd) _gd.onclick=function(){ window.__cortexDemo(true); };
         document.getElementById('guest-dismiss-btn').onclick=function(){
           b.remove(); document.body.style.paddingTop='';
         };
@@ -2001,9 +2003,86 @@
         m.addEventListener('click',function(e){ if(e.target===m) m.remove(); });
       };
 
+      // ── DEMO "PROVA UN ESEMPIO" (12/08/2026) ──────────────────────────────
+      // Valore PRIMA della registrazione: un ospite nuovo vede subito Cortex in
+      // azione (flashcard già pronte, il loop di autotest) senza caricare niente
+      // e senza login. Solo DOPO il wow proponiamo l'accesso Google. Tutto client
+      // side e hardcoded: NON tocca mazzi, stato o database.
+      window.__cortexDemo = function(force){
+        if((!isGuest() || isLogged()) && !force) return;
+        if(document.getElementById('cortex-demo')) return;
+        try{ if(typeof gtag==='function' && localStorage.getItem('cortex_no_track')!=='1') gtag('event','demo_shown'); }catch(e){}
+        var CARDS=[
+          {q:'Quante camere ha il cuore umano?', a:'Quattro: due atri (in alto) e due ventricoli (in basso).'},
+          {q:'A cosa servono i globuli rossi?', a:'Trasportano l\'ossigeno ai tessuti, grazie all\'emoglobina.'},
+          {q:'Cos\'è la sistole?', a:'La fase in cui il cuore si contrae e spinge il sangue nelle arterie.'},
+          {q:'Differenza tra arterie e vene?', a:'Le arterie portano il sangue DAL cuore ai tessuti; le vene lo riportano AL cuore.'}
+        ];
+        var step=0, flipped=false; // step 0=intro, 1..N=carte, N+1=finale
+        var ov=document.createElement('div'); ov.id='cortex-demo';
+        ov.style.cssText='position:fixed;inset:0;z-index:62000;background:radial-gradient(1000px 500px at 50% -10%,rgba(124,58,237,.28),transparent),rgba(6,6,12,.97);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:22px;font-family:Inter,system-ui,sans-serif;';
+        function btn(id,txt,style){return '<button id="'+id+'" style="'+style+'">'+txt+'</button>';}
+        var PRIMARY='display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:15px;border:none;border-radius:100px;cursor:pointer;font-weight:800;font-size:1.02rem;color:#fff;background:linear-gradient(135deg,#8b5cf6,#d946ef);box-shadow:0 12px 36px rgba(139,92,246,.4);';
+        var GHOST='display:block;width:100%;background:none;border:none;color:rgba(255,255,255,.45);font-size:.88rem;margin-top:14px;cursor:pointer;';
+        function wrap(inner){return '<div style="max-width:440px;width:100%;background:rgba(18,18,26,.98);border:1px solid rgba(139,92,246,.35);border-radius:24px;padding:30px 26px;text-align:center;color:#fff;box-shadow:0 24px 80px rgba(139,92,246,.28);">'+inner+'</div>';}
+        function close(){ ov.remove(); try{localStorage.setItem('cortex_demo_seen','1');}catch(e){} }
+        function goLogin(){ try{ if(typeof gtag==='function' && localStorage.getItem('cortex_no_track')!=='1') gtag('event','demo_login'); }catch(e){} close(); window.__guestLogin(); }
+        function render(){
+          var html='';
+          if(step===0){
+            html=wrap(
+              '<div style="font-size:2.4rem;margin-bottom:12px;">🃏</div>'+
+              '<h2 style="font-family:Outfit,sans-serif;font-size:1.4rem;font-weight:900;margin:0 0 10px;">Guarda Cortex in azione</h2>'+
+              '<p style="color:rgba(255,255,255,.66);font-size:.96rem;line-height:1.6;margin:0 0 22px;">Queste flashcard sono generate da <b>appunti di Biologia</b>. Provale: giri la carta, dici se la sapevi. È così che ti interroghi su <b>qualsiasi</b> materia.</p>'+
+              btn('cd-start','▶  Inizia (30 sec)',PRIMARY)+
+              btn('cd-skip','Salta',GHOST));
+          } else if(step>=1 && step<=CARDS.length){
+            var c=CARDS[step-1];
+            html=wrap(
+              '<div style="color:rgba(255,255,255,.4);font-size:.78rem;font-weight:700;letter-spacing:.6px;margin-bottom:14px;">CARTA '+step+' / '+CARDS.length+'  ·  BIOLOGIA</div>'+
+              '<div style="min-height:150px;display:flex;align-items:center;justify-content:center;background:rgba(139,92,246,.10);border:1px solid rgba(139,92,246,.25);border-radius:16px;padding:20px;margin-bottom:16px;">'+
+                (flipped
+                  ? '<div><div style="color:#34d399;font-size:.72rem;font-weight:800;letter-spacing:.5px;margin-bottom:8px;">RISPOSTA</div><div style="font-size:1.05rem;line-height:1.5;">'+c.a+'</div></div>'
+                  : '<div style="font-size:1.2rem;font-weight:700;line-height:1.45;">'+c.q+'</div>')+
+              '</div>'+
+              (flipped
+                ? '<div style="display:flex;gap:10px;">'+
+                    '<button id="cd-again" style="flex:1;padding:13px;border:1px solid rgba(255,255,255,.16);border-radius:12px;background:transparent;color:#fca5a5;font-weight:700;cursor:pointer;">🔁 Da ripassare</button>'+
+                    '<button id="cd-known" style="flex:1;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-weight:800;cursor:pointer;">✅ La sapevo</button>'+
+                  '</div>'
+                : btn('cd-flip','Gira la carta',PRIMARY)));
+          } else {
+            html=wrap(
+              '<div style="font-size:2.4rem;margin-bottom:10px;">✨</div>'+
+              '<h2 style="font-family:Outfit,sans-serif;font-size:1.4rem;font-weight:900;margin:0 0 10px;">Immagina di farlo coi TUOI appunti</h2>'+
+              '<p style="color:rgba(255,255,255,.66);font-size:.96rem;line-height:1.6;margin:0 0 22px;">Carichi una <b>foto o un PDF</b> dei tuoi appunti → Cortex genera le flashcard e ti interroga. Accedi con Google (1 click, gratis) per salvare i progressi e crearne di tuoi.</p>'+
+              '<button id="cd-login" style="'+PRIMARY+'"><img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" height="20" alt="" style="border-radius:3px;background:#fff;padding:1px;">Accedi con Google — è gratis</button>'+
+              btn('cd-explore','Continua a esplorare',GHOST));
+          }
+          ov.innerHTML=html;
+          var el=function(id){return document.getElementById(id);};
+          if(el('cd-start'))el('cd-start').onclick=function(){step=1;flipped=false;render();};
+          if(el('cd-skip'))el('cd-skip').onclick=close;
+          if(el('cd-flip'))el('cd-flip').onclick=function(){flipped=true;render();};
+          if(el('cd-known'))el('cd-known').onclick=function(){step++;flipped=false;render();};
+          if(el('cd-again'))el('cd-again').onclick=function(){step++;flipped=false;render();};
+          if(el('cd-login'))el('cd-login').onclick=goLogin;
+          if(el('cd-explore'))el('cd-explore').onclick=close;
+        }
+        document.body.appendChild(ov); render();
+      };
+
       // Se l'app parte già in ospite (flag presente al load), inizializza il banner
       document.addEventListener('DOMContentLoaded', function(){
-        setTimeout(function(){ if(isGuest() && !isLogged()) window.__initGuestMode(); }, 800);
+        setTimeout(function(){
+          if(isGuest() && !isLogged()){
+            window.__initGuestMode();
+            // Auto-lancio del demo al PRIMO ingresso da ospite (una volta sola)
+            if(localStorage.getItem('cortex_demo_seen')!=='1'){
+              setTimeout(function(){ window.__cortexDemo(); }, 900);
+            }
+          }
+        }, 800);
       });
     })();
     </script>

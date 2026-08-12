@@ -1449,3 +1449,126 @@ exports.textToSpeechHttp = functions.https.onRequest(async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  EMAIL DI RITORNO (12/08/2026) — invio via SMTP Aruba (info@cortexapp.it)
+//  Recupera gli utenti che si iscrivono e non tornano: benvenuto (Giorno 0),
+//  promemoria (Giorno 1) e nudge (Giorno 3). La password Aruba NON è nel codice:
+//  sta in functions/.env come ARUBA_PASS (mai committare). ARUBA_USER opzionale.
+// ═══════════════════════════════════════════════════════════════════════════
+const nodemailer = require('nodemailer');
+const ARUBA_USER = process.env.ARUBA_USER || 'info@cortexapp.it';
+
+let _mailer = null;
+function getMailer() {
+  if (_mailer) return _mailer;
+  if (!process.env.ARUBA_PASS) { console.warn('[email] ARUBA_PASS mancante in .env — invio saltato'); return null; }
+  _mailer = nodemailer.createTransport({
+    host: 'smtps.aruba.it', port: 465, secure: true,
+    auth: { user: ARUBA_USER, pass: process.env.ARUBA_PASS },
+  });
+  return _mailer;
+}
+
+// Layout email (dark header viola + card chiara + bottone CTA). Inline-only.
+function emailLayout(titolo, corpoHtml, ctaTesto, ctaUrl) {
+  return `<div style="margin:0;padding:24px;background:#0f1020;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;">
+    <div style="max-width:520px;margin:0 auto;background:#16172a;border:1px solid #26263a;border-radius:16px;overflow:hidden;">
+      <div style="background:linear-gradient(135deg,#7c3aed,#a855f7);padding:22px 26px;">
+        <div style="color:#fff;font-size:20px;font-weight:800;letter-spacing:-.3px;">Cortex</div>
+      </div>
+      <div style="padding:26px 28px;color:#e8e8f0;">
+        <h1 style="font-size:20px;margin:0 0 12px;color:#fff;">${titolo}</h1>
+        <div style="font-size:15px;line-height:1.65;color:#c7c7d6;">${corpoHtml}</div>
+        <a href="${ctaUrl}" style="display:inline-block;margin:22px 0 6px;background:linear-gradient(135deg,#8b5cf6,#d946ef);color:#fff;text-decoration:none;font-weight:800;font-size:15px;padding:13px 26px;border-radius:100px;">${ctaTesto}</a>
+      </div>
+      <div style="padding:16px 28px;border-top:1px solid #26263a;color:#6b6b82;font-size:12px;line-height:1.6;">
+        Cortex · <a href="https://cortexapp.it" style="color:#a855f7;text-decoration:none;">cortexapp.it</a><br>
+        Ricevi questa email perché hai un account Cortex. Se non vuoi più riceverle, rispondi a questa mail scrivendo STOP.
+      </div>
+    </div>
+  </div>`;
+}
+
+const EMAILS = {
+  welcome: {
+    subject: 'Benvenuto in Cortex 🎓',
+    html: emailLayout('Benvenuto in Cortex 🎓',
+      'Hai appena creato il tuo account. Ora la parte bella: <b>carichi i tuoi appunti</b> (anche una foto o un PDF) e Cortex li trasforma in flashcard, poi ti interroga. Bastano 2 minuti per il primo mazzo.',
+      'Crea il primo mazzo →', 'https://cortexapp.it/app?utm_source=email&utm_campaign=welcome'),
+  },
+  d1: {
+    subject: 'Hai flashcard da ripassare 🔁',
+    html: emailLayout('Il ripasso funziona se è costante 🔁',
+      'Torna su Cortex e fai un giro veloce: <b>5 minuti</b> bastano per fissare quello che hai studiato. Il momento migliore per ripassare è proprio ora.',
+      'Ripassa ora →', 'https://cortexapp.it/app?utm_source=email&utm_campaign=d1'),
+  },
+  d3: {
+    subject: 'Non perdere il ritmo 💪',
+    html: emailLayout('Non perdere il ritmo 💪',
+      'Chi ripassa <b>poco e spesso</b> ricorda molto di più di chi studia tutto all’ultimo. Riprendi da dove eri: il tuo materiale è ancora lì che ti aspetta.',
+      'Riprendi a studiare →', 'https://cortexapp.it/app?utm_source=email&utm_campaign=d3'),
+  },
+};
+
+async function inviaEmail(to, tipo) {
+  const m = getMailer();
+  if (!m || !to) return false;
+  const e = EMAILS[tipo];
+  const opts = { from: `Cortex <${ARUBA_USER}>`, to, subject: e.subject, html: e.html };
+  // Copia della welcome a te (info@) → verifica automatica + storico di cosa
+  // ricevono i nuovi iscritti. Solo la welcome, per non intasare la casella.
+  if (tipo === 'welcome') opts.bcc = ARUBA_USER;
+  try {
+    await m.sendMail(opts);
+    return true;
+  } catch (err) {
+    console.error(`[email] invio ${tipo} a ${to} fallito:`, err.message);
+    return false;
+  }
+}
+
+// GIORNO 0 — benvenuto appena l'utente crea l'account.
+exports.welcomeEmail = functions.auth.user().onCreate(async (user) => {
+  if (!user.email) return null;
+  const ok = await inviaEmail(user.email, 'welcome');
+  if (ok) console.log('[email] welcome inviata a', user.email);
+  return null;
+});
+
+// GIORNO 1 e GIORNO 3 — promemoria di ritorno. Gira ogni giorno alle 10:00.
+exports.reengageEmails = functions.pubsub.schedule('0 10 * * *')
+  .timeZone('Europe/Rome')
+  .onRun(async () => {
+    if (!process.env.ARUBA_PASS) { console.warn('[email] ARUBA_PASS mancante — reengage saltato'); return null; }
+    const now = Date.now();
+    const T = admin.firestore.Timestamp;
+    const finestre = [
+      { tipo: 'd1', flag: 'emailD1Sent', da: now - 48 * 3600e3, a: now - 24 * 3600e3 },
+      { tipo: 'd3', flag: 'emailD3Sent', da: now - 96 * 3600e3, a: now - 72 * 3600e3 },
+    ];
+    for (const f of finestre) {
+      let snap;
+      try {
+        snap = await db.collection('users')
+          .where('createdAt', '>=', T.fromMillis(f.da))
+          .where('createdAt', '<', T.fromMillis(f.a))
+          .get();
+      } catch (e) { console.error('[email] query', f.tipo, e.message); continue; }
+      for (const doc of snap.docs) {
+        const d = doc.data();
+        if (d[f.flag]) continue;                       // già mandata
+        let email = d.email;
+        if (!email) {                                   // fallback: prendi da Auth
+          try { email = (await admin.auth().getUser(doc.id)).email; } catch (_) {}
+        }
+        if (!email) continue;
+        const ok = await inviaEmail(email, f.tipo);
+        if (ok) {
+          try { await doc.ref.update({ [f.flag]: true }); } catch (_) {}
+          console.log(`[email] ${f.tipo} inviata a`, email);
+        }
+      }
+    }
+    return null;
+  });
