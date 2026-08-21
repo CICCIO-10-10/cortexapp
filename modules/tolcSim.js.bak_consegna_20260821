@@ -223,26 +223,7 @@ function _renderQ() {
   );
 }
 
-function _next() { if (_state.i < _state.qs.length - 1) { _state.i++; _state.navSec = _state.qs[_state.i].s; _renderQ(); } else _confirmFinish(); }
-
-function _confirmFinish() {
-  // Conferma prima di consegnare: evita che, skippando veloce, il test si
-  // "consegni" da solo e l'utente sbatta sul risultato senza vederlo.
-  const st = _state; if (!st) return;
-  const answered = st.answers.filter(function (a) { return a !== null; }).length;
-  const tot = st.qs.length;
-  const ov = _el('tolc-sim-overlay'); if (!ov) return;
-  ov.innerHTML = _shell(
-    '<div style="text-align:center;">' +
-      '<div style="font-size:2.2rem;">\uD83D\uDCDD</div>' +
-      '<h2 style="font-family:Outfit,sans-serif;font-weight:900;margin:10px 0 6px;font-size:1.5rem;">Consegni il test?</h2>' +
-      '<p style="color:rgba(255,255,255,.72);margin:0 0 4px;font-weight:600;">Hai risposto a ' + answered + ' su ' + tot + ' domande.</p>' +
-      '<p style="color:rgba(255,255,255,.5);margin:0 0 22px;font-size:.9rem;">Dopo la consegna vedi subito il tuo risultato. Le domande senza risposta contano come sbagliate.</p>' +
-      '<button id="tolc-consegna" style="width:100%;padding:14px;border-radius:12px;border:none;font-weight:800;font-size:1rem;color:#fff;background:linear-gradient(135deg,#a855f7,#6366f1);cursor:pointer;">\u2713 Consegna e vedi il risultato</button>' +
-      '<button id="tolc-annulla-consegna" style="width:100%;padding:11px;margin-top:9px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(255,255,255,.6);font-weight:700;cursor:pointer;">\u2190 Torna al test</button>' +
-    '</div>'
-  );
-}
+function _next() { if (_state.i < _state.qs.length - 1) { _state.i++; _state.navSec = _state.qs[_state.i].s; _renderQ(); } else _finish(); }
 
 function _finish() {
   _clearTimer();
@@ -290,8 +271,6 @@ document.addEventListener('click', function (e) {
   if (id === 'tolc-start' && !e.target.disabled) return _start(e.target.getAttribute('data-key'));
   if (id === 'tolc-retry') return _start(e.target.getAttribute('data-key'));
   if (id === 'tolc-skip') { if (_state) { if (!_state.checked[_state.i]) _state.answers[_state.i] = null; _next(); } return; }
-  if (id === 'tolc-consegna') return _finish();
-  if (id === 'tolc-annulla-consegna') { if (_state) _renderQ(); return; }
   if (id === 'tolc-next') return _next();
   if (opt && _state) { if (_state.checked[_state.i]) return; _state.answers[_state.i] = parseInt(opt.getAttribute('data-idx'), 10); _renderQ(); }
 });

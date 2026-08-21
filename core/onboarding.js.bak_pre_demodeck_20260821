@@ -113,34 +113,25 @@ export function closeOnboarding() {
         if (toast) toast('Focus: Preparazione Esami attiva. 🎓', 'info');
     }
 
-    // NUOVO UTENTE (21/08/2026 - fix attivazione): niente form vuoto.
-    // Gli mettiamo un MAZZO DEMO pronto cosi' ha SUBITO qualcosa da studiare
-    // (la home non e' mai vuota = niente piu' rimbalzo istantaneo).
+    // Se non ci sono mazzi, apriamo subito il form di creazione
     const state = _deps.state;
     if (!state || !state.decks || state.decks.length === 0) {
-        try {
-            const _today = (() => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); })();
-            const _c = (q, a) => ({ id: 'card_' + Math.random().toString(36).substr(2,9), q, a, nextReview: _today, interval: 1, ease: 2.5, reps: 0 });
-            if (state && Array.isArray(state.decks)) {
-                state.decks.push({
-                    id: 'deck_demo_' + Date.now(),
-                    title: '👋 Inizia da qui (mazzo demo)',
-                    cards: [
-                        _c('Come si studia con Cortex?', 'Rispondi a mente, poi giri la carta. Se sbagli te la ripropone prima: e la ripetizione dilazionata, ricordi di piu con meno fatica.'),
-                        _c('Cos e l active recall?', 'Chiudere il libro e provare a ripetere a memoria. E il metodo piu efficace, e Cortex lo fa in automatico dai tuoi appunti.'),
-                        _c('Come creo un mazzo dai MIEI appunti?', 'Vai su Nuova materia, incolla o carica gli appunti, e l AI genera le flashcard per te.'),
-                        _c('Pronto?', 'Fai Studia o Quick Test su questo mazzo per provare, poi crea il tuo. Buono studio! 🚀'),
-                    ],
-                    createdAt: new Date().toISOString()
-                });
-                import('../modules/deckUtils.js').then(m => { if (m && m.saveState) m.saveState(); if (window.renderDecks) window.renderDecks(); }).catch(() => {});
-                const toast = _deps.showToast || window.showToast;
-                if (toast) toast('Ti ho messo un mazzo demo: provalo con Studia! 👋', 'success');
-            }
-            if (window.showPage) window.showPage('materiale');
-        } catch (e) {
-            if (window.showPage) window.showPage('materiale');
-            if (window.showView) window.showView('create-deck');
+        if (window.showPage) window.showPage('materiale');
+        if (window.showView) window.showView('create-deck');
+
+        // Pre-compila il nome mazzo in base all'obiettivo selezionato
+        const goalTemplate = GOAL_DECK_TEMPLATES[goal];
+        if (goalTemplate) {
+            setTimeout(() => {
+                const nameInput = document.getElementById('deck-name-input')
+                               || document.getElementById('new-deck-name')
+                               || document.querySelector('[data-field="deckName"]');
+                if (nameInput && !nameInput.value) {
+                    nameInput.value = goalTemplate;
+                    nameInput.dispatchEvent(new Event('input'));
+                    nameInput.focus();
+                }
+            }, 400);
         }
     }
 }
