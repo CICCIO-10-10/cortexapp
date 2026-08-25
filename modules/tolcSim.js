@@ -46,7 +46,13 @@ export function openTolcSim() {
   ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(3,3,6,0.94);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:20px;';
   ov.innerHTML = _selectorHTML();
   document.body.appendChild(ov);
-  ov.addEventListener('click', function (e) { if (e.target === ov) _remove(); });
+  ov.addEventListener('click', function (e) {
+    if (e.target !== ov) return;
+    // FIX 25/08: durante una simulazione attiva un clic fuori NON deve chiudere
+    // (si perdeva tutto il progresso e "il risultato non veniva ricevuto").
+    if (_state && (_state.running || _state.finished)) return;
+    _remove();
+  });
   try { if (window.track) window.track('tolc_sim_open'); } catch (e) {}
 }
 
@@ -106,6 +112,7 @@ function _intro(key) {
       '</tr></tfoot>' +
     '</table>' +
     (warn ? '<p style="font-size:.72rem;color:rgba(255,255,255,.4);margin:0 0 16px;line-height:1.5;">' + warn + '</p>' : '') +
+    '<p style="font-size:.68rem;color:rgba(255,255,255,.4);line-height:1.5;margin:0 0 14px;">Punteggio CISIA: +1 corretta, -0,25 errata, 0 non data (Inglese senza penalita’, a parte). Le regole di ammissione (soglie/OFA) variano per ateneo.</p>' +
     '<button id="tolc-start" data-key="' + key + '" ' + (ready ? '' : 'disabled') + ' style="width:100%;padding:14px;border-radius:12px;border:none;font-weight:800;font-size:1rem;color:#fff;background:' + startStyle + ';cursor:' + startCur + ';">' + startTxt + '</button>' +
     '<button id="tolc-back" style="width:100%;padding:11px;margin-top:9px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(255,255,255,.6);font-weight:700;cursor:pointer;">← Scegli un altro TOLC</button>'
   );
@@ -137,7 +144,7 @@ function _start(key) {
   const baseSecs = Math.round(totMin * 60 * smp.nBase / (tolcTotQ(t) || smp.nBase));
   const engSecs = Math.round((t.engMin || 15) * 60 * smp.nEng / (t.engQ || smp.nEng || 1));
   const secs = Math.max(180, baseSecs + engSecs);
-  _state = { key: key, test: t, qs: qs, i: 0, answers: new Array(qs.length).fill(null), checked: new Array(qs.length).fill(false), left: secs };
+  _state = { key: key, test: t, qs: qs, i: 0, answers: new Array(qs.length).fill(null), checked: new Array(qs.length).fill(false), left: secs, running: true };
   _renderQ();
   _clearTimer();
   _timer = setInterval(function () {
@@ -244,28 +251,123 @@ function _confirmFinish() {
   );
 }
 
+// ── Punteggio ufficiale CISIA: +1 corretta, -0,25 errata, 0 non data; sezione
+// Inglese senza penalita' e a parte. Il singolo ateneo puo' usare regole di
+// graduatoria diverse (es. solo corrette / nessuna penalita', come Messina).
+function _sectionStats(st) {
+  var order = [], by = {};
+  st.qs.forEach(function (q, i) {
+    if (!by[q.s]) { by[q.s] = { name: q.s, n: 0, ok: 0, wrong: 0, blank: 0 }; order.push(q.s); }
+    var g = by[q.s]; g.n++;
+    var a = st.answers[i];
+    if (a === null || a === undefined) g.blank++;
+    else if (a === q.c) g.ok++;
+    else g.wrong++;
+  });
+  return order.map(function (n) { return by[n]; });
+}
+function _fmtScore(v) {
+  var r = Math.round(v * 100) / 100;
+  if (Number.isInteger(r)) return String(r);
+  return r.toFixed(2).replace(/0$/, '');
+}
+function _secScore(g, mode) {
+  if (g.name === 'Inglese') return g.ok;          // inglese: mai penalita'
+  var pen = (mode === 'nopen') ? 0 : 0.25;
+  return g.ok - g.wrong * pen;
+}
+
 function _finish() {
   _clearTimer();
-  const st = _state, b = st.qs;
-  let correct = 0;
-  st.answers.forEach(function (a, i) { if (a !== null && a === b[i].c) correct++; });
-  const max = b.length;
-  const pct = Math.max(0, Math.round(correct / max * 100));
-  const ov = _el('tolc-sim-overlay'); if (!ov) return;
-  const emoji = pct >= 60 ? '🎉' : '💪';
-  const msg = pct >= 60 ? 'Ottimo ritmo!' : 'Buon inizio — ci si allena cosi.';
-  ov.innerHTML = _shell(
-    '<div style="text-align:center;">' +
-      '<div style="font-size:2.4rem;">' + emoji + '</div>' +
-      '<h2 style="font-family:Outfit,sans-serif;font-weight:900;margin:10px 0 6px;font-size:1.8rem;">' + correct + ' / ' + max + '</h2>' +
-      '<p style="color:rgba(255,255,255,.7);margin:0 0 6px;font-weight:600;">' + st.test.nome + ' — risposte corrette</p>' +
-      '<p style="color:rgba(255,255,255,.5);margin:0 0 22px;font-size:.92rem;">' + msg + '</p>' +
-      '<button id="tolc-retry" data-key="' + st.key + '" style="width:100%;padding:14px;border-radius:12px;border:none;font-weight:800;font-size:1rem;color:#fff;background:linear-gradient(135deg,#a855f7,#6366f1);cursor:pointer;">Riprova →</button>' +
-      '<button id="tolc-back" style="width:100%;padding:11px;margin-top:9px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(255,255,255,.6);font-weight:700;cursor:pointer;">← Altri TOLC</button>' +
-    '</div>'
-  );
+  const st = _state; if (!st || !st.qs) return;   // guard anti-crash
+  st.running = false; st.finished = true;
+  if (!st.scoreMode) st.scoreMode = 'cisia';
+  var correct = _sectionStats(st).reduce(function (a, g) { return a + g.ok; }, 0);
+  var pct = Math.max(0, Math.round(correct / (st.qs.length || 1) * 100));
   try { if (window.track) window.track('tolc_sim_complete', { test: st.key, correct: correct, pct: pct }); } catch (e) {}
   try { if (window.addXP) window.addXP(correct * 5); } catch (e) {}
+  _renderResult();
+}
+
+function _renderResult() {
+  const st = _state; if (!st) return;
+  const ov = _el('tolc-sim-overlay'); if (!ov) return;
+  const mode = st.scoreMode || 'cisia';
+  var stats = _sectionStats(st);
+  var base = stats.filter(function (g) { return g.name !== 'Inglese'; });
+  var eng = stats.filter(function (g) { return g.name === 'Inglese'; })[0];
+  var totScore = base.reduce(function (a, g) { return a + _secScore(g, mode); }, 0);
+  var totQ = base.reduce(function (a, g) { return a + g.n; }, 0);
+  var correct = stats.reduce(function (a, g) { return a + g.ok; }, 0);
+  var pct = Math.max(0, Math.round(correct / (st.qs.length || 1) * 100));
+  var emoji = pct >= 60 ? '🎉' : '💪';
+  var th = 'padding:8px 6px;font-size:.62rem;text-transform:uppercase;letter-spacing:.4px;color:#c084fc;font-weight:800;';
+  var td = 'padding:9px 6px;border-top:1px solid rgba(255,255,255,.07);font-size:.85rem;';
+  var rows = base.map(function (g) {
+    return '<tr>' +
+      '<td style="' + td + 'text-align:left;font-weight:700;">' + g.name + '</td>' +
+      '<td style="' + td + 'text-align:center;color:rgba(255,255,255,.65);">' + g.n + '</td>' +
+      '<td style="' + td + 'text-align:center;color:#4ade80;font-weight:700;">' + g.ok + '</td>' +
+      '<td style="' + td + 'text-align:center;color:rgba(255,255,255,.55);">' + g.blank + '</td>' +
+      '<td style="' + td + 'text-align:center;color:#f87171;font-weight:700;">' + g.wrong + '</td>' +
+      '<td style="' + td + 'text-align:right;font-weight:800;">' + _fmtScore(_secScore(g, mode)) + '</td>' +
+    '</tr>';
+  }).join('');
+  var mbtn = function (m, label) {
+    var on = mode === m;
+    return '<button class="tolc-mode" data-mode="' + m + '" style="flex:1;padding:9px;border-radius:10px;border:1px solid ' + (on ? '#a855f7' : 'rgba(255,255,255,.15)') + ';background:' + (on ? 'rgba(168,85,247,.18)' : 'transparent') + ';color:' + (on ? '#fff' : 'rgba(255,255,255,.6)') + ';font-weight:800;font-size:.74rem;cursor:pointer;">' + label + '</button>';
+  };
+  var note = (mode === 'cisia')
+    ? 'Regola CISIA: +1 corretta, -0,25 errata, 0 non data. Inglese senza penalita’, punteggio a parte.'
+    : 'Modalita’ "solo corrette": nessuna penalita’ sulle errate (usata in graduatoria da alcuni atenei, es. Messina).';
+  var TB = 'border-top:2px solid rgba(255,255,255,.18);';
+  ov.innerHTML = _shell(
+    '<div style="position:relative;height:0;">' +
+      '<button id="tolc-close" title="Chiudi" style="position:absolute;top:-10px;right:-8px;width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#e8e8ee;font-size:1.05rem;font-weight:800;line-height:1;cursor:pointer;">\u2715</button>' +
+    '</div>' +
+    '<div style="text-align:center;margin-bottom:12px;">' +
+      '<div style="font-size:1.9rem;">' + emoji + '</div>' +
+      '<h2 style="font-family:Outfit,sans-serif;font-weight:900;margin:6px 0 2px;font-size:1.5rem;">Esito ' + st.test.nome + '</h2>' +
+      '<p style="color:rgba(255,255,255,.6);margin:0;font-size:.86rem;">Punteggio totale test: <b style="color:#fff;">' + _fmtScore(totScore) + '</b> / ' + totQ + (eng ? '  ·  Inglese: <b style="color:#fff;">' + _fmtScore(_secScore(eng, mode)) + '</b> / ' + eng.n : '') + '</p>' +
+    '</div>' +
+    '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">' +
+      '<span style="font-size:.66rem;color:rgba(255,255,255,.45);font-weight:800;">MODALITA’</span>' + mbtn('cisia', 'CISIA standard (-0,25)') + mbtn('nopen', 'Senza penalita’') +
+    '</div>' +
+    '<table style="width:100%;border-collapse:collapse;margin:4px 0;">' +
+      '<thead><tr>' +
+        '<th style="' + th + 'text-align:left;">Sezione</th>' +
+        '<th style="' + th + 'text-align:center;">Quesiti</th>' +
+        '<th style="' + th + 'text-align:center;">Esatte</th>' +
+        '<th style="' + th + 'text-align:center;">Non date</th>' +
+        '<th style="' + th + 'text-align:center;">Sbagliate</th>' +
+        '<th style="' + th + 'text-align:right;">Punteggio</th>' +
+      '</tr></thead><tbody>' + rows + '</tbody>' +
+      '<tfoot>' +
+        '<tr style="font-weight:900;">' +
+          '<td style="' + td + TB + 'text-align:left;">Punteggio totale test</td>' +
+          '<td style="' + td + TB + 'text-align:center;">' + totQ + '</td>' +
+          '<td colspan="3" style="' + td + TB + '"></td>' +
+          '<td style="' + td + TB + 'text-align:right;color:#c084fc;">' + _fmtScore(totScore) + '</td>' +
+        '</tr>' +
+        (eng ? '<tr style="font-weight:800;">' +
+          '<td style="' + td + 'text-align:left;">Inglese <span style="font-weight:600;color:rgba(255,255,255,.45);">(a parte)</span></td>' +
+          '<td style="' + td + 'text-align:center;">' + eng.n + '</td>' +
+          '<td style="' + td + 'text-align:center;color:#4ade80;">' + eng.ok + '</td>' +
+          '<td style="' + td + 'text-align:center;color:rgba(255,255,255,.55);">' + eng.blank + '</td>' +
+          '<td style="' + td + 'text-align:center;color:#f87171;">' + eng.wrong + '</td>' +
+          '<td style="' + td + 'text-align:right;color:#c084fc;">' + _fmtScore(_secScore(eng, mode)) + '</td>' +
+        '</tr>' : '') +
+      '</tfoot>' +
+    '</table>' +
+    '<p style="font-size:.66rem;color:rgba(255,255,255,.4);line-height:1.55;margin:8px 0 14px;">' + note +
+      ' Le regole di ammissione (soglie, OFA, uso dell’inglese, penalita’ in graduatoria) <b>variano per ateneo</b>: fa fede il bando. Fonte: CISIA.' +
+    '</p>' +
+    '<button id="tolc-enter" style="width:100%;padding:15px;border-radius:12px;border:none;font-weight:800;font-size:1rem;color:#fff;background:linear-gradient(135deg,#a855f7,#6366f1);cursor:pointer;">Entra su Cortex →</button>' +
+    '<div style="display:flex;gap:9px;margin-top:9px;">' +
+      '<button id="tolc-retry" data-key="' + st.key + '" style="flex:1;padding:12px;border-radius:12px;border:1px solid rgba(168,85,247,.5);background:rgba(168,85,247,.12);color:#c084fc;font-weight:800;cursor:pointer;">↻ Riprova</button>' +
+      '<button id="tolc-back" style="flex:1;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(255,255,255,.6);font-weight:700;cursor:pointer;">← Altri TOLC</button>' +
+    '</div>'
+  );
 }
 
 document.addEventListener('click', function (e) {
@@ -274,6 +376,8 @@ document.addEventListener('click', function (e) {
   const pick = e.target.closest && e.target.closest('.tolc-pick');
   const opt = e.target.closest && e.target.closest('.tolc-opt');
   const jump = e.target.closest && e.target.closest('.tolc-jump');
+  const md = e.target.closest && e.target.closest('.tolc-mode');
+  if (md && _state) { _state.scoreMode = md.getAttribute('data-mode'); _renderResult(); return; }
   if (jump && _state) { _state.i = parseInt(jump.getAttribute('data-jump'), 10); _state.navSec = _state.qs[_state.i].s; _renderQ(); return; }
   const sec = e.target.closest && e.target.closest('.tolc-sec');
   if (sec && _state) { var sn = sec.getAttribute('data-sec'); _state.navSec = (_state.navSec === sn ? '' : sn); _renderQ(); return; }
@@ -286,7 +390,8 @@ document.addEventListener('click', function (e) {
   if (id === 'tolc-check') { if (_state && _state.answers[_state.i] !== null) { _state.checked[_state.i] = true; _renderQ(); } return; }
   if (pick) return _intro(pick.getAttribute('data-key'));
   if (id === 'tolc-close') return _remove();
-  if (id === 'tolc-back') { ov.innerHTML = _selectorHTML(); return; }
+  if (id === 'tolc-enter') { try { if (window.track) window.track('tolc_sim_enter_cortex'); } catch (e) {} return _remove(); }
+  if (id === 'tolc-back') { _clearTimer(); _state = null; ov.innerHTML = _selectorHTML(); return; }
   if (id === 'tolc-start' && !e.target.disabled) return _start(e.target.getAttribute('data-key'));
   if (id === 'tolc-retry') return _start(e.target.getAttribute('data-key'));
   if (id === 'tolc-skip') { if (_state) { if (!_state.checked[_state.i]) _state.answers[_state.i] = null; _next(); } return; }
