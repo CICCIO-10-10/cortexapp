@@ -82,11 +82,21 @@ function _selectorHTML() {
 function _intro(key) {
   const t = TOLC_TESTS[key];
   const totQ = tolcTotQ(t), totMin = tolcTotMin(t);
+  // Conteggio reale dei quesiti per sezione dalla banca: per i TOLC le cui
+  // sezioni non hanno il numero ufficiale (q:null), la simulazione serve tutta
+  // la banca di quella sezione, quindi questo e' il numero effettivo di quesiti.
+  var _cnt = {};
+  (t.banca || []).forEach(function (q) { _cnt[q.s] = (_cnt[q.s] || 0) + 1; });
+  // Mostra la colonna Tempo solo se il test ha tempi per sezione (evita muri di "—").
+  var hasTime = t.sezioni.some(function (s) { return s.min != null; });
+  var shownTotQ = 0;
   const rows = t.sezioni.map(function (s) {
+    var nq = (s.q != null ? s.q : (_cnt[s.n] || null));
+    if (nq) shownTotQ += nq;
     return '<tr>' +
       '<td style="padding:7px 4px;border-bottom:1px solid rgba(255,255,255,.06);">' + s.n + '</td>' +
-      '<td style="padding:7px 4px;border-bottom:1px solid rgba(255,255,255,.06);text-align:right;color:rgba(255,255,255,.7);">' + (s.q != null ? s.q : '—') + '</td>' +
-      '<td style="padding:7px 4px;border-bottom:1px solid rgba(255,255,255,.06);text-align:right;color:rgba(255,255,255,.7);">' + (s.min != null ? s.min + "'" : '—') + '</td>' +
+      '<td style="padding:7px 4px;border-bottom:1px solid rgba(255,255,255,.06);text-align:right;color:rgba(255,255,255,.7);">' + (nq != null ? nq : '—') + '</td>' +
+      (hasTime ? '<td style="padding:7px 4px;border-bottom:1px solid rgba(255,255,255,.06);text-align:right;color:rgba(255,255,255,.7);">' + (s.min != null ? s.min + "'" : '—') + '</td>' : '') +
     '</tr>';
   }).join('');
   const ready = (t.banca && t.banca.length > 0);
@@ -103,12 +113,12 @@ function _intro(key) {
     '</div>' +
     '<table style="width:100%;border-collapse:collapse;font-size:.86rem;margin-bottom:8px;">' +
       '<thead><tr style="color:#c084fc;font-size:.72rem;text-transform:uppercase;">' +
-        '<th style="text-align:left;padding:4px;">Sezione</th><th style="text-align:right;padding:4px;">Quesiti</th><th style="text-align:right;padding:4px;">Tempo</th>' +
+        '<th style="text-align:left;padding:4px;">Sezione</th><th style="text-align:right;padding:4px;">Quesiti</th>' + (hasTime ? '<th style="text-align:right;padding:4px;">Tempo</th>' : '') +
       '</tr></thead><tbody>' + rows + '</tbody>' +
       '<tfoot><tr style="font-weight:800;">' +
         '<td style="padding:8px 4px;">Totale + Inglese</td>' +
-        '<td style="padding:8px 4px;text-align:right;">' + (totQ ? totQ : (t.totQ || '—')) + ' + ' + t.engQ + '</td>' +
-        '<td style="padding:8px 4px;text-align:right;">' + (totMin ? totMin + "'" : '—') + ' + ' + t.engMin + "'</td>" +
+        '<td style="padding:8px 4px;text-align:right;">' + ((totQ || shownTotQ || t.totQ) || '—') + ' + ' + t.engQ + '</td>' +
+        (hasTime ? '<td style="padding:8px 4px;text-align:right;">' + (totMin ? totMin + "'" : '—') + ' + ' + t.engMin + "'</td>" : '') +
       '</tr></tfoot>' +
     '</table>' +
     (warn ? '<p style="font-size:.72rem;color:rgba(255,255,255,.4);margin:0 0 16px;line-height:1.5;">' + warn + '</p>' : '') +
