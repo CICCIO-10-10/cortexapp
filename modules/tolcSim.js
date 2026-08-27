@@ -372,7 +372,8 @@ function _renderResult() {
     '<p style="font-size:.66rem;color:rgba(255,255,255,.4);line-height:1.55;margin:8px 0 14px;">' + note +
       ' Le regole di ammissione (soglie, OFA, uso dell’inglese, penalita’ in graduatoria) <b>variano per ateneo</b>: fa fede il bando. Fonte: CISIA.' +
     '</p>' +
-    '<button id="tolc-enter" style="width:100%;padding:15px;border-radius:12px;border:none;font-weight:800;font-size:1rem;color:#fff;background:linear-gradient(135deg,#a855f7,#6366f1);cursor:pointer;">Entra su Cortex →</button>' +
+    '<div style="text-align:center;font-size:.82rem;color:#cbc6e8;margin:2px 0 10px;line-height:1.5;">📈 <b style="color:#fff;">Crea un account gratis</b> per salvare i progressi, sbloccare tutti i 10 TOLC e vedere se <b style="color:#fff;">migliori</b> nel tempo.</div>' +
+    '<button id="tolc-enter" style="width:100%;padding:15px;border-radius:12px;border:none;font-weight:800;font-size:1rem;color:#fff;background:linear-gradient(135deg,#a855f7,#6366f1);cursor:pointer;">Salva i progressi su Cortex →</button>' +
     '<div style="display:flex;gap:9px;margin-top:9px;">' +
       '<button id="tolc-retry" data-key="' + st.key + '" style="flex:1;padding:12px;border-radius:12px;border:1px solid rgba(168,85,247,.5);background:rgba(168,85,247,.12);color:#c084fc;font-weight:800;cursor:pointer;">↻ Riprova</button>' +
       '<button id="tolc-back" style="flex:1;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(255,255,255,.6);font-weight:700;cursor:pointer;">← Altri TOLC</button>' +
@@ -400,7 +401,7 @@ document.addEventListener('click', function (e) {
   if (id === 'tolc-check') { if (_state && _state.answers[_state.i] !== null) { _state.checked[_state.i] = true; _renderQ(); } return; }
   if (pick) return _intro(pick.getAttribute('data-key'));
   if (id === 'tolc-close') return _remove();
-  if (id === 'tolc-enter') { try { if (window.track) window.track('tolc_sim_enter_cortex'); } catch (e) {} return _remove(); }
+  if (id === 'tolc-enter') { try { if (window.track) window.track('tolc_sim_enter_cortex'); } catch (e) {} location.href = '/app?guest=1&sim=tolc&utm_source=tolcsim&utm_medium=result&utm_content=salva_progressi'; return; }
   if (id === 'tolc-back') { _clearTimer(); _state = null; ov.innerHTML = _selectorHTML(); return; }
   if (id === 'tolc-start' && !e.target.disabled) return _start(e.target.getAttribute('data-key'));
   if (id === 'tolc-retry') return _start(e.target.getAttribute('data-key'));
