@@ -453,8 +453,8 @@ export function renderHome() {
             <!-- Neural Trainer (AI insight) — full width, async -->
             <div id="neural-trainer-container" style="margin-bottom: 28px;"></div>
 
-            <!-- BANNER STUDENT: visibile solo agli utenti Free -->
-            ${!window.isPremium?.() ? `
+            <!-- BANNER STUDENT: NASCOSTO 2026-09-01 (rimetti !window.isPremium?.() per riattivare la monetizzazione) -->
+            ${false ? `
             <div data-fn="showPaywall" data-params='["feature"]' style="
                 cursor:pointer;
                 display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;
