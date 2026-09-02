@@ -13,6 +13,7 @@
 
 import { SecurityManager, getFunctions, callGeminiProxy } from '../services/firebase.js';
 import { discoverGeminiModel }           from '../services/ai.js';
+import { t } from '../core/i18n.js';
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 const OVERLAY_ID  = 'neural-podcast-overlay';

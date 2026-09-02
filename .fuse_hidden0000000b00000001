@@ -1,0 +1,38 @@
+[debug] [2026-09-02T00:36:20.033Z] ----------------------------------------------------------------------
+[debug] [2026-09-02T00:36:20.036Z] Command:       /usr/bin/node /sessions/rcw-01du5mfz3k6fmpx1vocstfxz/fbtools/node_modules/.bin/firebase functions:list --project cortex-74a4e
+[debug] [2026-09-02T00:36:20.037Z] CLI Version:   15.28.2
+[debug] [2026-09-02T00:36:20.037Z] Platform:      linux
+[debug] [2026-09-02T00:36:20.037Z] Node Version:  v22.23.2
+[debug] [2026-09-02T00:36:20.037Z] Detected Agent: unknown
+[debug] [2026-09-02T00:36:20.038Z] Time:          Wed Sep 02 2026 00:36:20 GMT+0000 (Coordinated Universal Time)
+[debug] [2026-09-02T00:36:20.038Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-09-02T00:36:20.056Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2026-09-02T00:36:20.386Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-09-02T00:36:20.578Z] Running auto auth
+[debug] [2026-09-02T00:36:20.579Z] [iam] checking project cortex-74a4e for permissions ["cloudfunctions.functions.list","firebase.projects.get","run.services.list"]
+[debug] [2026-09-02T00:36:20.579Z] No OAuth tokens found
+[debug] [2026-09-02T00:36:20.580Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/cortex-74a4e:testIamPermissions [none]
+[debug] [2026-09-02T00:36:20.580Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/cortex-74a4e:testIamPermissions  x-goog-user-project=cortex-74a4e
+[debug] [2026-09-02T00:36:20.580Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/cortex-74a4e:testIamPermissions {"permissions":["cloudfunctions.functions.list","firebase.projects.get","run.services.list"]}
+[debug] [2026-09-02T00:36:23.420Z] <<< [apiv2][status] GET https://firebase-public.firebaseio.com/cli.json 200
+[debug] [2026-09-02T00:36:23.421Z] <<< [apiv2][body] GET https://firebase-public.firebaseio.com/cli.json {"cloudBuildErrorAfter":1594252800000,"cloudBuildWarnAfter":1590019200000,"defaultNode10After":1594252800000,"minVersion":"3.0.5","node8DeploysDisabledAfter":1613390400000,"node8RuntimeDisabledAfter":1615809600000,"node8WarnAfter":1600128000000}
+[debug] [2026-09-02T00:36:24.352Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/cortex-74a4e:testIamPermissions 200
+[debug] [2026-09-02T00:36:24.352Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/cortex-74a4e:testIamPermissions {}
+[debug] [2026-09-02T00:36:24.352Z] [iam] error while checking permissions, command may fail: Authorization failed. This account is missing the following required permissions on project cortex-74a4e:
+
+  cloudfunctions.functions.list
+  firebase.projects.get
+  run.services.list
+[debug] [2026-09-02T00:36:24.353Z] No OAuth tokens found
+[debug] [2026-09-02T00:36:24.353Z] >>> [apiv2][query] GET https://cloudfunctions.googleapis.com/v1/projects/cortex-74a4e/locations/-/functions [none]
+[debug] [2026-09-02T00:36:24.787Z] <<< [apiv2][status] GET https://cloudfunctions.googleapis.com/v1/projects/cortex-74a4e/locations/-/functions 403
+[debug] [2026-09-02T00:36:24.788Z] <<< [apiv2][body] GET https://cloudfunctions.googleapis.com/v1/projects/cortex-74a4e/locations/-/functions {"error":{"code":403,"message":"Permission 'cloudfunctions.functions.list' denied on resource 'projects/cortex-74a4e/locations/-' (or resource may not exist).","status":"PERMISSION_DENIED"}}
+[debug] [2026-09-02T00:36:24.788Z] [functions] failed to list functions for cortex-74a4e
+[debug] [2026-09-02T00:36:24.788Z] [functions] Request to https://cloudfunctions.googleapis.com/v1/projects/cortex-74a4e/locations/-/functions had HTTP Error: 403, Permission 'cloudfunctions.functions.list' denied on resource 'projects/cortex-74a4e/locations/-' (or resource may not exist).
+[debug] [2026-09-02T00:36:24.789Z] FirebaseError: Request to https://cloudfunctions.googleapis.com/v1/projects/cortex-74a4e/locations/-/functions had HTTP Error: 403, Permission 'cloudfunctions.functions.list' denied on resource 'projects/cortex-74a4e/locations/-' (or resource may not exist).
+    at responseToError (/sessions/rcw-01du5mfz3k6fmpx1vocstfxz/fbtools/node_modules/firebase-tools/lib/responseToError.js:53:12)
+    at RetryOperation._fn (/sessions/rcw-01du5mfz3k6fmpx1vocstfxz/fbtools/node_modules/firebase-tools/lib/apiv2.js:415:77)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[error] 
+[error] Error: Failed to list functions for cortex-74a4e

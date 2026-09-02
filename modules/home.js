@@ -1,4 +1,5 @@
 import { t } from '../core/i18n.js';
+import { renderDailyQuiz } from './dailyQuiz.js';
 /**
  * modules/home.js — Phase 14
  *
@@ -404,6 +405,9 @@ export function renderHome() {
             <!-- SEASONAL EVENT BANNER — riempito da seasonalEvents.js -->
             <div id="home-event-banner-slot"></div>
 
+            <!-- QUIZ DEL GIORNO — riempito da dailyQuiz.js -->
+            <div id="daily-quiz-slot"></div>
+
             <!-- HERO SECTION -->
             <section class="hero-nebula" style="
                 position: relative;
@@ -636,6 +640,7 @@ export function renderHome() {
 
     // Avvia il neural trainer async
     renderNeuralTrainer();
+    try { renderDailyQuiz(); } catch (e) {}
 
     // Inietta banner evento stagionale (Maturità, Sessione, ecc.) se attivo.
     // Viene fatto qui (post-render) per garantire che #home-event-banner-slot esista

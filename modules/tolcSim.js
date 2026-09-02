@@ -401,7 +401,15 @@ document.addEventListener('click', function (e) {
   if (id === 'tolc-check') { if (_state && _state.answers[_state.i] !== null) { _state.checked[_state.i] = true; _renderQ(); } return; }
   if (pick) return _intro(pick.getAttribute('data-key'));
   if (id === 'tolc-close') return _remove();
-  if (id === 'tolc-enter') { try { if (window.track) window.track('tolc_sim_enter_cortex'); } catch (e) {} location.href = '/app?guest=1&sim=tolc&utm_source=tolcsim&utm_medium=result&utm_content=salva_progressi'; return; }
+  if (id === 'tolc-enter') {
+    try { if (window.track) window.track('tolc_sim_enter_cortex'); } catch (e) {}
+    // CATTURA VERA: converti l'ospite in account (login Google), cosi' i progressi si salvano davvero.
+    try { localStorage.setItem('cortex_sim','tolc'); } catch(e){}
+    if (typeof window.__guestLogin === 'function') { window.__guestLogin(); return; }
+    if (typeof window.loginWithGoogle === 'function') { window.loginWithGoogle(); return; }
+    location.href = '/app?sim=tolc&utm_source=tolcsim&utm_medium=result&utm_content=salva_progressi';
+    return;
+  }
   if (id === 'tolc-back') { _clearTimer(); _state = null; ov.innerHTML = _selectorHTML(); return; }
   if (id === 'tolc-start' && !e.target.disabled) return _start(e.target.getAttribute('data-key'));
   if (id === 'tolc-retry') return _start(e.target.getAttribute('data-key'));

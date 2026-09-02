@@ -422,6 +422,7 @@ export async function loadFromCloud() {
                     email:     window._cortexUserEmail || null,
                     plan:      'free',
                     refCode:   uid.slice(0, 8),
+                    referredBy: (function(){try{return localStorage.getItem('cortex_ref')||null;}catch(e){return null;}})(),
                     migratedToSubcollections: true
                 }, { merge: true });
                 localStorage.setItem('cortex_user_plan', 'free');

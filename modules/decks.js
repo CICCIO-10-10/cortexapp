@@ -71,10 +71,39 @@ export function renderDecks() {
     `;
 
     if (state.decks.length === 0) {
-        container.innerHTML = headerHtml + `
-            <div style="padding:60px 24px; text-align:center; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:24px; margin:0 10px;">
-                <div style="font-size:3rem; margin-bottom:16px; opacity:0.5;">&#128218;</div>
-                <p style="color:var(--text-muted); font-size:1rem; line-height:1.5;">${t('deck_empty_msg')}</p>
+        // ATTIVAZIONE: primo mazzo. Prima schermata di un nuovo utente -> CTA forte.
+        container.innerHTML = `
+            <div style="max-width:560px; margin:20px auto 0; padding:0 10px;">
+              <div style="text-align:center; padding:44px 26px; background:linear-gradient(160deg, rgba(139,92,246,0.14), rgba(99,102,241,0.05)); border:1px solid rgba(139,92,246,0.25); border-radius:26px; box-shadow:0 12px 40px var(--accent-glow, rgba(139,92,246,0.25));">
+                <div style="font-size:3.2rem; margin-bottom:10px;">&#128640;</div>
+                <h2 style="font-size:1.55rem; font-weight:800; color:var(--text); margin:0 0 8px;">Crea il tuo primo mazzo</h2>
+                <p style="color:var(--text-muted); font-size:1.02rem; line-height:1.5; margin:0 auto 22px; max-width:430px;">
+                  Scegli una materia o incolla i tuoi appunti: <strong style="color:var(--text)">l'AI li trasforma in flashcard</strong> e ti interroga. Bastano 30 secondi.
+                </p>
+                <div style="display:flex; justify-content:center; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:26px; font-size:0.8rem; color:var(--text-muted);">
+                  <span>1 · Scegli la materia</span><span style="opacity:.4">&rarr;</span>
+                  <span>2 · L'AI genera</span><span style="opacity:.4">&rarr;</span>
+                  <span>3 · Ripassa</span>
+                </div>
+                <div onclick="var f=this.querySelector('.demo-front'),b=this.querySelector('.demo-back');var sb=f.style.display!=='none';f.style.display=sb?'none':'';b.style.display=sb?'':'none';" style="cursor:pointer; max-width:360px; margin:0 auto 22px; padding:24px 20px; border-radius:18px; background:rgba(139,92,246,0.10); border:1px solid rgba(139,92,246,0.35); min-height:118px; display:flex; align-items:center; justify-content:center; transition:background .15s;">
+                  <div class="demo-front" style="text-align:center;">
+                    <div style="font-size:0.68rem; letter-spacing:.12em; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px;">Prova &middot; esempio</div>
+                    <div style="font-size:1.14rem; font-weight:700; color:var(--text);">Quante ossa ha il corpo umano adulto?</div>
+                    <div style="margin-top:12px; font-size:0.85rem; color:#a78bfa; font-weight:600;">&#128072; Tocca per la risposta</div>
+                  </div>
+                  <div class="demo-back" style="display:none; text-align:center;">
+                    <div style="font-size:0.68rem; letter-spacing:.12em; text-transform:uppercase; color:#22c55e; margin-bottom:6px;">Risposta</div>
+                    <div style="font-size:2.1rem; font-weight:800; color:var(--text);">206</div>
+                    <div style="margin-top:10px; font-size:0.85rem; color:var(--text-muted);">Ecco com'&egrave; una flashcard. Ora crea le tue &#128071;</div>
+                  </div>
+                </div>
+                <button data-fn="showView" data-params='["CreateDeckView"]' style="width:100%; max-width:340px; padding:16px; border-radius:14px; font-weight:800; font-size:1.05rem; color:#fff; background:var(--accent-nebula, #7c3aed); border:none; cursor:pointer; box-shadow:0 10px 30px var(--accent-glow, rgba(124,58,237,0.45));">
+                  &#10024; Crea il primo mazzo
+                </button>
+                <div style="margin-top:14px;">
+                  <button data-fn="promptImportDeck" style="background:none; border:none; color:var(--text-muted); font-size:0.9rem; text-decoration:underline; cursor:pointer;">oppure importa un mazzo che hai gi&agrave;</button>
+                </div>
+              </div>
             </div>
         `;
         return;
@@ -192,6 +221,18 @@ export function renderDecks() {
             <span style="font-size:0.72rem;">appunti o foto → flashcard AI</span>
         </button>`;
 
-    container.innerHTML = headerHtml + '<div class="nebula-grid">' + listHtml + ghostHtml + '</div>';
+    // PUSH NUDGE: riattiva le notifiche (reminder ripasso) al momento giusto — 1 sola volta.
+    let pushNudge = '';
+    try {
+      if ('Notification' in window && Notification.permission === 'default' && !localStorage.getItem('cortex_push_asked')) {
+        pushNudge = `<div id="push-nudge" style="margin:0 10px 16px; padding:14px 16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; background:rgba(139,92,246,0.10); border:1px solid rgba(139,92,246,0.28); border-radius:16px;">
+          <span style="font-size:1.4rem;">&#128276;</span>
+          <span style="flex:1; min-width:180px; color:var(--text); font-size:0.92rem;">Vuoi un promemoria quando hai carte da ripassare? Cos&igrave; non perdi lo streak.</span>
+          <button data-fn="requestNotifications" onclick="try{localStorage.setItem('cortex_push_asked','1')}catch(e){}; var n=this.closest('#push-nudge'); if(n) n.remove();" style="padding:9px 16px; border-radius:10px; border:none; font-weight:700; color:#fff; background:var(--accent-nebula,#7c3aed); cursor:pointer;">Attiva</button>
+          <button onclick="try{localStorage.setItem('cortex_push_asked','1')}catch(e){}; var n=this.closest('#push-nudge'); if(n) n.remove();" style="padding:9px 12px; border-radius:10px; border:none; background:transparent; color:var(--text-muted); cursor:pointer; font-size:0.85rem;">No grazie</button>
+        </div>`;
+      }
+    } catch(e){}
+    container.innerHTML = headerHtml + pushNudge + '<div class="nebula-grid">' + listHtml + ghostHtml + '</div>';
     window.cortexUpdateUIStrings?.();
 }

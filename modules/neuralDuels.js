@@ -5,6 +5,7 @@
 
 import { getFirestoreDB } from '../services/firebase.js';
 import { TRANSLATIONS } from '../data/translations.js';
+import { t } from '../core/i18n.js';
 const _t = () => (TRANSLATIONS[localStorage.getItem('mm_lang')||'it'] || TRANSLATIONS.it);
 
 const _getLang = () => localStorage.getItem('mm_lang') || 'it';

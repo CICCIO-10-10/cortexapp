@@ -951,12 +951,14 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
 
     const ADMIN_UID = 'f8oLEt3LDpT7VN9zFOa10mVE2Cf2';  // account di Francesco: escluso dalle statistiche
     const usersByPlan = { free: 0, student: 0, pro: 0, other: 0 };
+    const realUserIds = new Set();  // uid degli utenti REALI (doc in Firestore)
     let usersWithFCM = 0;
     let usersWithSparks = 0;
     const registrationByMonth = {};
 
     usersSnap.docs.forEach(doc => {
       if (doc.id === ADMIN_UID) return;  // non contare l'admin tra gli utenti reali
+      realUserIds.add(doc.id);
       const d = doc.data();
       const plan = d.plan || 'free';
       if (plan === 'free') usersByPlan.free++;
@@ -973,6 +975,81 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
         registrationByMonth[month] = (registrationByMonth[month] || 0) + 1;
       }
     });
+
+    // ── Attività reale utenti (Firebase Auth: lastSignInTime / lastRefreshTime) ──
+    // Risponde a: dei nostri iscritti, chi ha DAVVERO aperto/riaperto l'app?
+    // Auth registra questi timestamp in automatico ad ogni accesso: 0 modifiche all'app.
+    let usersActive7d = 0;   // hanno aperto l'app negli ultimi 7 giorni
+    let usersReturned = 0;   // sono tornati almeno una volta DOPO la registrazione
+    let usersEverOpened = 0; // hanno fatto almeno un accesso (loginato)
+    const authAct = {};      // uid -> {lastActive, returned, active7d} per il dettaglio
+    try {
+      const now = Date.now();
+      const sevenDaysAgo = now - 7 * 24 * 3600 * 1000;
+      let pageToken;
+      do {
+        const list = await admin.auth().listUsers(1000, pageToken);
+        list.users.forEach(u => {
+          if (u.uid === ADMIN_UID) return;
+          if (!realUserIds.has(u.uid)) return;  // solo i 9 utenti reali, non account test/auth-only
+          const md = u.metadata || {};
+          const created  = md.creationTime    ? new Date(md.creationTime).getTime()    : 0;
+          const signIn   = md.lastSignInTime  ? new Date(md.lastSignInTime).getTime()  : 0;
+          const refresh  = md.lastRefreshTime ? new Date(md.lastRefreshTime).getTime() : 0;
+          const lastAct  = Math.max(signIn, refresh);
+          const returned = !!(lastAct && created && (lastAct - created) > 18 * 3600 * 1000);
+          const active7d = lastAct >= sevenDaysAgo;
+          authAct[u.uid] = {
+            lastActive: lastAct ? new Date(lastAct).toISOString().slice(0, 10) : null,
+            returned, active7d,
+          };
+          if (lastAct) usersEverOpened++;
+          if (active7d) usersActive7d++;
+          if (returned) usersReturned++;
+        });
+        pageToken = list.pageToken;
+      } while (pageToken);
+    } catch (e) {
+      console.error('[adminDashboard] auth activity error:', e);
+    }
+
+    // ── Dettaglio per-utente: cosa fanno DAVVERO nell'app ──
+    let usersDetail = [];
+    try {
+      usersDetail = await Promise.all(
+        usersSnap.docs.filter(x => x.id !== ADMIN_UID).map(async (doc) => {
+          const d = doc.data();
+          const uid = doc.id;
+          let totalCalls = 0, daysActive = 0;
+          try {
+            const us = await db.collection('usage').doc(uid).collection('daily').get();
+            us.forEach(x => { totalCalls += (x.data().calls || 0); daysActive++; });
+          } catch (_) {}
+          let deckCount = 0, dueCount = 0;
+          if (Array.isArray(d.decksMetadata)) {
+            deckCount = d.decksMetadata.length;
+            dueCount = d.decksMetadata.reduce((s, x) => s + (x.dueCount || 0), 0);
+          }
+          const a = authAct[uid] || {};
+          return {
+            uid: uid.slice(0, 6),
+            email: d.email || null,
+            source: d.source || 'diretto',
+            plan: d.plan || 'free',
+            sparks: d.sparksBalance || 0,
+            created: d.createdAt?.toDate ? d.createdAt.toDate().toISOString().slice(0, 10) : null,
+            lastActive: a.lastActive || null,
+            returned: !!a.returned,
+            active7d: !!a.active7d,
+            totalCalls, daysActive, deckCount, dueCount,
+          };
+        })
+      );
+      // ordina: prima chi usa di più (per capire subito attivi vs persi)
+      usersDetail.sort((x, y) => (y.totalCalls - x.totalCalls) || (y.daysActive - x.daysActive));
+    } catch (e) {
+      console.error('[adminDashboard] usersDetail error:', e);
+    }
 
     // Presenza: breakdown per pagina e sorgente
     const onlineNow = presenceSnap.size;
@@ -1033,6 +1110,7 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
 
     res.json({
       ts: Date.now(),
+      usersDetail,
       stripe: {
         mrr: Math.round(mrr * 100) / 100,
         totalRevenue: Math.round(totalRevenue * 100) / 100,
@@ -1047,6 +1125,9 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
         usersByPlan,
         usersWithFCM,
         usersWithSparks,
+        usersEverOpened,
+        usersActive7d,
+        usersReturned,
         registrationByMonth,
       },
       analytics: {

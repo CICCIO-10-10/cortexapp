@@ -2,9 +2,6 @@
 <html lang="it">
 
 <head>
-<script>try{var _r=new URLSearchParams(location.search).get("ref");if(_r){localStorage.setItem("cortex_ref",_r.slice(0,20));}}catch(e){}</script>
-  <link rel="canonical" href="https://cortexapp.it/app">
-
 <script type="text/javascript">(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window, document, "clarity", "script", "y5ldvczo6y");</script>
 <script type="text/javascript">
 /* Cortex: aggancia l'utente loggato a Clarity (uid + email come tag filtrabili),
@@ -298,15 +295,15 @@
                 Il tuo <strong style="color:rgba(255,255,255,0.85);font-weight:700;">secondo cervello</strong> potenziato dall'intelligenza artificiale. Studia meno, ricorda di più.
             </p>
 
-            <!-- CTA principale: ENTRA SUBITO (ospite) — niente muro di login -->
-            <button id="btn-prova-ora" style="
-                display: inline-flex; align-items: center; justify-content: center; gap: 10px;
-                width: 100%; max-width: 360px;
-                padding: 19px 36px;
+            <!-- CTA principale -->
+            <button data-fn="loginWithGoogle" id="btn-prova-ora" style="
+                display: inline-flex; align-items: center; justify-content: center; gap: 12px;
+                width: 100%; max-width: 340px;
+                padding: 18px 36px;
                 border-radius: 100px;
                 border: none; cursor: pointer;
                 font-family: 'Outfit', sans-serif;
-                font-size: 1.18rem; font-weight: 800; letter-spacing: 0.01em;
+                font-size: 1.1rem; font-weight: 800; letter-spacing: 0.02em;
                 color: #fff;
                 background: linear-gradient(135deg, #8b5cf6, #d946ef, #3b82f6);
                 box-shadow: 0 16px 48px rgba(139,92,246,0.45), 0 4px 12px rgba(0,0,0,0.4);
@@ -314,28 +311,27 @@
             "
             onmouseover="this.style.transform='scale(1.03)';this.style.boxShadow='0 20px 60px rgba(139,92,246,0.55),0 4px 12px rgba(0,0,0,0.4)'"
             onmouseout="this.style.transform='';this.style.boxShadow='0 16px 48px rgba(139,92,246,0.45),0 4px 12px rgba(0,0,0,0.4)'"
-            onclick="(function(){try{if(typeof gtag==='function')gtag('event','entra_ospite',{});}catch(e){}; if(typeof window.enterAsGuestApp==='function'){window.enterAsGuestApp();}else{alert('App non ancora pronta. Ricarica la pagina.');}})()">
-                ⚡ Entra e prova — gratis
+            onclick="(function(){if(typeof window.loginWithGoogle==='function'){window.loginWithGoogle();}else if(typeof firebase!=='undefined'&&firebase.apps.length){var p=new firebase.auth.GoogleAuthProvider();p.addScope('email');p.setCustomParameters({prompt:'select_account'});var isMobile=/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);if(isMobile){localStorage.setItem('cortex_redirect_pending','1');localStorage.setItem('cortex_redirect_ts',Date.now().toString());firebase.auth().signInWithRedirect(p).catch(function(e){alert('Errore: '+e.message);});}else{firebase.auth().signInWithPopup(p).then(function(r){if(r&&r.user)window.location.href='/app.html';}).catch(function(e){if(e.code==='auth/popup-closed-by-user'||e.code==='auth/popup-cancelled-by-user'){localStorage.setItem('cortex_redirect_pending','1');localStorage.setItem('cortex_redirect_ts',Date.now().toString());firebase.auth().signInWithRedirect(p);}else{alert('Errore: '+e.message);}});}}else{alert('App non ancora pronta. Ricarica la pagina.');};})()">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="22" height="22" alt="" style="border-radius:3px;">
+                Prova Ora
             </button>
 
-            <!-- Secondario: accedi con Google (per salvare i progressi) -->
-            <button style="
-                display:inline-flex;align-items:center;justify-content:center;gap:10px;
-                width:100%;max-width:360px;margin-top:14px;
+            <!-- Footer -->
+            <button onclick="window.enterAsGuestApp && window.enterAsGuestApp()" style="
+                display:inline-flex;align-items:center;justify-content:center;gap:8px;
+                width:100%;max-width:340px;margin-top:14px;
                 padding:14px 28px;border-radius:100px;cursor:pointer;
                 font-family:'Outfit',sans-serif;font-size:0.98rem;font-weight:700;
                 color:rgba(255,255,255,0.82);
                 background:transparent;border:1px solid rgba(255,255,255,0.18);
                 transition:background 0.15s;"
                 onmouseover="this.style.background='rgba(255,255,255,0.06)'"
-                onmouseout="this.style.background='transparent'"
-                onclick="(function(){if(typeof window.loginWithGoogle==='function'){window.loginWithGoogle();}else if(typeof firebase!=='undefined'&&firebase.apps.length){var p=new firebase.auth.GoogleAuthProvider();p.addScope('email');p.setCustomParameters({prompt:'select_account'});var isMobile=/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);if(isMobile){localStorage.setItem('cortex_redirect_pending','1');localStorage.setItem('cortex_redirect_ts',Date.now().toString());firebase.auth().signInWithRedirect(p).catch(function(e){alert('Errore: '+e.message);});}else{firebase.auth().signInWithPopup(p).then(function(r){if(r&&r.user)window.location.href='/app.html';}).catch(function(e){if(e.code==='auth/popup-closed-by-user'||e.code==='auth/popup-cancelled-by-user'){localStorage.setItem('cortex_redirect_pending','1');localStorage.setItem('cortex_redirect_ts',Date.now().toString());firebase.auth().signInWithRedirect(p);}else{alert('Errore: '+e.message);}});}}else{alert('App non ancora pronta. Ricarica la pagina.');};})()">
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" height="20" alt="" style="border-radius:3px;">
-                Accedi con Google
+                onmouseout="this.style.background='transparent'">
+                Continua come ospite →
             </button>
             <p style="margin-top:20px;font-size:0.75rem;color:rgba(255,255,255,0.22);line-height:1.6;">
-                Nessuna registrazione · entri e provi subito<br>
-                Accedi con Google quando vuoi salvare i progressi
+                Gratuito · Entri subito, senza registrarti<br>
+                Accedi con Google per salvare e sincronizzare i tuoi dati
             </p>
         </div>
     </div>

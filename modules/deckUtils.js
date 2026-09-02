@@ -5,6 +5,7 @@ import { showToast } from '../core/ui.js';
 import { syncToCloud } from '../services/firebase.js';
 import { syncPublicProfile } from './community.js';
 import { saveDecks, saveSessions, saveRecordings } from '../core/db.js';
+import { t } from '../core/i18n.js';
 
 const KEYS = APP_CONFIG.STORAGE_KEYS;
 
