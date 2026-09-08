@@ -25,6 +25,7 @@ import { todayStr }       from '../js/utils.js';
 import { renderDecks }    from './decks.js';
 import { updateMemoryBank } from '../services/memoryService.js';
 import { track }          from '../core/analytics.js';
+import { bumpActivation } from '../services/activation.js';
 import { TRANSLATIONS } from '../data/translations.js';
 const _t = () => (TRANSLATIONS[localStorage.getItem('mm_lang')||'it'] || TRANSLATIONS.it);
 
@@ -209,6 +210,10 @@ export function rateCard(rating) {
     const updated = processAnswer(origCard, rating);
     Object.assign(origCard, updated);
 
+    // Activation tracking: 1 rating valutato (GA4 + Firestore server-side)
+    try { track('card_rated', { rating }); } catch (_) {}
+    bumpActivation('ratingsGiven', 1);
+
     if (rating === 0) {
         sessionWrong++;
         sessionStreak = 0;
@@ -269,6 +274,10 @@ function endSession() {
 
     const totalCards = sessionCorrect + sessionHard + sessionWrong;
     const finalPct   = totalCards > 0 ? Math.round((sessionCorrect / totalCards) * 100) : pct;
+
+    // Activation tracking: sessione di studio completata (GA4 + Firestore server-side)
+    try { track('study_session_completed', { cards: totalCards, pct: finalPct }); } catch (_) {}
+    if (totalCards > 0) bumpActivation('cardsStudied', totalCards);
 
     let motivationalMsg = t('study_msg_good');
     let icon = "🎉";

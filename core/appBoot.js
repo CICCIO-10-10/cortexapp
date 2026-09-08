@@ -1,5 +1,6 @@
 import { initEventBus }                                    from './eventBus.js';
 import { initAnalytics, track, setUserProperty }           from './analytics.js';
+import { touchSeen }                                       from '../services/activation.js';
 import { APP_CONFIG }                                      from '../js/config.js';
 import { checkVersionUpdate, removeSplashScreen, showChangelogModal } from './boot.js';
 // Espone showChangelog globalmente (usato dal bottone "Novità" nelle impostazioni)
@@ -70,6 +71,7 @@ export function onAuthStateChangedHandler(user, firebaseDeps = {}) {
         // Analytics: track login / first open
         const isFirstLogin = !localStorage.getItem('cortex_onboarded');
         track(isFirstLogin ? 'sign_up' : 'login', { method: 'google' });
+        touchSeen(); // D1/D7: aggiorna lastSeen (+ firstSeen una volta) server-side
         const plan = localStorage.getItem('cortex_user_plan') || 'free';
         setUserProperty('plan', plan);
         const goal = localStorage.getItem('cortex_user_goal');

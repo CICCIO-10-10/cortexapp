@@ -5,6 +5,7 @@ import { DAILY_QUIZZES } from './dailyQuizData.js';
 const K_LAST = 'cortex_dq_last';     // YYYY-MM-DD ultimo giorno completato
 const K_STREAK = 'cortex_dq_streak'; // streak corrente
 const L = ['A', 'B', 'C', 'D', 'E'];
+let _justAnswered = false;   // true solo nell'istante subito dopo il tap
 
 function _ymd(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
 function _today() { return _ymd(new Date()); }
@@ -23,6 +24,19 @@ function _registerDone() {
   _set(K_STREAK, String(s));
 }
 
+function _renderCompact(slot, correct) {
+  const streak = _streak();
+  slot.innerHTML = `
+    <div style="max-width:900px;margin:0 auto 18px;">
+      <div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:9px 16px;border-radius:100px;background:rgba(139,92,246,0.07);border:1px solid rgba(139,92,246,0.20);font-size:0.82rem;">
+        <span style="font-weight:800;color:#a78bfa;">🧠 Quiz del giorno</span>
+        <span style="color:${correct ? '#4ade80' : '#9aa0b4'};font-weight:700;">✓ fatto</span>
+        ${streak > 0 ? `<span style="font-weight:800;color:#f59e0b;">🔥 ${streak}</span>` : ''}
+        <span style="color:var(--text-muted,#9aa0b4);opacity:.75;">· torna domani</span>
+      </div>
+    </div>`;
+}
+
 export function renderDailyQuiz() {
   const slot = document.getElementById('daily-quiz-slot');
   if (!slot || !DAILY_QUIZZES.length) return;
@@ -30,6 +44,11 @@ export function renderDailyQuiz() {
   const chosenRaw = (function () { try { return localStorage.getItem(_ansKey()); } catch (e) { return null; } })();
   const chosen = (chosenRaw === null || chosenRaw === '') ? null : parseInt(chosenRaw, 10);
   const answered = chosen !== null && !isNaN(chosen);
+
+  // Bug#2: se ha gia' risposto (ricarica / sessione precedente) NON mostrare il
+  // cardone -> solo una striscia compatta che tiene viva la streak.
+  if (answered && !_justAnswered) { _renderCompact(slot, chosen === q.c); return; }
+
   const streak = _streak();
 
   const streakBadge = streak > 0
@@ -77,7 +96,10 @@ export function renderDailyQuiz() {
         const i = parseInt(btn.getAttribute('data-i'), 10);
         _set(_ansKey(), String(i));
         _registerDone();
-        renderDailyQuiz();
+        _justAnswered = true;
+        renderDailyQuiz();                 // mostra il feedback (giusto/sbagliato + soluzione)
+        // ...poi il cardone "sparisce" e resta solo la striscia compatta
+        setTimeout(() => { _justAnswered = false; renderDailyQuiz(); }, 3500);
       });
     });
   }

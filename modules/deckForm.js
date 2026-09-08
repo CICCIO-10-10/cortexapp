@@ -28,6 +28,7 @@ import { renderDecks }         from './decks.js';
 import { todayStr, sanitizeHTML } from '../js/utils.js';
 import { APP_CONFIG }          from '../js/config.js';
 import { track }               from '../core/analytics.js';
+import { bumpActivation }       from '../services/activation.js';
 
 const DRAFT_KEY = APP_CONFIG.STORAGE_KEYS.DRAFT;
 
@@ -255,6 +256,12 @@ export async function saveDeck() {
         track(isFirst ? 'first_deck_created' : 'deck_created', {
             card_count: deck.cards.length,
         });
+
+        // Activation tracking: card generate su NUOVO mazzo (evita doppio conteggio sui re-save)
+        if (currentDeckIndex === null && deck.cards.length > 0) {
+            try { track('cards_generated', { count: deck.cards.length }); } catch (_) {}
+            bumpActivation('cardsGenerated', deck.cards.length);
+        }
         renderDecks(); 
         try { if (window.triggerSmartInstallPrompt) window.triggerSmartInstallPrompt(); } catch(_) {}
         _deps.showView('view-decks');
