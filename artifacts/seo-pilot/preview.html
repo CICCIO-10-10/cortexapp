@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Cortex — revisione pilota SEO</title>
+<style>
+@font-face{font-family:Display;src:url('/cortex-design/space-grotesk-latin.woff2')}@font-face{font-family:Text;src:url('/cortex-design/dm-sans-latin.woff2')}
+*{box-sizing:border-box}body{margin:0;background:#090910;color:#f1f0fa;font:16px/1.6 Text,Arial,sans-serif}main{max-width:1240px;padding:56px 28px;margin:auto}h1,h2,h3{font-family:Display,Arial,sans-serif;line-height:1.2;font-weight:500}h1{font-size:clamp(36px,5vw,60px);letter-spacing:-.04em;margin:20px 0}h1 span,a{color:#bfa1ff}p{color:#b1adbe;max-width:75ch}.eyebrow{font-size:12px;letter-spacing:.15em;color:#bfa1ff}.status{display:flex;flex-wrap:wrap;gap:12px;margin:32px 0 48px}.status span{padding:10px 16px;background:#14131b;border:1px solid #2c2935;border-radius:8px;font-size:14px}.gallery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}figure{margin:0;background:#111117;border:1px solid #2c2935;border-radius:12px;overflow:hidden}figure>a{display:block;height:280px;overflow:hidden}figure img{display:block;width:100%;height:auto;min-height:280px;object-fit:cover;object-position:top;transition:transform .2s}figure a:hover img{transform:scale(1.02)}figcaption{padding:18px 20px;font-size:14px}.pages{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:24px}.page{padding:24px;border:1px solid #2c2935;background:#111117;border-radius:12px}.page h3{margin:0 0 12px;overflow-wrap:anywhere;font-size:18px}.page p{font-size:14px;margin:0 0 18px}.page nav{display:flex;gap:24px;font-size:14px}a{text-underline-offset:4px}a:focus-visible{outline:2px solid #bfa1ff;outline-offset:4px}h2{margin-top:64px}.note{padding:24px;border-left:2px solid #bfa1ff;background:#131019;margin-block:32px}footer{margin-top:56px;padding-top:24px;border-top:1px solid #2c2935;color:#b1adbe;font-size:14px}@media(max-width:850px){.gallery{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:560px){main{padding:32px 20px}.gallery,.pages{grid-template-columns:1fr}}
+</style></head><body><main>
+<div class="eyebrow">CORTEX / REVISIONE LOCALE / PILOTA SEO</div>
+<h1>La stessa identità.<br><span>Tredici prove concrete.</span></h1>
+<p>Il sistema visuale della homepage applicato a guide, cataloghi e strumenti. Questa è la galleria di revisione: nessun rollout completo e nessuna pubblicazione.</p>
+<div class="status"><span>13 pagine · 10 famiglie</span><span>Diff SEO: 13/13 invariati</span><span>52 controlli responsive</span><span>5 UniMe protette</span></div>
+<div class="gallery">
+<figure><a href="tolc-i-desktop.png"><img src="tolc-i-desktop.png" alt="Guida TOLC desktop"></a><figcaption>Editoriale · tipi e guide TOLC</figcaption></figure>
+<figure><a href="archeologia-e-storia-dell-arte-messina-desktop.png"><img src="archeologia-e-storia-dell-arte-messina-desktop.png" alt="Landing corso UniMe desktop"></a><figcaption>UniMe · programmi e insegnamenti</figcaption></figure>
+<figure><a href="simulazione-tolc-i-desktop.png"><img src="simulazione-tolc-i-desktop.png" alt="Landing simulazione TOLC desktop"></a><figcaption>Simulazioni · hero e CTA</figcaption></figure>
+<figure><a href="cortex-vs-anki-vs-quizlet-desktop.png"><img src="cortex-vs-anki-vs-quizlet-desktop.png" alt="Confronto desktop"></a><figcaption>Confronto · tabella e verdetto</figcaption></figure>
+<figure><a href="unime-desktop.png"><img src="unime-desktop.png" alt="Hub UniMe desktop"></a><figcaption>Hub · ricerca del corso</figcaption></figure>
+<figure><a href="scuole-superiori-messina-desktop.png"><img src="scuole-superiori-messina-desktop.png" alt="Elenco scuole desktop"></a><figcaption>Province · elenchi e indirizzi</figcaption></figure>
+</div>
+<h2>Mobile, anche negli stati aperti.</h2>
+<div class="gallery">
+<figure><a href="demo-mobile.png"><img src="demo-mobile.png" alt="Flashcard mobile con risposta e feedback"></a><figcaption>Demo · risposta e valutazione</figcaption></figure>
+<figure><a href="unime-program-mobile.png"><img src="unime-program-mobile.png" alt="Programma universitario espanso su mobile"></a><figcaption>UniMe · programma espanso</figcaption></figure>
+<figure><a href="scuola-mobile.png"><img src="scuola-mobile.png" alt="Materie scolastiche su mobile"></a><figcaption>Scuola · materia e argomenti</figcaption></figure>
+</div>
+<h2>Confronta le 13 pagine.</h2><p>Ogni pagina ha il collegamento al pilota e all'originale. Testi, link e metadati restano quelli del progetto.</p><div id="pages" class="pages"></div>
+<div class="note">Le cinque UniMe storiche restano escluse. Due link scolastici malformati e quattro domini non risolti nel test erano già presenti: sono documentati, senza modificare le destinazioni.</div>
+<p><a href="REPORT.md">Report completo</a> · <a href="seo-diff.json">Diff SEO</a> · <a href="browser-final.json">Controlli responsive</a> · <a href="links.json">Verifica collegamenti</a></p>
+<footer>Anteprima di sviluppo · non inclusa nella build pubblicabile · Cortex</footer>
+</main><script>
+fetch('/scripts/seo-pages.json').then(r=>r.json()).then(({pages})=>{const root=document.getElementById('pages');pages.forEach(p=>{const card=document.createElement('article');card.className='page';const h=document.createElement('h3');h.textContent=p.slug;const note=document.createElement('p');note.textContent=p.reason;const nav=document.createElement('nav');[['Apri pilota','?notrack=1'],['Vedi originale','?notrack=1&cortex-baseline=1']].forEach(([label,q])=>{const a=document.createElement('a');a.href='/'+p.slug+q;a.textContent=label;nav.append(a)});card.append(h,note,nav);root.append(card)})}).catch(()=>{document.getElementById('pages').textContent='Apri questa galleria dal server locale sulla porta 5175.'});
+</script></body></html>

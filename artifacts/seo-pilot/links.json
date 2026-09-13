@@ -1,0 +1,278 @@
+{
+  "internal": [
+    {
+      "slug": "scuole-superiori-messina",
+      "referenceCount": 66,
+      "broken": [
+        {
+          "href": "https://Non Disponibile",
+          "reason": "malformed URL"
+        },
+        {
+          "href": "https://Non Disponibile",
+          "reason": "malformed URL"
+        }
+      ]
+    },
+    {
+      "slug": "archeologia-e-storia-dell-arte-messina",
+      "referenceCount": 49,
+      "broken": []
+    },
+    {
+      "slug": "medicina-e-chirurgia-messina",
+      "referenceCount": 150,
+      "broken": []
+    },
+    {
+      "slug": "liceo-scientifico",
+      "referenceCount": 38,
+      "broken": []
+    },
+    {
+      "slug": "tolc-i",
+      "referenceCount": 38,
+      "broken": []
+    },
+    {
+      "slug": "punteggio-tolc",
+      "referenceCount": 35,
+      "broken": []
+    },
+    {
+      "slug": "tolc-messina",
+      "referenceCount": 54,
+      "broken": []
+    },
+    {
+      "slug": "simulazione-tolc-i",
+      "referenceCount": 21,
+      "broken": []
+    },
+    {
+      "slug": "cortex-vs-anki-vs-quizlet",
+      "referenceCount": 8,
+      "broken": []
+    },
+    {
+      "slug": "scuola",
+      "referenceCount": 4,
+      "broken": []
+    },
+    {
+      "slug": "unime",
+      "referenceCount": 4,
+      "broken": []
+    },
+    {
+      "slug": "simulazione-tolc",
+      "referenceCount": 22,
+      "broken": []
+    },
+    {
+      "slug": "demo",
+      "referenceCount": 7,
+      "broken": []
+    }
+  ],
+  "external": [
+    {
+      "url": "https://fonts.googleapis.com/",
+      "status": 404,
+      "finalUrl": "https://fonts.googleapis.com/"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@700;800;900&display=swap",
+      "status": 200,
+      "finalUrl": "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@700;800;900&display=swap"
+    },
+    {
+      "url": "https://www.ainis.edu.it/",
+      "status": 200,
+      "finalUrl": "https://www.ainis.edu.it/"
+    },
+    {
+      "url": "https://www.liceoarchimedeme.edu.it/",
+      "status": 200,
+      "finalUrl": "https://www.liceoarchimedeme.edu.it/"
+    },
+    {
+      "url": "https://www.liceomedi.edu.it/",
+      "status": 200,
+      "finalUrl": "https://lnx.liceomedi.edu.it/iismedi/"
+    },
+    {
+      "url": "https://www.istitutocopernico.edu.it/",
+      "status": 200,
+      "finalUrl": "https://www.istitutocopernico.edu.it/"
+    },
+    {
+      "url": "https://www.isguttusomilazzo.edu.it/",
+      "status": 200,
+      "finalUrl": "https://www.isguttusomilazzo.edu.it/"
+    },
+    {
+      "url": "https://www.liceosciasciafermi.edu.it/",
+      "status": 200,
+      "finalUrl": "https://www.liceosciasciafermi.edu.it/"
+    },
+    {
+      "url": "https://www.iisspugliatti.edu.it/",
+      "status": 200,
+      "finalUrl": "https://www.iisspugliatti.edu.it/spugliatti/"
+    },
+    {
+      "url": "https://www.iisimpallomeni.edu.it/",
+      "status": 200,
+      "finalUrl": "https://iisimpallomeni.edu.it/"
+    },
+    {
+      "url": "https://www.istitutoprofessionaleferrari.it/fleonti_barcellona/index.php",
+      "error": "ENOTFOUND"
+    },
+    {
+      "url": "https://www.istitutosuperioreminutoli.gov.it/",
+      "error": "ENOTFOUND"
+    },
+    {
+      "url": "https://www.iismanzoni.edu.it/",
+      "status": 200,
+      "finalUrl": "https://www.iismanzoni.edu.it/"
+    },
+    {
+      "url": "https://www.davincimilazzo.edu.it/",
+      "status": 200,
+      "finalUrl": "https://www.davincimilazzo.edu.it/"
+    },
+    {
+      "url": "https://www.itisetorricelli.edu.it/",
+      "status": 200,
+      "finalUrl": "https://www.itisetorricelli.edu.it/"
+    },
+    {
+      "url": "https://www.iisborghesefaranda.edu.it/",
+      "status": 200,
+      "finalUrl": "https://www.iisborghesefaranda.edu.it/"
+    },
+    {
+      "url": "https://www.isaconti.it/",
+      "error": "ENOTFOUND"
+    },
+    {
+      "url": "https://www.iisantonellomessina.edu.it/",
+      "status": 200,
+      "finalUrl": "https://www.iisantonellomessina.edu.it/"
+    },
+    {
+      "url": "https://www.iiscaminititrimarchi.gov.it/",
+      "error": "ENOTFOUND"
+    },
+    {
+      "url": "https://www.itimajorana.edu.it/",
+      "status": 200,
+      "finalUrl": "https://www.itimajorana.edu.it/"
+    },
+    {
+      "url": "https://www.merendino.edu.it/",
+      "status": 200,
+      "finalUrl": "https://www.merendino.edu.it/"
+    },
+    {
+      "url": "https://www.itcgtfermi.edu.it/",
+      "status": 200,
+      "finalUrl": "https://www.itcgtfermi.edu.it/"
+    },
+    {
+      "url": "https://www.iislafarinabasile.edu.it/",
+      "status": 200,
+      "finalUrl": "https://www.iislafarinabasile.edu.it/"
+    },
+    {
+      "url": "https://www.liceoluciopiccolo.edu.it/",
+      "status": 200,
+      "finalUrl": "https://www.liceoluciopiccolo.edu.it/"
+    },
+    {
+      "url": "https://www.liceostatalepatti.edu.it/",
+      "status": 200,
+      "finalUrl": "https://www.liceostatalepatti.edu.it/"
+    },
+    {
+      "url": "https://www.maurolicomessina.edu.it/",
+      "status": 200,
+      "finalUrl": "https://www.maurolicomessina.edu.it/"
+    },
+    {
+      "url": "https://www.seguenza.edu.it/",
+      "status": 200,
+      "finalUrl": "https://www.seguenza.edu.it/"
+    },
+    {
+      "url": "https://www.veronatrento.it/",
+      "status": 200,
+      "finalUrl": "https://www.veronatrento.it/"
+    },
+    {
+      "url": "https://www.cisiaonline.it/",
+      "status": 200,
+      "finalUrl": "https://www.cisiaonline.it/"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@800;900&display=swap",
+      "status": 200,
+      "finalUrl": "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@800;900&display=swap"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800;900&display=swap",
+      "status": 200,
+      "finalUrl": "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800;900&display=swap"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Outfit:wght@700;800;900&display=swap",
+      "status": 200,
+      "finalUrl": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Outfit:wght@700;800;900&display=swap"
+    },
+    {
+      "url": "https://fonts.gstatic.com/",
+      "status": 404,
+      "finalUrl": "https://fonts.gstatic.com/"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@700;800;900&display=swap",
+      "status": 200,
+      "finalUrl": "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@700;800;900&display=swap"
+    }
+  ],
+  "assets": [
+    {
+      "name": "components.css",
+      "status": 200,
+      "type": "text/css",
+      "bytes": 5204
+    },
+    {
+      "name": "dm-sans-latin.woff2",
+      "status": 200,
+      "type": "font/woff2",
+      "bytes": 36932
+    },
+    {
+      "name": "seo-adapters.css",
+      "status": 200,
+      "type": "text/css",
+      "bytes": 5996
+    },
+    {
+      "name": "space-grotesk-latin.woff2",
+      "status": 200,
+      "type": "font/woff2",
+      "bytes": 22288
+    },
+    {
+      "name": "tokens.css",
+      "status": 200,
+      "type": "text/css",
+      "bytes": 1586
+    }
+  ]
+}

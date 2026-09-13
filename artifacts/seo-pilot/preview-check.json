@@ -1,0 +1,93 @@
+[
+  {
+    "slug": "scuole-superiori-messina",
+    "status": 200,
+    "sameHTML": true,
+    "marker": true,
+    "diagnosticsAbsent": true
+  },
+  {
+    "slug": "archeologia-e-storia-dell-arte-messina",
+    "status": 200,
+    "sameHTML": true,
+    "marker": true,
+    "diagnosticsAbsent": true
+  },
+  {
+    "slug": "medicina-e-chirurgia-messina",
+    "status": 200,
+    "sameHTML": true,
+    "marker": true,
+    "diagnosticsAbsent": true
+  },
+  {
+    "slug": "liceo-scientifico",
+    "status": 200,
+    "sameHTML": true,
+    "marker": true,
+    "diagnosticsAbsent": true
+  },
+  {
+    "slug": "tolc-i",
+    "status": 200,
+    "sameHTML": true,
+    "marker": true,
+    "diagnosticsAbsent": true
+  },
+  {
+    "slug": "punteggio-tolc",
+    "status": 200,
+    "sameHTML": true,
+    "marker": true,
+    "diagnosticsAbsent": true
+  },
+  {
+    "slug": "tolc-messina",
+    "status": 200,
+    "sameHTML": true,
+    "marker": true,
+    "diagnosticsAbsent": true
+  },
+  {
+    "slug": "simulazione-tolc-i",
+    "status": 200,
+    "sameHTML": true,
+    "marker": true,
+    "diagnosticsAbsent": true
+  },
+  {
+    "slug": "cortex-vs-anki-vs-quizlet",
+    "status": 200,
+    "sameHTML": true,
+    "marker": true,
+    "diagnosticsAbsent": true
+  },
+  {
+    "slug": "scuola",
+    "status": 200,
+    "sameHTML": true,
+    "marker": true,
+    "diagnosticsAbsent": true
+  },
+  {
+    "slug": "unime",
+    "status": 200,
+    "sameHTML": true,
+    "marker": true,
+    "diagnosticsAbsent": true
+  },
+  {
+    "slug": "simulazione-tolc",
+    "status": 200,
+    "sameHTML": true,
+    "marker": true,
+    "diagnosticsAbsent": true
+  },
+  {
+    "slug": "demo",
+    "status": 200,
+    "sameHTML": true,
+    "marker": true,
+    "diagnosticsAbsent": true
+  }
+]

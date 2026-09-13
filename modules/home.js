@@ -346,7 +346,7 @@ export function renderHome() {
         </button>`;
 
     const _azioni = [
-        _tile('⚡', 'Quick Test', 'quiz lampo sui tuoi mazzi', 'openQuickMode', true),
+        _tile('⚡', 'Quiz rapido', 'quiz lampo sui tuoi mazzi', 'openQuickMode', true),
         _tile('🎯', 'Simulazione TOLC', 'struttura e tempi ufficiali', 'openTolcSim'),
         _tile('🎤', 'Interrogazione', (window.getProfModeLabel ? window.getProfModeLabel().replace(/^[^A-Za-zÀ-ù]+/, '') : 'Prof: Normale'), 'openProfSelector'),
         // FIX 17/07/2026: apriva il test attitudinale (openArchitect) come la ghost-card di decks.js —
@@ -364,7 +364,7 @@ export function renderHome() {
     const _materieHtml = _decksAll.length ? `
         <section style="margin-bottom:28px;">
             <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px;">
-                <div style="font-size:0.65rem; font-weight:900; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.2em;">📚 Le tue materie</div>
+                <div style="font-size:0.65rem; font-weight:900; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.2em;">Cosa studiare oggi</div>
                 <button data-fn="showPage" data-params='["materiale"]' style="background:none; border:none; color:var(--accent); font-size:0.8rem; font-weight:700; cursor:pointer; font-family:inherit;">vedi tutte →</button>
             </div>
             <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px;">
@@ -380,7 +380,7 @@ export function renderHome() {
                     " onmouseover="this.style.borderColor='rgba(139,92,246,0.4)';this.style.transform='translateY(-2px)'"
                       onmouseout="this.style.borderColor='rgba(255,255,255,0.08)';this.style.transform='none'">
                         <div>
-                            <div style="font-weight:800; font-size:1rem; color:var(--text); margin-bottom:2px;">${_esc(d.name)}</div>
+                            <div style="font-weight:800; font-size:1rem; color:var(--text); margin-bottom:2px;">${_esc(d.name || d.title || 'Materia senza nome')}</div>
                             <div style="font-size:0.72rem; color:var(--text-muted);">${_esc(d.subject || '')}${nCards ? ` · ${nCards} carte` : ''}</div>
                         </div>
                         <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:auto;">
@@ -401,12 +401,6 @@ export function renderHome() {
 
     container.innerHTML = `
         <div class="dashboard-nebula reveal-anim" style="max-width: 900px; margin: 0 auto; padding: 28px 20px 120px;">
-
-            <!-- SEASONAL EVENT BANNER — riempito da seasonalEvents.js -->
-            <div id="home-event-banner-slot"></div>
-
-            <!-- QUIZ DEL GIORNO — riempito da dailyQuiz.js -->
-            <div id="daily-quiz-slot"></div>
 
             <!-- HERO SECTION -->
             <section class="hero-nebula" style="
@@ -435,7 +429,7 @@ export function renderHome() {
                 <div style="position:relative; z-index:2; width:100%;">
                     <!-- Saluto personale (via il wordmark gigante: sei già dentro l'app) -->
                     <div style="text-align:left; margin-bottom:18px;">
-                        <div style="font-size:0.6rem; font-weight:900; letter-spacing:0.32em; text-transform:uppercase; color:rgba(255,255,255,0.32); margin-bottom:6px;">Cortex · Neural Study Engine</div>
+                        <div style="font-size:0.6rem; font-weight:900; letter-spacing:0.32em; text-transform:uppercase; color:rgba(255,255,255,0.32); margin-bottom:6px;">Cortex · Il tuo spazio di studio</div>
                         <h1 style="font-family:'Outfit',sans-serif; font-size:clamp(1.7rem,4.5vw,2.4rem); font-weight:900; letter-spacing:-0.03em; margin:0; line-height:1.1; color:var(--text);">
                             ${_saluto}
                         </h1>
@@ -445,7 +439,7 @@ export function renderHome() {
                     ${renderDailyGoalRing()}
 
                     <!-- AZIONI RAPIDE — sempre visibili, anche da ospite -->
-                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px; margin-top:22px;">
+                    <div class="cortex-actions" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px; margin-top:22px;">
                         ${_azioni}
                     </div>
                 </div>
@@ -453,6 +447,10 @@ export function renderHome() {
 
             <!-- LE TUE MATERIE — il contenuto dell'utente, subito sotto le azioni -->
             ${_materieHtml}
+
+            <!-- Same widgets and handlers, after the student's next actions. -->
+            <div id="daily-quiz-slot"></div>
+            <div id="home-event-banner-slot"></div>
 
             <!-- Neural Trainer (AI insight) — full width, async -->
             <div id="neural-trainer-container" style="margin-bottom: 28px;"></div>

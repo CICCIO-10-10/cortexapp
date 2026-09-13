@@ -29,7 +29,7 @@ export class CreateDeckView extends Component {
         this.mountPoint.scrollTop = 0;
 
         this.mountPoint.innerHTML = `
-<div style="padding: 100px 32px 120px; max-width: 820px; margin: 0 auto;">
+<div class="cortex-editor" style="padding: 100px 32px 120px; max-width: 820px; margin: 0 auto;">
 
     <button aria-label="Vai alla pagina materiale" class="tech-back" data-fn="showPage" data-params='["materiale"]'>← Le mie materie</button>
     <div class="section-header">

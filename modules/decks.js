@@ -151,7 +151,7 @@ export function renderDecks() {
                 </div>
 
                 <div class="card-body-nebula">
-                    <h3 class="card-title-nebula">${d.name}</h3>
+                    <h3 class="card-title-nebula">${d.name || d.title || 'Materia senza nome'}</h3>
                     <div class="card-progress-row">
                         <div class="progress-aura-wrap" style="flex:1;">
                             <div class="progress-aura" style="width:${progress}%; background:${progressColor};"></div>

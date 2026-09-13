@@ -1,0 +1,134 @@
+{
+  "created": "2026-09-13T13:17:25.876Z",
+  "sourceChanges": [],
+  "pages": [
+    {
+      "slug": "scuole-superiori-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 61,
+      "headings": 6
+    },
+    {
+      "slug": "archeologia-e-storia-dell-arte-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 44,
+      "headings": 8
+    },
+    {
+      "slug": "medicina-e-chirurgia-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 145,
+      "headings": 11
+    },
+    {
+      "slug": "liceo-scientifico",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 33,
+      "headings": 6
+    },
+    {
+      "slug": "tolc-i",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 33,
+      "headings": 7
+    },
+    {
+      "slug": "punteggio-tolc",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 30,
+      "headings": 6
+    },
+    {
+      "slug": "tolc-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 49,
+      "headings": 7
+    },
+    {
+      "slug": "simulazione-tolc-i",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 20,
+      "headings": 5
+    },
+    {
+      "slug": "cortex-vs-anki-vs-quizlet",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 5,
+      "headings": 15
+    },
+    {
+      "slug": "scuola",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 1,
+      "headings": 5
+    },
+    {
+      "slug": "unime",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 1,
+      "headings": 3
+    },
+    {
+      "slug": "simulazione-tolc",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 18,
+      "headings": 14
+    },
+    {
+      "slug": "demo",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 2,
+      "headings": 1
+    }
+  ],
+  "nonpilotMarkers": [],
+  "protectedUniMe": [
+    {
+      "slug": "chimica-triennale-messina",
+      "unchanged": true
+    },
+    {
+      "slug": "ingegneria-civile-triennale-messina",
+      "unchanged": true
+    },
+    {
+      "slug": "ingegneria-gestionale-triennale-messina",
+      "unchanged": true
+    },
+    {
+      "slug": "matematica-triennale-messina",
+      "unchanged": true
+    },
+    {
+      "slug": "scienze-politiche-e-delle-relazioni-internazionali-messina",
+      "unchanged": true
+    }
+  ],
+  "pass": true
+}

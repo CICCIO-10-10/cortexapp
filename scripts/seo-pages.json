@@ -1,0 +1,24 @@
+{
+  "mode": "pilot",
+  "expectedPilotCount": 13,
+  "protected": [
+    "chimica-triennale-messina", "ingegneria-civile-triennale-messina",
+    "ingegneria-gestionale-triennale-messina", "matematica-triennale-messina",
+    "scienze-politiche-e-delle-relazioni-internazionali-messina"
+  ],
+  "pages": [
+    { "slug": "scuole-superiori-messina", "family": "province", "source": "public/scuole-superiori-messina.html", "reason": "Elenco scuole, schede e collegamenti territoriali" },
+    { "slug": "archeologia-e-storia-dell-arte-messina", "family": "unime-course", "source": "public/archeologia-e-storia-dell-arte-messina.html", "reason": "Corso indicizzato, programmi espandibili e titolo lungo" },
+    { "slug": "medicina-e-chirurgia-messina", "family": "unime-course", "source": "public/medicina-e-chirurgia-messina.html", "reason": "Secondo corso indicizzato, ciclo unico e catalogo esteso; sostituisce il campione storico protetto" },
+    { "slug": "liceo-scientifico", "family": "school-track", "source": "public/liceo-scientifico.html", "reason": "Materie e argomenti; CSS legacy condiviso con quattro UniMe protette" },
+    { "slug": "tolc-i", "family": "tolc-type", "source": "public/tolc-i.html", "reason": "Tabella struttura, punteggi e stati semantici" },
+    { "slug": "punteggio-tolc", "family": "tolc-guide", "source": "public/punteggio-tolc.html", "reason": "Guida editoriale e callout di avvertenza" },
+    { "slug": "tolc-messina", "family": "tolc-local", "source": "public/tolc-messina.html", "reason": "Tabella corsi e link locali lunghi" },
+    { "slug": "simulazione-tolc-i", "family": "simulation", "source": "public/simulazione-tolc-i.html", "reason": "Hero centrato, CTA primaria/secondaria, FAQ e correlati" },
+    { "slug": "cortex-vs-anki-vs-quizlet", "family": "comparison", "source": "public/cortex-vs-anki-vs-quizlet.html", "reason": "Confronto a quattro colonne e verdetto" },
+    { "slug": "scuola", "family": "school-hub", "source": "scuola.html", "reason": "Hub interattivo: selezione, ricerca, schede e stati nascosti" },
+    { "slug": "unime", "family": "unime-hub", "source": "unime.html", "reason": "Hub interattivo universitario, ricerca e programmi" },
+    { "slug": "simulazione-tolc", "family": "simulation-index", "source": "simulazione-tolc.html", "reason": "Indice lungo con dieci tabelle e CTA" },
+    { "slug": "demo", "family": "demo", "source": "public/demo.html", "reason": "Flashcard interattive, rotazione funzionale e feedback" }
+  ]
+}

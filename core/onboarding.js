@@ -125,6 +125,7 @@ export function closeOnboarding() {
                 state.decks.push({
                     id: 'deck_demo_' + Date.now(),
                     title: '👋 Inizia da qui (mazzo demo)',
+                    name: 'Inizia da qui · mazzo di esempio',
                     cards: [
                         _c('Come si studia con Cortex?', 'Rispondi a mente, poi giri la carta. Se sbagli te la ripropone prima: e la ripetizione dilazionata, ricordi di piu con meno fatica.'),
                         _c('Cos e l active recall?', 'Chiudere il libro e provare a ripetere a memoria. E il metodo piu efficace, e Cortex lo fa in automatico dai tuoi appunti.'),

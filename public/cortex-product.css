@@ -1,0 +1,121 @@
+/* Cortex / product 2026. Shared presentation layer; no routing or state overrides. */
+@font-face{font-family:Cortex UI;src:url('/cortex-design/dm-sans-latin.woff2') format('woff2');font-weight:100 900;font-display:optional}
+@font-face{font-family:Cortex Title;src:url('/cortex-design/space-grotesk-latin.woff2') format('woff2');font-weight:300 700;font-display:optional}
+body.cortex-product{
+ --bg:#090910;--bg-color:#090910;--surface:#121219;--surface2:#191820;--surface3:#23212c;
+ --text:#f1f0fa;--text-main:#f1f0fa;--text-muted:#b2adbf;--text-sub:#b2adbf;--text-secondary:#b2adbf;
+ --accent:#bfa1ff;--accent2:#95e1df;--accent-nebula:#bfa1ff;--accent-glow:transparent;
+ --border:#302c3b;--border-color:#302c3b;--glass-blur:none;--red:#ff939e;--green:#7cddb0;--gold:#edc782;
+ --cx-body:'Cortex UI',Arial,sans-serif;--cx-title:'Cortex Title',Arial,sans-serif;
+ --cx-radius:14px;--cx-shadow:0 8px 30px #0003;--cx-motion:160ms ease;
+ --cx-space-1:4px;--cx-space-2:8px;--cx-space-3:12px;--cx-space-4:16px;--cx-space-6:24px;--cx-space-8:32px;
+ background:var(--bg)!important;color:var(--text);font-family:var(--cx-body)!important;line-height:1.6;
+}
+body.cortex-product :is(button,input,textarea,select){font-family:var(--cx-body)!important}
+body.cortex-product :is(h1,h2,h3,h4,.card-title-nebula,.phase-title){font-family:var(--cx-title)!important;font-weight:600!important;letter-spacing:-.035em;line-height:1.2}
+body.cortex-product :is(h1,h2){background-image:none!important;-webkit-text-fill-color:var(--text)!important}
+body.cortex-product [style*="font-family"]{font-family:var(--cx-body)!important}
+body.cortex-product :is(button,a,input,textarea,select,summary,[tabindex]):focus-visible{outline:2px solid var(--accent)!important;outline-offset:4px}
+body.cortex-product :is(button,.btn){min-height:44px;touch-action:manipulation;text-shadow:none!important;transition:background var(--cx-motion),border-color var(--cx-motion),box-shadow var(--cx-motion)}
+body.cortex-product :is(.btn-primary,.btn-nebula-main){background:var(--accent)!important;color:#1a1228!important;border:1px solid #cbb0ff!important;border-radius:10px!important;box-shadow:none!important;font-weight:700!important}
+body.cortex-product :is(.btn-primary,.btn-nebula-main):hover{background:#d1bcff!important;transform:none!important}
+body.cortex-product :is(.btn-outline,.btn-deck-action,.btn-icon-nebula,.tech-back){background:var(--surface)!important;color:var(--text)!important;border-color:var(--border)!important;border-radius:10px!important;box-shadow:none!important}
+body.cortex-product :is(input:not([type=range]):not([type=checkbox]):not([type=file]):not([type=hidden]),textarea,select){background:var(--surface)!important;color:var(--text)!important;border:1px solid #494353!important;border-radius:10px!important;font-size:16px!important;line-height:1.5;padding:13px 14px}
+body.cortex-product :is(input,textarea)::placeholder{color:#aaa3b7;opacity:1}
+body.cortex-product :is(.glass,.nebula-card,.input-area,.upload-card,.plan-phase,.install-card){background:var(--surface)!important;border-color:var(--border)!important;border-radius:var(--cx-radius)!important;box-shadow:var(--cx-shadow)!important;backdrop-filter:none!important}
+body.cortex-product :is(.nebula-card::after,.card-accent-bar){opacity:0!important;animation:none!important}
+body.cortex-product :is(.nebula-card,.upload-card):hover{transform:none!important;border-color:#726184!important}
+body.cortex-product :is(.card-subject-pill,.exam-badge,.tech-chip,.stat-pill){border-radius:7px!important;box-shadow:none!important}
+body.cortex-product :is(.card-subject-pill,.card-progress-pct){color:var(--text-muted)!important}
+body.cortex-product .progress-aura{box-shadow:none!important}
+body.cortex-product :is(.card-more-btn,.btn-deck-action){min-width:44px}
+body.cortex-product .card-title-nebula{font-size:1.4rem}
+body.cortex-product .reveal-anim{animation:none!important;opacity:1!important;transform:none!important}
+body.cortex-product :is(.noise-overlay,.nebula-bg-container){opacity:0!important;pointer-events:none}
+body.cortex-product .nebula-bg-container *{animation:none!important}
+body.cortex-product .dashboard-nebula{padding:28px 24px 120px!important;max-width:1000px!important}
+body.cortex-product .hero-nebula{background:linear-gradient(125deg,#1a1523,#111117 70%)!important;border:1px solid var(--border)!important;border-radius:18px!important;box-shadow:none!important;padding:28px!important;text-align:left!important}
+body.cortex-product .hero-nebula>[style*="position:absolute"]{opacity:0!important;filter:none!important}
+body.cortex-product .hero-nebula button{background:var(--surface2)!important;color:var(--text)!important;border-color:var(--border)!important;box-shadow:none!important;border-radius:10px!important;transform:none!important;align-items:flex-start!important;text-align:left!important;padding:16px!important}
+body.cortex-product .hero-nebula button[data-fn="showView"]{background:var(--accent)!important;color:#1a1228!important;border-color:var(--accent)!important}
+body.cortex-product .hero-nebula button[data-fn="showView"] span{color:#1a1228!important}
+body.cortex-product .hero-nebula button>span:first-child{font-size:1.2rem!important}
+body.cortex-product .hero-nebula button>span:last-child{font-size:.78rem!important;line-height:1.4!important}
+body.cortex-product #daily-goal-ring{background:var(--surface)!important;border:1px solid var(--border)!important;border-radius:12px!important;box-shadow:none!important}
+body.cortex-product .quick-stats-bar{justify-content:flex-start;gap:8px!important;flex-wrap:wrap!important}
+body.cortex-product #daily-quiz-slot{margin-block:24px}
+body.cortex-product #daily-quiz-slot>div{background:var(--surface)!important;border-color:var(--border)!important;border-radius:14px!important;padding:24px!important}
+body.cortex-product .dq-opt:not(:disabled){background:var(--surface2)!important;border-color:var(--border)!important}
+body.cortex-product .dq-opt:hover:not(:disabled){border-color:var(--accent)!important}
+body.cortex-product #cortex-event-banner{background:var(--surface)!important;border:1px solid var(--border)!important;box-shadow:none!important;border-radius:12px!important}
+body.cortex-product [style*="color:rgba(255,255,255,0.4)"],body.cortex-product [style*="color:rgba(255,255,255,0.3)"],body.cortex-product [style*="color:rgba(255,255,255,0.2)"],body.cortex-product [style*="color:rgba(255,255,255,0.32)"]{color:var(--text-muted)!important}
+body.cortex-product #onboarding-overlay{background:#090910f5!important;backdrop-filter:none!important;padding:20px!important;overflow-y:auto}
+body.cortex-product #onboarding-overlay>div{background:var(--surface)!important;border-radius:20px!important;padding:28px 24px!important;max-height:calc(100dvh - 40px);overflow-y:auto!important;box-shadow:var(--cx-shadow)!important}
+body.cortex-product #onboarding-overlay h2{font-size:1.75rem!important}
+body.cortex-product #onboarding-overlay [style*="background:linear-gradient"]{background:var(--surface2)!important;box-shadow:none!important}
+body.cortex-product #ob-dots{margin-bottom:24px!important}
+body.cortex-product :is(.ob-goal-btn,.ob-source-btn){border-color:var(--border)!important;background:var(--surface2)!important;border-radius:10px!important}
+body.cortex-product :is(#study-overlay,#quiz-overlay,#oral-overlay,#boss-overlay){background:#090910fa!important;backdrop-filter:none!important;overflow-y:auto}
+body.cortex-product :is(#study-session,.boss-box){background:var(--bg)!important;box-shadow:none!important;border:0!important}
+body.cortex-product :is(.flip-front,.flip-back){background:var(--surface)!important;border:1px solid #5a496d!important;border-radius:18px!important;box-shadow:var(--cx-shadow)!important}
+body.cortex-product :is(#card-question,#card-answer){font-family:var(--cx-title)!important;font-size:clamp(1.2rem,4vw,1.65rem)!important;line-height:1.5!important;overflow-wrap:anywhere}
+body.cortex-product .rating-btn{border-radius:10px!important;box-shadow:none!important;padding:14px 10px!important}
+body.cortex-product #rating-buttons.visible{opacity:1!important;pointer-events:auto!important}
+body.cortex-product #flip-card{height:auto!important}
+body.cortex-product :is(#study-overlay,#quiz-overlay,#oral-overlay,#boss-overlay){background:#090910!important;border-radius:0!important;border:0!important;z-index:3000!important}
+body.cortex-product>nav{z-index:1500!important}
+body.cortex-product #app-root{background:var(--bg)!important}
+body.cortex-product .dashboard-nebula button:is([data-fn="startStudy"],[data-fn="startStudyById"]){background:var(--accent)!important;color:#1a1228!important;border-radius:10px!important;box-shadow:none!important}
+body.cortex-product #user-profile-wrap[style*="display:none"],body.cortex-product #user-profile-wrap[style*="display: none"]{display:none!important}
+body.cortex-product .btn-fail{background:#29171d!important;color:#ffacb4!important;border:1px solid #683843!important}
+body.cortex-product .btn-hard{background:#292318!important;color:#edcf93!important;border:1px solid #685534!important}
+body.cortex-product .btn-good{background:#14291f!important;color:#94e4bc!important;border:1px solid #315d46!important}
+body.cortex-product :is(.phase-num,.quiz-count-chip){box-shadow:none!important}
+body.cortex-product .quiz-count-chip[style*="background:var(--accent)"]{color:#1a1228!important}
+body.cortex-product>nav{background:#101017f8!important;border-color:var(--border)!important;box-shadow:none!important;backdrop-filter:none!important}
+body.cortex-product .nav-tab{border-radius:9px!important;color:var(--text-muted)!important;box-shadow:none!important}
+body.cortex-product .nav-tab.active{background:#bfa1ff12!important;color:var(--accent)!important}
+body.cortex-product .nav-tab.active .label{color:var(--accent)!important}
+body.cortex-product .nav-tab .icon{filter:grayscale(1);opacity:.85}
+body.cortex-product .nav-tab.active .icon{filter:none;opacity:1}
+body.cortex-product #guest-banner{background:var(--surface)!important;border-color:var(--border)!important;box-shadow:var(--cx-shadow)!important}
+body.cortex-product #btn-generate-ai{color:#1a1228!important;background:var(--accent)!important}
+body.cortex-product .cortex-editor div:has(>.char-count){flex-wrap:wrap;gap:12px}
+body.cortex-product .cortex-editor .char-count+div{flex-wrap:wrap}
+body.cortex-product :is(.section-header,.plan-header){text-align:left}
+body.cortex-product .upload-card .icon{font-size:1.5rem!important;filter:grayscale(.65)}
+body.cortex-product :is(.upload-grid,.nebula-grid){gap:16px}
+body.cortex-product .upload-card{padding:20px 14px!important}
+body.cortex-product :is(p,button,h1,h2,h3){overflow-wrap:anywhere}
+@media(max-width:768px){
+ body.cortex-product .cortex-editor{padding:28px 16px 120px!important}
+ body.cortex-product .upload-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ body.cortex-product .upload-card{min-height:110px!important}
+ body.cortex-product .cortex-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+ body.cortex-product .hero-nebula button{padding:14px 10px!important}
+ body.cortex-product .lang-selector-wrap{display:none!important}
+ body.cortex-product .focus-trigger::before{content:none!important}
+ body.cortex-product #guest-banner{flex-wrap:wrap!important;gap:6px!important;padding:10px 14px!important;position:relative!important;z-index:100!important;font-size:12px!important}
+ body.cortex-product #guest-banner>span{flex-basis:100%;padding-right:28px}
+ body.cortex-product #guest-banner button{white-space:nowrap;min-width:80px;min-height:36px}
+ body.cortex-product #guest-banner #guest-dismiss-btn{position:absolute;right:4px;top:4px;min-width:36px}
+ body.cortex-product>nav{padding:8px 8px calc(8px + env(safe-area-inset-bottom))!important;gap:4px!important;min-height:70px!important}
+ body.cortex-product .nav-tabs{flex:1!important;gap:2px!important;min-width:0!important}
+ body.cortex-product .nav-tab{min-width:0!important;flex:1!important;padding:6px 2px!important;min-height:48px!important}
+ body.cortex-product .nav-tab .label{display:block!important;font-size:9px!important;line-height:1.2!important;letter-spacing:0!important;white-space:normal!important}
+ body.cortex-product .nav-tab .icon{font-size:19px!important}
+ body.cortex-product .nav-actions{gap:2px!important}
+ body.cortex-product .nav-action-btn{width:40px!important;min-width:40px!important;height:48px!important}
+ body.cortex-product .dashboard-nebula{padding:20px 16px 144px!important}
+ body.cortex-product .hero-nebula{padding:22px 18px!important}
+ body.cortex-product .hero-nebula h1{font-size:1.8rem!important}
+ body.cortex-product #daily-quiz-slot>div{padding:20px!important}
+ body.cortex-product :is(.section-header h2,.plan-header h2){font-size:1.65rem!important}
+ body.cortex-product #study-session{padding:20px 0!important}
+ body.cortex-product #flip-inner{height:320px!important}
+ body.cortex-product :is(.flip-front,.flip-back){padding:22px!important;overflow-y:auto}
+ body.cortex-product #rating-buttons{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+ body.cortex-product .input-area{padding:20px!important}
+ body.cortex-product #onboarding-overlay>div{max-height:calc(100dvh - 32px)}
+}
+@media(prefers-reduced-motion:reduce){body.cortex-product *,body.cortex-product *::before,body.cortex-product *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}

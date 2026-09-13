@@ -1,0 +1,17 @@
+/* Cortex editorial system. Scope is deliberately opt-in, never global. */
+@font-face{font-family:Cortex Sans;src:url('./dm-sans-latin.woff2') format('woff2');font-weight:100 900;font-style:normal;font-display:optional}
+@font-face{font-family:Cortex Display;src:url('./space-grotesk-latin.woff2') format('woff2');font-weight:300 700;font-style:normal;font-display:optional}
+[data-cortex-seo]{
+  --cx-bg:#090910;--cx-panel:#111117;--cx-raised:#17151f;--cx-ink:#f1f0fa;
+  --cx-muted:#b1adbe;--cx-accent:#bfa1ff;--cx-line:#2c2935;--cx-cyan:#95e1df;
+  --cx-body:'Cortex Sans',Arial,sans-serif;--cx-heading:'Cortex Display',Arial,sans-serif;
+  --cx-radius:12px;--cx-shadow:0 12px 36px #0003;--cx-ease:180ms ease;
+  --cx-space-1:4px;--cx-space-2:8px;--cx-space-3:12px;--cx-space-4:16px;
+  --cx-space-6:24px;--cx-space-8:32px;--cx-space-12:48px;--cx-space-16:64px;--cx-space-20:80px;
+  --bg:var(--cx-bg);--text:var(--cx-ink);--muted:var(--cx-muted);--muted2:#aaa5b8;
+  --accent:var(--cx-accent);--accent2:var(--cx-cyan);--glass:var(--cx-panel);--gborder:var(--cx-line);
+  font-family:var(--cx-body);font-size:16px;line-height:1.7;color:var(--cx-ink);background:var(--cx-bg);
+}
+[data-cortex-seo] ::selection{background:var(--cx-accent);color:#171025}
+[data-cortex-seo] :focus-visible{outline:2px solid var(--cx-accent);outline-offset:4px}
+@media(prefers-reduced-motion:reduce){[data-cortex-seo] *,[data-cortex-seo] *::before,[data-cortex-seo] *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
