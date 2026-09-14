@@ -1,0 +1,50 @@
+[
+  {
+    "order": 1,
+    "headline": "Meno caos.  Più connessioni. ",
+    "subtitle": "Apri Cortex. Sai cosa fare.",
+    "source": "screen-home.png",
+    "objective": "Il sistema di studio, con materie e prossimo ripasso in evidenza.",
+    "composition": "Titolo in alto, UI reale in una cornice semplice; contenuti di esempio dichiarati."
+  },
+  {
+    "order": 2,
+    "headline": "I tuoi appunti.  Il tuo punto di partenza. ",
+    "subtitle": "Foto, file e testo nello stesso spazio.",
+    "source": "screen-upload.png",
+    "objective": "Mostrare gli ingressi reali del materiale, senza simulare una generazione AI.",
+    "composition": "Titolo in alto, UI reale in una cornice semplice; contenuti di esempio dichiarati."
+  },
+  {
+    "order": 3,
+    "headline": "Una domanda.  Un concetto. ",
+    "subtitle": "Mettiti alla prova con le flashcard.",
+    "source": "screen-flashcard.png",
+    "objective": "Far capire il richiamo attivo attraverso la domanda reale.",
+    "composition": "Titolo in alto, UI reale in una cornice semplice; contenuti di esempio dichiarati."
+  },
+  {
+    "order": 4,
+    "headline": "Ogni giorno,  una nuova sfida. ",
+    "subtitle": "Prova il quiz del giorno.",
+    "source": "screen-quiz.png",
+    "objective": "Mostrare una domanda e le opzioni, senza risultati inventati.",
+    "composition": "Titolo in alto, UI reale in una cornice semplice; contenuti di esempio dichiarati."
+  },
+  {
+    "order": 5,
+    "headline": "Trova  il tuo ritmo. ",
+    "subtitle": "Scegli il tuo obiettivo quotidiano.",
+    "source": "screen-goal.png",
+    "objective": "Costanza come obiettivo personale, non pressione o statistiche promozionali.",
+    "composition": "Titolo in alto, UI reale in una cornice semplice; contenuti di esempio dichiarati."
+  },
+  {
+    "order": 6,
+    "headline": "Ripassa.  Al momento giusto. ",
+    "subtitle": "Valuta il ricordo. Continua con Cortex.",
+    "source": "screen-srs.png",
+    "objective": "Chiudere sul ripasso dilazionato e sul sistema di studio completo.",
+    "composition": "Titolo in alto, UI reale in una cornice semplice; contenuti di esempio dichiarati."
+  }
+]

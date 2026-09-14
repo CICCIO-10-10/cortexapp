@@ -119,3 +119,4 @@ body.cortex-product :is(p,button,h1,h2,h3){overflow-wrap:anywhere}
  body.cortex-product #onboarding-overlay>div{max-height:calc(100dvh - 32px)}
 }
 @media(prefers-reduced-motion:reduce){body.cortex-product *,body.cortex-product *::before,body.cortex-product *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+body.cortex-product #flip-card{height:auto!important}

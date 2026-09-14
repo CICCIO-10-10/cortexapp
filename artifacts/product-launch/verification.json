@@ -1,0 +1,69 @@
+{
+  "date": "2026-09-14",
+  "build": "passed",
+  "tests": {
+    "passed": 46,
+    "total": 46
+  },
+  "ui": {
+    "flashcardAdvance": "passed",
+    "dailyQuizAnswer": "passed",
+    "boss": "Google sign-in required; not completed",
+    "uploadAI": "not completed"
+  },
+  "responsive": [
+    {
+      "clientWidth": 390,
+      "missingImages": 1,
+      "screen": "editor",
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "clientWidth": 768,
+      "missingImages": 1,
+      "screen": "editor",
+      "scrollWidth": 768,
+      "width": 768
+    },
+    {
+      "clientWidth": 1024,
+      "missingImages": 1,
+      "screen": "editor",
+      "scrollWidth": 1024,
+      "width": 1024
+    },
+    {
+      "clientWidth": 1440,
+      "missingImages": 1,
+      "screen": "editor",
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    {
+      "clientWidth": 390,
+      "screen": "home",
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "clientWidth": 768,
+      "screen": "home",
+      "scrollWidth": 768,
+      "width": 768
+    },
+    {
+      "clientWidth": 1024,
+      "screen": "home",
+      "scrollWidth": 1024,
+      "width": 1024
+    },
+    {
+      "clientWidth": 1440,
+      "screen": "home",
+      "scrollWidth": 1440,
+      "width": 1440
+    }
+  ],
+  "releaseReady": false
+}

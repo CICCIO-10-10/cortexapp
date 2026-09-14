@@ -1,0 +1,14 @@
+[
+  {
+    "level": "warn",
+    "message": "[2026-09-14T19:52:58.559Z]  @firebase/firestore: Firestore (10.8.0): enableMultiTabIndexedDbPersistence() will be deprecated in the future, you can use `FirestoreSettings.cache` instead.",
+    "timestamp": "2026-09-14T19:52:58.560Z",
+    "url": "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"
+  },
+  {
+    "level": "warn",
+    "message": "Unknown page ID: app.html",
+    "timestamp": "2026-09-14T19:53:00.155Z",
+    "url": "http://127.0.0.1:5175/core/navigation.js"
+  }
+]
