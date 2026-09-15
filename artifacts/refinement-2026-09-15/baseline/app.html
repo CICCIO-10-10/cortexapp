@@ -954,10 +954,10 @@
         </div>
         </div><!-- /settings-body -->
 
-        <div class="settings-footer"><p class="settings-save-note">Le preferenze di lettura, Zen, voce, AI, obiettivo e timer si salvano automaticamente. “Salva modifiche” conferma anche gli eventuali campi di configurazione account. Chiudi non annulla le modifiche già applicate.</p>
+        <div class="settings-footer">
             <button aria-label="Chiudi impostazioni" class="btn btn-outline" style="padding: 16px 40px; font-size: 1.1rem; border-radius: 100px;"
                 data-fn="closeSettings">
-                Chiudi
+                Annulla
             </button>
             <button aria-label="Salva tutte le modifiche alle impostazioni" id="btn-save-settings" class="btn btn-primary"
                 style="padding: 16px 60px; font-size: 1.1rem; border-radius: 100px; box-shadow: 0 10px 30px var(--accent-glow);"
@@ -1998,8 +1998,8 @@
           '<button id="guest-demo-btn" style="background:rgba(255,255,255,0.18);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-weight:800;font-size:0.82rem;cursor:pointer;">▶ Esempio</button>'+
           '<button id="guest-save-btn" style="background:#fff;color:#7c3aed;border:none;border-radius:8px;padding:6px 14px;font-weight:800;font-size:0.82rem;cursor:pointer;">Salva i progressi</button>'+
           '<button id="guest-dismiss-btn" aria-label="Chiudi" style="background:transparent;border:none;color:rgba(255,255,255,0.85);font-size:1.1rem;cursor:pointer;line-height:1;">×</button>';
-        document.body.prepend(b);
-        document.body.style.paddingTop='';
+        document.body.appendChild(b);
+        document.body.style.paddingTop='38px';
         document.getElementById('guest-save-btn').onclick=window.__guestLogin;
         var _gd=document.getElementById('guest-demo-btn'); if(_gd) _gd.onclick=function(){ window.__cortexDemo(true); };
         document.getElementById('guest-dismiss-btn').onclick=function(){

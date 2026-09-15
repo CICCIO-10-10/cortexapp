@@ -1,5 +1,4 @@
 import { t } from '../core/i18n.js';
-import { refreshDueCounts } from './statsPanel.js';
 import { renderDailyQuiz } from './dailyQuiz.js';
 /**
  * modules/home.js — Phase 14
@@ -358,14 +357,12 @@ export function renderHome() {
     // LE TUE MATERIE (14/07/2026): il contenuto vero dell'utente in Home —
     // prima la dashboard mostrava solo cornice e zero sostanza.
     const _esc = (x) => String(x ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-    refreshDueCounts();
     const _decksAll = (window._legacyState?.()?.decks || []);
     const _decksTop = [..._decksAll]
         .sort((a, b) => (b.dueCount || 0) - (a.dueCount || 0))
         .slice(0, 3);
-    const _hasDue = _decksTop.some(d => d.dueCount > 0);
     const _materieHtml = _decksAll.length ? `
-        <section class="home-next-step" style="margin-bottom:28px;">
+        <section style="margin-bottom:28px;">
             <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px;">
                 <div style="font-size:0.65rem; font-weight:900; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.2em;">Cosa studiare oggi</div>
                 <button data-fn="showPage" data-params='["materiale"]' style="background:none; border:none; color:var(--accent); font-size:0.8rem; font-weight:700; cursor:pointer; font-family:inherit;">vedi tutte →</button>
@@ -395,7 +392,7 @@ export function renderHome() {
                                 color:${due > 0 ? '#fff' : 'var(--text-muted)'};
                                 border:none; border-radius:20px; padding:7px 16px;
                                 font-size:0.78rem; font-weight:800; cursor:pointer; font-family:inherit;
-                            ">${due > 0 ? 'Ripassa ora' : 'Studia'}</button>
+                            ">Studia</button>
                         </div>
                     </article>`;
                 }).join('')}
@@ -403,7 +400,7 @@ export function renderHome() {
         </section>` : '';   // 0 materie → niente sezione: "Nuova materia" sta già nei 4 tasti
 
     container.innerHTML = `
-        <div class="dashboard-nebula reveal-anim ${_hasDue ? 'has-due' : 'no-due'}" style="max-width: 900px; margin: 0 auto; padding: 28px 20px 120px;">
+        <div class="dashboard-nebula reveal-anim" style="max-width: 900px; margin: 0 auto; padding: 28px 20px 120px;">
 
             <!-- HERO SECTION -->
             <section class="hero-nebula" style="
@@ -441,7 +438,6 @@ export function renderHome() {
                     ${renderQuickStats()}
                     ${renderDailyGoalRing()}
 
-                    ${_hasDue ? _materieHtml : ''}
                     <!-- AZIONI RAPIDE — sempre visibili, anche da ospite -->
                     <div class="cortex-actions" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px; margin-top:22px;">
                         ${_azioni}
@@ -450,7 +446,7 @@ export function renderHome() {
             </section>
 
             <!-- LE TUE MATERIE — il contenuto dell'utente, subito sotto le azioni -->
-            ${!_hasDue ? _materieHtml : ''}
+            ${_materieHtml}
 
             <!-- Same widgets and handlers, after the student's next actions. -->
             <div id="daily-quiz-slot"></div>
@@ -488,7 +484,7 @@ export function renderHome() {
 
             <!-- WHY CORTEX: differenziatori vs Anki/Quizlet -->
             ${!window._fbLoggedIn ? `
-            <div class="home-comparison" style="margin-bottom:24px;">
+            <div style="margin-bottom:24px;">
                 <div style="font-size:0.65rem;font-weight:900;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.2em;margin-bottom:14px;text-align:center;">
                     ${t('home_why_title')}
                 </div>

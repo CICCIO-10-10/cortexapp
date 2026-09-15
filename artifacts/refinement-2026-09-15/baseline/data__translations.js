@@ -20,7 +20,7 @@ export const TRANSLATIONS = {
         upload_audio: "File Audio", upload_audio_hint: "Sbobina lezioni",
         upload_youtube: "Link YouTube", upload_youtube_hint: "Trascrivi Video",
         upload_web: "Link Web", upload_web_hint: "Articoli o Blog",
-        lessons_title: "Lezioni", lessons_subtitle: "Registra una lezione, riascoltala e scarica il file audio.",
+        lessons_title: "Voice Notes & Lezioni", lessons_subtitle: "Registra lezioni intere, riascoltale o condividile con la community.",
         btn_start_rec: "INIZIA REGISTRAZIONE", btn_stop_rec: "FERMA E SALVA",
         lessons_saved_title: "Lezioni Salvate", lessons_loading: "Caricamento registrazioni in corso...",
         mat_new_subject: "Nuova Materia", mat_new_subject_hint: "Inserisci le info sull'esame e il materiale da studiare.",

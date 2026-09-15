@@ -27,10 +27,10 @@ export class AudioView extends Component {
 
                 <div class="section-header">
                     <h2 style="display:flex; align-items:center; gap:8px;">
-                        <span style="font-size:2rem;">🎙️</span> Lezioni
+                        <span style="font-size:2rem;">🎙️</span> Voice Notes &amp; Lezioni
                     </h2>
                     <p style="color:var(--text-muted); font-size:0.9rem;">
-                        Registra una lezione, riascoltala e scarica il file audio.
+                        Registra lezioni intere, riascoltale o condividile con la community.
                     </p>
                 </div>
 
@@ -64,7 +64,7 @@ export class AudioView extends Component {
                 </div>
 
                 <div class="section-header" style="margin-top:40px;">
-                    <h3>Lezioni salvate</h3>
+                    <h3>Dossier Base Log (Lezioni Salvate)</h3>
                 </div>
                 <div id="audio-list-container"
                     style="display:flex; flex-direction:column; gap:12px;">

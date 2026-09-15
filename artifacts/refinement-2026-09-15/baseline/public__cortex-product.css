@@ -120,18 +120,3 @@ body.cortex-product :is(p,button,h1,h2,h3){overflow-wrap:anywhere}
 }
 @media(prefers-reduced-motion:reduce){body.cortex-product *,body.cortex-product *::before,body.cortex-product *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
 body.cortex-product #flip-card{height:auto!important}
-
-/* Targeted UX refinement: shared palette and destinations preserved. */
-body.cortex-product #guest-banner{position:relative!important;inset:auto!important;z-index:100!important;flex-wrap:wrap}
-body.cortex-product #trigger-focus{background:var(--surface2)!important;color:var(--text-muted)!important;box-shadow:none!important;border:1px solid var(--border)!important}
-@media(min-width:769px){body.cortex-product>nav{position:sticky!important;top:12px!important;left:auto!important;right:auto!important;transform:none!important;margin:12px auto!important;width:max-content!important;max-width:calc(100% - 32px)!important}}
-body.cortex-product #tech-cards-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:20px}
-body.cortex-product #tech-cards-grid .card{min-width:0;border-radius:var(--cx-radius)!important;padding:24px!important}
-body.cortex-product #tech-cards-grid .tag{background:none!important;color:var(--text-muted)!important;font-size:.75rem;font-weight:500;padding:0;white-space:normal}
-body.cortex-product #tech-cards-grid p{font-size:.95rem;line-height:1.5;color:var(--text)}
-@media(max-width:1024px){body.cortex-product #tech-cards-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
-@media(max-width:600px){body.cortex-product #tech-cards-grid{grid-template-columns:minmax(0,1fr)!important}body.cortex-product .cortex-tech-view{padding:24px 16px 100px!important}}
-body.cortex-product .card-body-nebula{display:flex;flex-direction:column}body.cortex-product .card-stats-inline{order:1;font-size:1rem;margin-block:12px}body.cortex-product .card-progress-row{order:2;flex-wrap:wrap;gap:8px}body.cortex-product .card-progress-pct{font-size:.72rem;white-space:normal}body.cortex-product .progress-aura-wrap{max-width:90px}body.cortex-product .btn-study-main{background:var(--accent)!important;color:#1a1228!important}
-body.cortex-product .settings-footer{flex-wrap:wrap;gap:12px}body.cortex-product .settings-save-note{flex-basis:100%;font-size:.8rem;color:var(--text-muted);line-height:1.5;margin:0} @media(max-width:600px){body.cortex-product .settings-footer .btn{flex:1;padding:12px!important;font-size:.9rem!important}}
-body.cortex-product .home-next-step{width:100%;margin-top:24px}body.cortex-product .has-due .hero-nebula button[data-fn="showView"]{background:var(--surface2)!important;color:var(--text)!important;border-color:var(--border)!important}body.cortex-product .has-due .hero-nebula button[data-fn="showView"] span{color:var(--text)!important}body.cortex-product .has-due .home-next-step button[data-fn="startStudyById"]{background:var(--accent)!important;color:#1a1228!important;min-height:48px;white-space:nowrap}body.cortex-product .home-comparison{font-size:.85rem}body.cortex-product #cortex-event-banner{font-size:.8rem}
-body.cortex-product .tutor-first{display:flex;flex-direction:column}body.cortex-product .tutor-first>.neural-dashboard-grid{order:-1}body.cortex-product .tutor-first .tutor-box{order:-1}body.cortex-product .tutor-first .game-stats-grid{margin-bottom:24px!important}body.cortex-product .neural-dashboard-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr))!important}

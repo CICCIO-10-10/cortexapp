@@ -152,11 +152,11 @@ export function renderDecks() {
 
                 <div class="card-body-nebula">
                     <h3 class="card-title-nebula">${d.name || d.title || 'Materia senza nome'}</h3>
-                    <div class="card-progress-row" title="Quota di carte con intervallo di ripasso già assegnato (maggiore di zero). Non indica la preparazione né i ripassi completati.">
+                    <div class="card-progress-row">
                         <div class="progress-aura-wrap" style="flex:1;">
                             <div class="progress-aura" style="width:${progress}%; background:${progressColor};"></div>
                         </div>
-                        <span class="card-progress-pct" style="color:${progressColor};">${progress}% con intervallo di ripasso</span>
+                        <span class="card-progress-pct" style="color:${progressColor};">${progress}%</span>
                     </div>
                     <div class="card-stats-inline">
                         <span><strong>${totalCards}</strong> card</span>

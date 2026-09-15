@@ -992,9 +992,9 @@ export function renderNetworkAndStats() {
                 ${apiKeyWarningHtml}
                 <div class="card" style="max-width:500px; margin:0 auto; padding:40px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:16px;">
                     <div style="font-size:3rem; margin-bottom:15px;">🧠</div>
-                    <h2 style="color:var(--text); margin-bottom:10px; font-weight:800;">Personalizza il tuo percorso</h2>
-                    <p style="color:var(--text-muted); font-size:0.95rem; margin-bottom:25px; line-height:1.5;">Rispondi alle domande sul tuo modo di studiare per configurare il profilo e accedere ai consigli del tutor.</p>
-                    <button aria-label="Configura il profilo con il test attitudinale" class="btn btn-primary" data-fn="openArchitect" style="width:100%; padding:14px; border-radius:12px; font-weight:bold; cursor:pointer;">Configura il profilo</button>
+                    <h2 style="color:var(--text); margin-bottom:10px; font-weight:800;">Diagnostica Neurale Mancante</h2>
+                    <p style="color:var(--text-muted); font-size:0.95rem; margin-bottom:25px; line-height:1.5;">Configura il tuo Profilo Cognitivo per sbloccare l'analisi del Tutor e le statistiche avanzate.</p>
+                    <button aria-label="Inizia il test attitudinale" class="btn btn-primary" data-fn="openArchitect" style="width:100%; padding:14px; border-radius:12px; font-weight:bold; cursor:pointer;">Inizia Test Attitudinale 🚀</button>
                 </div>
                 ${isAdmin() ? adminPanelHtml() : ''}
             </div>
@@ -1016,7 +1016,7 @@ export function renderNetworkAndStats() {
         `;
 
         container.innerHTML = `
-            <div class="stats-central-hub tutor-first" style="padding:20px 24px 40px; max-width:900px; margin:0 auto;">
+            <div class="stats-central-hub" style="padding:20px 24px 40px; max-width:900px; margin:0 auto;">
                 ${apiKeyWarningHtml}
 
                 <div class="game-stats-grid" style="display:flex; gap:15px; margin-bottom:60px; margin-top:20px;">

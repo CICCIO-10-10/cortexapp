@@ -954,8 +954,6 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
     const realUserIds = new Set();  // uid degli utenti REALI (doc in Firestore)
     let usersWithFCM = 0;
     let usersWithSparks = 0;
-    let usersActivated = 0;   // activation VERA (activation.activated) da services/activation.js
-    let usersNoEmail = 0;     // utenti senza email (anonimi/non-Google): non sono "account Google"
     const registrationByMonth = {};
 
     usersSnap.docs.forEach(doc => {
@@ -970,8 +968,6 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
 
       if (d.fcmToken) usersWithFCM++;
       if ((d.sparksBalance || 0) > 0) usersWithSparks++;
-      if (d.activation && d.activation.activated) usersActivated++;
-      if (!d.email) usersNoEmail++;
 
       const createdAt = d.createdAt?.toDate ? d.createdAt.toDate() : (d.createdAt ? new Date(d.createdAt) : null);
       if (createdAt) {
@@ -1129,8 +1125,6 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
         usersByPlan,
         usersWithFCM,
         usersWithSparks,
-        usersActivated,
-        usersNoEmail,
         usersEverOpened,
         usersActive7d,
         usersReturned,

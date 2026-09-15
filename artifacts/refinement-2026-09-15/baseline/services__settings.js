@@ -16,9 +16,6 @@ import { isAdminUser } from './firebase.js';
 function _accordionizzaSettings(overlay) {
     if (!overlay || overlay.dataset.acc === '1') return;
     overlay.dataset.acc = '1';
-    const personal = overlay.querySelector('#check-readability')?.closest('.settings-section');
-    const first = overlay.querySelector('.settings-section');
-    if (personal && first && personal.parentElement === first.parentElement) first.before(personal);
     overlay.querySelectorAll('.settings-section').forEach(sec => {
         const h3 = sec.querySelector('h3.settings-section-title');
         if (!h3) return;
