@@ -7,6 +7,7 @@
 import { APP_CONFIG }                                      from './js/config.js';
 import { state, hydrateFromIDB }                          from './core/state.js';
 import { bootApp }                                         from './core/appBoot.js';
+import './core/journey.js'; // registro percorso per-visitatore (journeys)
 import { register }                                        from './core/registry.js';
 import { initEventBus }                                    from './core/eventBus.js';
 import { t, updateUIStrings, changeLanguage, toggleLangMenu } from './core/i18n.js';

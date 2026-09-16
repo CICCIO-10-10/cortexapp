@@ -35,6 +35,8 @@ def main():
         name = Path(f).stem
         if name in EXCLUDE:
             continue
+        if name.startswith("scuole-superiori-"):
+            continue  # pagine-provincia: noindex, fuori dalla sitemap
         urls.append(("/" + name, priority(name)))   # cleanUrls: /pagina
 
     body = "\n".join(

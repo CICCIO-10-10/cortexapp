@@ -374,6 +374,8 @@ function _renderResult() {
     '</p>' +
     '<div style="text-align:center;font-size:.82rem;color:#cbc6e8;margin:2px 0 10px;line-height:1.5;">📈 <b style="color:#fff;">Crea un account gratis</b> per salvare i progressi, sbloccare tutti i 10 TOLC e vedere se <b style="color:#fff;">migliori</b> nel tempo.</div>' +
     '<button id="tolc-enter" style="width:100%;padding:15px;border-radius:12px;border:none;font-weight:800;font-size:1rem;color:#fff;background:linear-gradient(135deg,#a855f7,#6366f1);cursor:pointer;">Salva i progressi su Cortex →</button>' +
+    '<button id="tolc-gen-errors" style="width:100%;padding:14px;margin-top:9px;border-radius:12px;border:1px solid rgba(34,197,94,.5);background:rgba(34,197,94,.14);color:#4ade80;font-weight:800;font-size:.98rem;cursor:pointer;">🎯 Genera flashcard sui tuoi errori</button>' +
+    '<button id="tolc-share" style="width:100%;padding:14px;margin-top:9px;border-radius:12px;border:1px solid rgba(56,189,248,.5);background:rgba(56,189,248,.14);color:#38bdf8;font-weight:800;font-size:.98rem;cursor:pointer;">📤 Condividi il punteggio</button>' +
     '<div style="display:flex;gap:9px;margin-top:9px;">' +
       '<button id="tolc-retry" data-key="' + st.key + '" style="flex:1;padding:12px;border-radius:12px;border:1px solid rgba(168,85,247,.5);background:rgba(168,85,247,.12);color:#c084fc;font-weight:800;cursor:pointer;">↻ Riprova</button>' +
       '<button id="tolc-back" style="flex:1;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(255,255,255,.6);font-weight:700;cursor:pointer;">← Altri TOLC</button>' +
@@ -381,9 +383,55 @@ function _renderResult() {
   );
 }
 
+function _ensureH2C(cb) {
+  if (window.html2canvas) { cb(window.html2canvas); return; }
+  var sc = document.createElement('script');
+  sc.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+  sc.onload = function () { cb(window.html2canvas || null); };
+  sc.onerror = function () { cb(null); };
+  document.head.appendChild(sc);
+}
+
+function _shareTolc() {
+  var ov = _el('tolc-sim-overlay'); if (!ov) return;
+  var st2 = _state; if (!st2) return;
+  var card = ov.firstElementChild; if (!card) return;
+  try { if (window.track) window.track('tolc_share_click', { test: st2.key }); } catch (e) {}
+  if (window.showToast) window.showToast('Preparo l\'immagine\u2026', 'info');
+  var hide = card.querySelectorAll('#tolc-close, #tolc-enter, #tolc-gen-errors, #tolc-share, #tolc-retry, #tolc-back, .tolc-mode');
+  var prev = [];
+  hide.forEach(function (el, i) { prev[i] = el.style.display; el.style.display = 'none'; });
+  var restore = function () { hide.forEach(function (el, i) { el.style.display = prev[i] || ''; }); };
+  _ensureH2C(function (h2c) {
+    if (!h2c) { restore(); if (window.showToast) window.showToast('Condivisione non disponibile ora, riprova.', 'error'); return; }
+    h2c(card, { backgroundColor: '#101016', scale: 2, useCORS: true, logging: false }).then(function (canvas) {
+      restore();
+      var ref = ''; try { if (window._fbUserId) ref = '&ref=' + String(window._fbUserId).slice(0, 8); } catch (e) {}
+      var url = 'https://cortexapp.it/simulazione-tolc?utm_source=share&utm_medium=student' + ref;
+      var stats = _sectionStats(st2), correct = stats.reduce(function (a, g) { return a + g.ok; }, 0), totQ = st2.qs.length;
+      var testName = (st2.test && st2.test.nome) ? st2.test.nome : 'TOLC';
+      var text = 'Ho fatto ' + correct + '/' + totQ + ' al ' + testName + ' su Cortex! Provala anche tu \uD83D\uDC47';
+      canvas.toBlob(function (blob) {
+        if (!blob) return;
+        try {
+          var file = new File([blob], 'cortex-tolc.png', { type: 'image/png' });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) { navigator.share({ files: [file], text: text, url: url }).catch(function () {}); return; }
+        } catch (e) {}
+        try { if (navigator.share) { navigator.share({ title: 'Cortex TOLC', text: text + ' ' + url }).catch(function () {}); return; } } catch (e) {}
+        try {
+          var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'cortex-tolc.png';
+          document.body.appendChild(a); a.click(); a.remove();
+          if (navigator.clipboard) navigator.clipboard.writeText(text + ' ' + url).catch(function () {});
+          if (window.showToast) window.showToast('Immagine scaricata e link copiato! \uD83D\uDCE4', 'success');
+        } catch (e) {}
+      }, 'image/png');
+    }).catch(function () { restore(); if (window.showToast) window.showToast('Non riesco a catturare l\'immagine, riprova.', 'error'); });
+  });
+}
+
 document.addEventListener('click', function (e) {
   const ov = _el('tolc-sim-overlay'); if (!ov) return;
-  const id = e.target && e.target.id;
+  const id = (e.target && e.target.id) || (e.target && e.target.closest && e.target.closest('button') && e.target.closest('button').id) || '';
   const pick = e.target.closest && e.target.closest('.tolc-pick');
   const opt = e.target.closest && e.target.closest('.tolc-opt');
   const jump = e.target.closest && e.target.closest('.tolc-jump');
@@ -410,6 +458,32 @@ document.addEventListener('click', function (e) {
     location.href = '/app?sim=tolc&utm_source=tolcsim&utm_medium=result&utm_content=salva_progressi';
     return;
   }
+  if (id === 'tolc-gen-errors') {
+    var st2 = _state; if (!st2) return;
+    var lines = [];
+    (st2.qs || []).forEach(function (q, i) {
+      var a = st2.answers ? st2.answers[i] : null;
+      if (a !== null && a !== undefined && a !== q.c) {
+        var corr = (q.o && q.o[q.c] != null) ? q.o[q.c] : String.fromCharCode(65 + q.c);
+        lines.push('[' + (q.s || '') + '] ' + String(q.q || '').replace(/\s+/g, ' ').slice(0, 280) + '\nRisposta corretta: ' + String(corr).slice(0, 160));
+      }
+    });
+    try { if (window.track) window.track('tolc_errors_generate_click', { n: lines.length }); } catch (e) {}
+    if (!lines.length) { if (window.showToast) window.showToast('Nessun errore da ripassare — ottimo! \uD83C\uDF89', 'success'); return; }
+    var notes = 'Argomenti che ho SBAGLIATO nella simulazione ' + ((st2.test && st2.test.nome) ? st2.test.nome : 'TOLC') + '. Crea flashcard di ripasso mirate su questi concetti:\n\n' + lines.join('\n\n');
+    try { localStorage.setItem('cortex_pending_ai', JSON.stringify({ text: notes, instructions: 'Flashcard di ripasso sugli errori della simulazione TOLC: spiega il concetto corretto, non solo la lettera della risposta.', ts: Date.now() })); } catch (e) {}
+    _remove();
+    if (window._fbLoggedIn) {
+      if (window.__resumePendingAI) { window.__resumePendingAI(); return; }
+      location.href = '/app'; return;
+    }
+    try { localStorage.setItem('cortex_sim', 'tolc'); } catch (e) {}
+    if (typeof window.__guestLogin === 'function') { window.__guestLogin(); return; }
+    if (typeof window.loginWithGoogle === 'function') { window.loginWithGoogle(); return; }
+    location.href = '/app?utm_source=tolcsim&utm_medium=result&utm_content=genera_errori';
+    return;
+  }
+  if (id === 'tolc-share') { _shareTolc(); return; }
   if (id === 'tolc-back') { _clearTimer(); _state = null; ov.innerHTML = _selectorHTML(); return; }
   if (id === 'tolc-start' && !e.target.disabled) return _start(e.target.getAttribute('data-key'));
   if (id === 'tolc-retry') return _start(e.target.getAttribute('data-key'));

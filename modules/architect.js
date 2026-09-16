@@ -1074,6 +1074,7 @@ export function drawRadarChart(profile) {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     
+    try { const _ex = (window.Chart && Chart.getChart) ? Chart.getChart(canvas) : null; if (_ex) _ex.destroy(); } catch (_) {}
     new Chart(ctx, {
         type: 'radar',
         data: {

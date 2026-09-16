@@ -41,6 +41,7 @@ let _deps = {
 
 export function init(deps) {
     _deps = { ..._deps, ...deps };
+    try { window.__resumePendingAI = resumePendingAI; } catch (_) {}
 }
 
 // ── Motore di sanitizzazione locale (Privacy) ─────────────────────────────────
@@ -149,6 +150,10 @@ export async function autoGenerateFlashcards() {
     btn.disabled  = true;
     _deps.showToast(t('deck_ai_generating'), "info");
 
+    // AUTO-RESUME: salva l'input PRIMA di chiamare l'AI, cosi' sopravvive al
+    // reload del login (il gate ospite promette "il tuo materiale resta").
+    try { localStorage.setItem('cortex_pending_ai', JSON.stringify({ text: rawText, instructions: instructions, ts: Date.now() })); } catch (_) {}
+
     try {
         const result = await generateAIContent(text, instructions);
         if (result) {
@@ -181,13 +186,40 @@ export async function autoGenerateFlashcards() {
             }
 
             awardXP(30, "✨ Potenziamento IA");
+            try { localStorage.removeItem('cortex_pending_ai'); } catch (_) {}
         }
     } catch (e) {
+        if (!(e && (e.isGuestGate || e.message === 'GUEST_LOGIN_REQUIRED'))) {
+            try { localStorage.removeItem('cortex_pending_ai'); } catch (_) {}
+        }
         handleAIError(e, 'generazione flashcard', _deps.showToast);
     } finally {
         btn.innerHTML = originalBtnText;
         btn.disabled  = false;
     }
+}
+
+// ── AUTO-RESUME dopo login gate ───────────────────────────────────────────────
+// Se un ospite aveva avviato una generazione ed e' appena entrato, riprende da
+// dove aveva lasciato: riapre il form, ripristina il testo e rigenera da solo.
+export async function resumePendingAI() {
+    let pend = null;
+    try { pend = JSON.parse(localStorage.getItem('cortex_pending_ai') || 'null'); } catch (_) {}
+    if (!pend || !pend.text) return;
+    if (!window._fbLoggedIn) return;                 // solo se ora e' loggato
+    try { localStorage.removeItem('cortex_pending_ai'); } catch (_) {}  // evita loop
+    if (pend.ts && (Date.now() - pend.ts) > 30 * 60 * 1000) return;     // scaduto (>30min)
+    try {
+        if (window.showPage) window.showPage('materiale');
+        if (window.showView) window.showView('create-deck');
+        await new Promise(r => setTimeout(r, 400));
+        const ta  = document.getElementById('deck-text');
+        const ins = document.getElementById('ai-custom-instructions');
+        if (ta)  ta.value  = pend.text;
+        if (ins && pend.instructions) ins.value = pend.instructions;
+        if (_deps && _deps.showToast) _deps.showToast('Riprendo da dove eri: genero le tue flashcard… ✨', 'info');
+        await autoGenerateFlashcards();
+    } catch (_) {}
 }
 
 // ── Helpers privati ───────────────────────────────────────────────────────────

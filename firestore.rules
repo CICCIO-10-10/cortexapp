@@ -235,5 +235,16 @@ service cloud.firestore {
         allow write: if true;
       }
     }
+
+    // 🧭 Journeys: percorso per-visitatore (guest inclusi), stesso principio di /analytics.
+    // Scrittura aperta anche ai NON loggati (funnel dalla landing); lettura solo admin.
+    match /journeys/{vid} {
+      allow read: if false;
+      allow write: if true;
+      match /events/{eventId} {
+        allow read: if false;
+        allow write: if true;
+      }
+    }
   }
 }

@@ -260,6 +260,7 @@ export async function saveDeck() {
         // Activation tracking: card generate su NUOVO mazzo (evita doppio conteggio sui re-save)
         if (currentDeckIndex === null && deck.cards.length > 0) {
             try { track('cards_generated', { count: deck.cards.length }); } catch (_) {}
+            try { if (window.clarity) window.clarity('set', 'generated', 'si'); } catch (_) {}
             bumpActivation('cardsGenerated', deck.cards.length);
         }
         renderDecks(); 

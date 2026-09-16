@@ -1112,8 +1112,50 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
       total: allTimeLanding + allTimeApp,
     };
 
+    // ── JOURNEYS: percorso per-visitatore (guest inclusi), da collezione 'journeys' ──
+    let journeys = [];
+    const journeyFunnel = { landing_view: 0, app_open: 0, onboarding_start: 0, cards_generated: 0, study_session_start: 0, activated: 0, tolc_sim_open: 0, tolc_sim_complete: 0, visitors: 0 };
+    try {
+      const evSnap = await db.collectionGroup('events').limit(3000).get();
+      const byVid = {};
+      evSnap.forEach(doc => {
+        const parent = doc.ref.parent.parent;
+        if (!parent) return;
+        const vid = parent.id;
+        if (!vid || vid.indexOf('TEST_') === 0) return;
+        const x = doc.data() || {};
+        const ts = (x.ts && x.ts.toMillis) ? x.ts.toMillis() : (x.t_client || 0);
+        (byVid[vid] = byVid[vid] || []).push({ type: x.type || '', page: x.page || '', ts, source: x.source || (x.meta && x.meta.source) || null });
+      });
+      const STAGES = ['landing_view', 'app_open', 'onboarding_start', 'cards_generated', 'study_session_start', 'activated', 'tolc_sim_open', 'tolc_sim_complete'];
+      const rows = [];
+      Object.keys(byVid).forEach(vid => {
+        const evs = byVid[vid].sort((a, b) => a.ts - b.ts);
+        const types = new Set(evs.map(e => e.type));
+        STAGES.forEach(st => { if (types.has(st)) journeyFunnel[st]++; });
+        const first = evs[0] || {}, last = evs[evs.length - 1] || {};
+        const src = (evs.find(e => e.source) || {}).source || 'n/d';
+        const durSec = Math.max(0, Math.round(((last.ts || 0) - (first.ts || 0)) / 1000));
+        let outcome = 'bounce';
+        if (types.has('activated')) outcome = 'attivato';
+        else if (types.has('first_login_data_migrated') || types.has('sign_up')) outcome = 'registrato';
+        else if (types.has('cards_generated')) outcome = 'ha_generato';
+        else if (types.has('app_open')) outcome = 'in_app';
+        const path = [];
+        evs.forEach(e => { if (e.type && e.type !== path[path.length - 1]) path.push(e.type); });
+        rows.push({ vid: String(vid).slice(0, 8), source: src, entry: (first.page || ''), steps: evs.length, lastStep: (last.type || ''), durSec, outcome, path: path.slice(0, 14), lastTs: (last.ts || 0) });
+      });
+      journeyFunnel.visitors = rows.length;
+      rows.sort((a, b) => b.lastTs - a.lastTs);
+      journeys = rows.slice(0, 50);
+    } catch (e) {
+      console.error('[adminDashboard] journeys error:', (e && e.message) || e);
+    }
+
     res.json({
       ts: Date.now(),
+      journeys,
+      journeyFunnel,
       usersDetail,
       stripe: {
         mrr: Math.round(mrr * 100) / 100,

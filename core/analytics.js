@@ -33,6 +33,7 @@ export function initAnalytics() {
 export function track(eventName, params = {}) {
     try {
         if (localStorage.getItem('cortex_no_track') === '1') return;
+        try { if (window.__cxLogStep) window.__cxLogStep(eventName, params); } catch (_) {}
         if (_analytics) {
             _analytics.logEvent(eventName, params);
         } else if (typeof window.gtag === 'function') {

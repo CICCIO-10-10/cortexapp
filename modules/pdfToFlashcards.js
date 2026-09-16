@@ -265,10 +265,23 @@ Rispondi ESCLUSIVAMENTE con un oggetto JSON valido in questo formato (nessun tes
   ]
 }`;
 
-    // Usa il proxy se loggato, altrimenti chiave diretta
-    const useProxy = !!window._fbLoggedIn;
-    
-    if (useProxy) {
+    // Usa il proxy con QUALSIASI identita' Firebase: reale O anonima.
+    // Se non c'e' utente, accedi in anonimo AL VOLO (nessuna registrazione) cosi'
+    // l'ospite vede subito le flashcard dai suoi appunti. Se il provider Anonimo
+    // e' spento in Console, si ricade sul gate di login come prima.
+    let _fbUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+    if (!_fbUser && typeof firebase !== 'undefined' && firebase.auth) {
+        try {
+            const _cred = await firebase.auth().signInAnonymously();
+            _fbUser = _cred && _cred.user;
+        } catch (e) {
+            if (e && (e.code === 'auth/operation-not-allowed' || e.code === 'auth/admin-restricted-operation')) {
+                const g = new Error('GUEST_LOGIN_REQUIRED'); g.isGuestGate = true; throw g;
+            }
+        }
+    }
+
+    if (_fbUser) {
         const result = await callGeminiProxy({
             model: 'gemini-2.5-flash',
             contents: [{ parts: [{ text: prompt }] }],

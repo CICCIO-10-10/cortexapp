@@ -13,6 +13,7 @@
  */
 
 import { track, setUserProperty } from './analytics.js';
+import { t } from './i18n.js';
 
 let _deps = {
     state:              null,

@@ -91,6 +91,7 @@ if(!_nt){{gtag('js',new Date());gtag('config','G-DFJ42477QK');}}</script>
 <title>{esc(title)}</title>
 <meta name="description" content="{esc(desc)}">
 <link rel="canonical" href="{url}">
+<meta name="robots" content="noindex,follow">
 <meta property="og:title" content="{esc(title)}"><meta property="og:description" content="{esc(desc)}">
 <meta property="og:url" content="{url}"><meta property="og:type" content="article">
 <meta property="og:image" content="https://cortexapp.it/og-image.png">

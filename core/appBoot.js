@@ -59,9 +59,10 @@ export function onAuthStateChangedHandler(user, firebaseDeps = {}) {
     const loginPrompt   = document.getElementById('feedback-login-prompt');
     const overlay       = document.getElementById('auth-overlay');
 
-    if (user) {
+    if (user && !user.isAnonymous) {
         window._fbUserId        = user.uid;
         window._fbLoggedIn      = true;
+        window._fbHasUser       = true;
         window._cortexUserEmail = user.email || '';   // usato da isAdmin()
         // Admin: marca il browser come no-track per le statistiche interne
         if (user.uid === 'f8oLEt3LDpT7VN9zFOa10mVE2Cf2') {
@@ -89,6 +90,10 @@ export function onAuthStateChangedHandler(user, firebaseDeps = {}) {
         } catch (_) {}
         const _gb = document.getElementById('guest-banner');
         if (_gb) { _gb.remove(); document.body.style.paddingTop = ''; }
+
+        // AUTO-RESUME: se un ospite aveva avviato una generazione AI ed e' appena
+        // entrato, riprende la generazione da dove aveva lasciato (no-op se niente in sospeso).
+        try { setTimeout(() => { try { if (window.__resumePendingAI) window.__resumePendingAI(); } catch (_) {} }, 1200); } catch (_) {}
 
         if (user.displayName) {
             localStorage.setItem('mm_user_name', user.displayName);
@@ -150,10 +155,23 @@ export function onAuthStateChangedHandler(user, firebaseDeps = {}) {
         } else {
             if (typeof window.checkApiKeyOnboarding === 'function') window.checkApiKeyOnboarding();
         }
+    } else if (user && user.isAnonymous) {
+        // Ospite anonimo: token valido per generare via proxy, ma NON e' un
+        // account registrato -> niente sign_up, niente cloud sync, niente rimozione
+        // del banner ospite, fuori dal conteggio iscritti. UX ospite invariata.
+        window._fbUserId   = user.uid;
+        window._fbHasUser  = true;
+        window._fbLoggedIn = false;
+        removeSplashScreen();
     } else {
         window._fbLoggedIn = false;
+        window._fbHasUser  = false;
         if (formContainer) formContainer.style.display = 'none';
         if (loginPrompt)   loginPrompt.style.display = 'block';
+
+        // Ospite arrivato per generare (pending AI dagli errori TOLC): mostra il
+        // gate di login; dopo l'accesso il resume genera le flashcard.
+        try { if (localStorage.getItem('cortex_pending_ai')) { setTimeout(function(){ try { if (localStorage.getItem('cortex_pending_ai') && typeof window.showGuestLoginGate === 'function') window.showGuestLoginGate('tolc_errors'); } catch (_) {} }, 1000); } } catch (_) {}
         
         const redirectPending = localStorage.getItem('cortex_redirect_pending') === '1';
 
