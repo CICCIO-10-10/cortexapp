@@ -1153,13 +1153,10 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
       });
       journeyFunnel.visitors = rows.length;
       rows.sort((a, b) => b.lastTs - a.lastTs);
-      // Tabella dettaglio: SOLO visitatori attivi OGGI, dalla mezzanotte (Europe/Rome)
-      // fino ad ora — giorno di calendario, non una finestra mobile di 24h.
-      // Coerente con i contatori pageviews_<data> (anch'essi su mezzanotte Roma).
-      const _romeNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Rome' }));
-      const _msSinceMidnight = _romeNow.getHours() * 3600000 + _romeNow.getMinutes() * 60000 + _romeNow.getSeconds() * 1000 + _romeNow.getMilliseconds();
-      const _todayStart = Date.now() - _msSinceMidnight;
-      journeys = rows.filter(r => (r.lastTs || 0) >= _todayStart).slice(0, 400);
+      // Tabella dettaglio: SOLO visitatori con ultima attivita' nelle ultime 24h
+      // (tutti quelli del periodo, non un numero fisso). Cap di sicurezza a 400.
+      const _dayAgo = Date.now() - 24 * 60 * 60 * 1000;
+      journeys = rows.filter(r => (r.lastTs || 0) >= _dayAgo).slice(0, 400);
     } catch (e) {
       console.error('[adminDashboard] journeys error:', (e && e.message) || e);
     }

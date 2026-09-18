@@ -1116,13 +1116,7 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
     let journeys = [];
     const journeyFunnel = { landing_view: 0, app_open: 0, onboarding_start: 0, cards_generated: 0, study_session_start: 0, activated: 0, tolc_sim_open: 0, tolc_sim_complete: 0, visitors: 0 };
     try {
-      let evSnap;
-      try {
-        evSnap = await db.collectionGroup('events').orderBy('ts', 'desc').limit(4000).get();
-      } catch (_ordErr) {
-        // indice mancante o campo assente: fallback alla lettura non ordinata
-        evSnap = await db.collectionGroup('events').limit(3000).get();
-      }
+      const evSnap = await db.collectionGroup('events').limit(3000).get();
       const byVid = {};
       evSnap.forEach(doc => {
         const parent = doc.ref.parent.parent;
@@ -1153,13 +1147,7 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
       });
       journeyFunnel.visitors = rows.length;
       rows.sort((a, b) => b.lastTs - a.lastTs);
-      // Tabella dettaglio: SOLO visitatori attivi OGGI, dalla mezzanotte (Europe/Rome)
-      // fino ad ora — giorno di calendario, non una finestra mobile di 24h.
-      // Coerente con i contatori pageviews_<data> (anch'essi su mezzanotte Roma).
-      const _romeNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Rome' }));
-      const _msSinceMidnight = _romeNow.getHours() * 3600000 + _romeNow.getMinutes() * 60000 + _romeNow.getSeconds() * 1000 + _romeNow.getMilliseconds();
-      const _todayStart = Date.now() - _msSinceMidnight;
-      journeys = rows.filter(r => (r.lastTs || 0) >= _todayStart).slice(0, 400);
+      journeys = rows.slice(0, 50);
     } catch (e) {
       console.error('[adminDashboard] journeys error:', (e && e.message) || e);
     }
