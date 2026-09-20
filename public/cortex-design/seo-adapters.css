@@ -1,4 +1,28 @@
 /* Only visual properties: never override hidden screens, disclosure state or handlers. */
+/* Product-aligned editorial pages: same palette, fonts and controls as cortex-product.css. */
+[data-cortex-seo="tolc-type"] main.container,
+[data-cortex-seo="tolc-guide"] main.container{max-width:1040px;padding-bottom:32px}
+[data-cortex-seo="tolc-type"] main>h1,
+[data-cortex-seo="tolc-guide"] main>h1{font-size:clamp(2.3rem,4.8vw,4rem);max-width:22ch;line-height:1.1;margin-block:28px}
+[data-cortex-seo="tolc-type"] main>.sub,
+[data-cortex-seo="tolc-guide"] main>.sub{font-size:1.12rem;max-width:65ch;line-height:1.8}
+[data-cortex-seo="tolc-type"] main>h2,
+[data-cortex-seo="tolc-guide"] main>h2{border-top:1px solid var(--cx-line);padding-top:32px;margin-top:56px}
+[data-cortex-seo="tolc-type"] .score{gap:12px;margin-block:24px}
+[data-cortex-seo="tolc-type"] .score>div{background:var(--cx-panel);border:1px solid var(--cx-line);padding:22px 12px;border-radius:14px}
+[data-cortex-seo="tolc-type"] .score b{font-size:2rem;line-height:1.4}
+[data-cortex-seo="tolc-type"] .warn{background:#edc7820a;border:1px solid #edc78240;padding:22px;line-height:1.8}
+[data-cortex-seo="tolc-type"] .tips{padding-left:24px}
+[data-cortex-seo="tolc-type"] .tips li{padding-block:8px}
+[data-cortex-seo="tolc-type"] .btn-p,
+[data-cortex-seo="tolc-guide"] .btn-p{border-radius:10px;box-shadow:none}
+[data-cortex-seo="tolc-type"] main>.cta,
+[data-cortex-seo="tolc-guide"] main>.cta{background:linear-gradient(125deg,#1a1523,#121219 70%);border-radius:18px;padding:40px}
+@media(max-width:480px){
+  [data-cortex-seo="tolc-type"] main>.cta,[data-cortex-seo="tolc-guide"] main>.cta{padding:24px 18px}
+  [data-cortex-seo="tolc-type"] .score>div{padding:16px 6px;font-size:.8rem}
+  [data-cortex-seo="tolc-type"] main>h2,[data-cortex-seo="tolc-guide"] main>h2{padding-top:24px;margin-top:40px}
+}
 [data-cortex-seo]{overflow-x:visible}
 [data-cortex-seo] :is(.bg-mesh,.orb,.parts){background:none;filter:none;animation:none;opacity:0;width:0;height:0;overflow:clip;pointer-events:none}
 [data-cortex-seo] :is(.cfx-mesh,.cfx-orb,.cfx-particles){background:none;filter:none;animation:none;opacity:0;width:0;height:0;overflow:clip;pointer-events:none}

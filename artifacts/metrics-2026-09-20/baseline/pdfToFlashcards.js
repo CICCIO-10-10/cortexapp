@@ -1,5 +1,3 @@
-import { track } from '../core/analytics.js';
-import { bumpActivation } from '../services/activation.js';
 import { t } from '../core/i18n.js';
 /**
  * modules/pdfToFlashcards.js
@@ -178,8 +176,6 @@ function showLoading(show) {
 
 function renderCards(cards, deckTitle) {
     _generatedCards = cards;
-    track('cards_generated', { count: cards.length, flow: 'pdf_photo_text', tracking_version: 2 });
-    bumpActivation('cardsGenerated', cards.length);
     const list  = document.getElementById('pdfai-cards-list');
     const count = document.getElementById('pdfai-count');
     const nameInput = document.getElementById('pdfai-deck-name');
@@ -489,7 +485,6 @@ export function savePdfAIDeck() {
     // window — il check falliva in silenzio e il mazzo restava solo in RAM,
     // svanendo al primo reload. Ora importiamo la saveState vera.
     saveState();
-    track('generated_cards_saved', { count: _newCards.length, flow: 'pdf_photo_text', tracking_version: 2 });
 
     // XP + Badge
     awardXP(30, '🤖 PDF → AI Mazzo');

@@ -1,0 +1,36 @@
+/* Presentation-only refinement of /home. Matches the current product palette and type. */
+@font-face{font-family:Cortex UI;src:url('/cortex-design/dm-sans-latin.woff2') format('woff2');font-weight:100 900;font-display:optional}
+@font-face{font-family:Cortex Title;src:url('/cortex-design/space-grotesk-latin.woff2') format('woff2');font-weight:300 700;font-display:optional}
+body.cortex-marketing{--bg:#090910;--bg-card:#121219;--primary:#bfa1ff;--primary-light:#bfa1ff;--primary-glow:transparent;--text:#f1f0fa;--muted:#b2adbf;--border:#302c3b;--border-primary:#514362;background:var(--bg);font-family:'Cortex UI',Arial,sans-serif}
+.cortex-marketing :is(button,input,select,textarea){font-family:inherit}
+.cortex-marketing :is(h1,h2,h3,.section-h2,.sp-h2,.cta-h2,.plan-price,.feat-name,.step-title){font-family:'Cortex Title',Arial,sans-serif;font-weight:600;letter-spacing:-.035em;line-height:1.15}
+.cortex-marketing .container{max-width:1120px}
+.cortex-marketing .hero-section{padding:88px 0 88px}
+.cortex-marketing .hero-h1{font-size:clamp(2.6rem,6vw,4.8rem);font-weight:600;line-height:1.1;max-width:19ch;margin-inline:auto}
+.cortex-marketing .hero-sub{color:var(--muted);font-weight:400;line-height:1.8;margin-bottom:28px}
+.cortex-marketing .hero-ctas{margin-bottom:16px}
+.cortex-marketing .mockup-wrap{margin-top:52px;max-width:760px}
+.cortex-marketing :is(.hero-orb,.mockup-glow,.boss-glow,.duel-glow,.bg-orb,.bg-particles,.cta-grad){opacity:0;animation:none;pointer-events:none}
+.cortex-marketing .grad-text{background:none;-webkit-text-fill-color:var(--primary);color:var(--primary);animation:none}
+.cortex-marketing :is(.btn-primary,.btn-plan-cta,.btn-cta-white){background:var(--primary);color:#1a1228;border:1px solid #cbb0ff;border-radius:10px;box-shadow:none;animation:none;font-weight:700;min-height:44px}
+.cortex-marketing :is(.btn-primary,.btn-plan-cta,.btn-cta-white):hover{background:#d1bcff;box-shadow:none;transform:none}
+.cortex-marketing :is(.btn-outline,.btn-plan-out){background:var(--bg-card);border:1px solid var(--border);color:var(--text);border-radius:10px;min-height:44px}
+.cortex-marketing :is(button,a,summary):focus-visible{outline:2px solid var(--primary);outline-offset:4px}
+.cortex-marketing :is(.feat-card,.plan-card,.faq-item,.mockup-frame,.step-card){background:var(--bg-card);border:1px solid var(--border);border-radius:14px;box-shadow:0 8px 30px #0003}
+.cortex-marketing :is(.feat-card,.plan-card,.step-card):hover{transform:none;box-shadow:none;border-color:#726184}
+.cortex-marketing .plan-card.featured{border-color:#8d70b7;background:#191820;transform:none}
+.cortex-marketing :is(.app-ui,.boss-ui,.duel-ui,.flashcard){background:#191820;box-shadow:none;border-color:var(--border)}
+.cortex-marketing :is(.app-topbar,.app-navbar){background:#121219;border-color:var(--border)}
+.cortex-marketing :is(.fbadge,.hero-badge){background:#191820;border:1px solid var(--border);border-radius:8px;box-shadow:none;animation:none}
+.cortex-marketing :is(.section-sub,.feat-desc,.step-desc,.plan-sub,.faq-a-inner,.footer-tag){color:var(--muted);line-height:1.8}
+.cortex-marketing :is(.steps-section,.features-section,.compare-section,.pricing-section,.faq-section){padding-block:80px;border-top:1px solid var(--border)}
+.cortex-marketing :is(.spotlight-dark,.spotlight-mid,.countdown-section,.social-section){background:var(--bg);border-block:1px solid var(--border)}
+.cortex-marketing .final-cta{background:linear-gradient(125deg,#1a1523,#121219 70%);border-top:1px solid var(--border);padding-block:80px}
+.cortex-marketing .fade-in{opacity:1;transform:none;transition:none}
+.cortex-marketing .cmp-table td:nth-child(3){background:#bfa1ff08;border-color:var(--border)}
+.cortex-marketing .cmp-table th:nth-child(3){border-color:var(--border)}
+.cortex-marketing :is(.boss-mic,.feat-icon){box-shadow:none}
+.cortex-marketing :is(.badge-dot,.banner-ping){animation:none}
+.cortex-marketing footer{background:var(--bg);border-top:1px solid var(--border)}
+@media(max-width:768px){.cortex-marketing :is(.steps-section,.features-section,.compare-section,.pricing-section,.faq-section,.final-cta){padding-block:56px}.cortex-marketing .hero-section{padding-block:56px}.cortex-marketing .hero-h1{font-size:clamp(2.25rem,7vw,3.5rem)}.cortex-marketing .mockup-wrap{margin-top:32px}}
+@media(prefers-reduced-motion:reduce){.cortex-marketing *, .cortex-marketing *::before,.cortex-marketing *::after{animation:none!important;scroll-behavior:auto!important;transition:none!important}}

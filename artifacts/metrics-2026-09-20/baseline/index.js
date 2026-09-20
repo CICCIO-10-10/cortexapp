@@ -1114,21 +1114,19 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
 
     // ── JOURNEYS: percorso per-visitatore (guest inclusi), da collezione 'journeys' ──
     let journeys = [];
-    let journeyFunnel = { landing_view: 0, app_open: 0, onboarding_start: 0, cards_generated: 0, study_session_start: 0, activated: 0, tolc_sim_open: 0, tolc_sim_complete: 0, visitors: 0 };
+    const journeyFunnel = { landing_view: 0, app_open: 0, onboarding_start: 0, cards_generated: 0, study_session_start: 0, activated: 0, tolc_sim_open: 0, tolc_sim_complete: 0, visitors: 0 };
     try {
       let evSnap;
-      let ordered = true;
       try {
         evSnap = await db.collectionGroup('events').orderBy('ts', 'desc').limit(4000).get();
       } catch (_ordErr) {
-        ordered = false;
-        // Unordered fallback is explicitly marked as incomplete.
+        // indice mancante o campo assente: fallback alla lettura non ordinata
         evSnap = await db.collectionGroup('events').limit(3000).get();
       }
       const byVid = {};
       evSnap.forEach(doc => {
         const parent = doc.ref.parent.parent;
-        if (!parent || parent.parent.id !== 'journeys') return;
+        if (!parent) return;
         const vid = parent.id;
         if (!vid || vid.indexOf('TEST_') === 0) return;
         const x = doc.data() || {};
@@ -1153,10 +1151,7 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
         evs.forEach(e => { if (e.type && e.type !== path[path.length - 1]) path.push(e.type); });
         rows.push({ vid: String(vid).slice(0, 8), source: src, entry: (first.page || ''), steps: evs.length, lastStep: (last.type || ''), durSec, outcome, path: path.slice(0, 14), lastTs: (last.ts || 0) });
       });
-      journeyFunnel = require('./journey-summary.cjs').summarizeJourneys(
-        Object.entries(byVid).flatMap(([vid, events]) => events.map(event => ({ ...event, vid }))),
-        { ordered, limited: evSnap.size >= (ordered ? 4000 : 3000) }
-      );
+      journeyFunnel.visitors = rows.length;
       rows.sort((a, b) => b.lastTs - a.lastTs);
       // Tabella dettaglio: SOLO visitatori attivi OGGI, dalla mezzanotte (Europe/Rome)
       // fino ad ora — giorno di calendario, non una finestra mobile di 24h.
@@ -1166,7 +1161,6 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
       const _todayStart = Date.now() - _msSinceMidnight;
       journeys = rows.filter(r => (r.lastTs || 0) >= _todayStart).slice(0, 400);
     } catch (e) {
-      journeyFunnel = { coverage: { status: 'unavailable' } };
       console.error('[adminDashboard] journeys error:', (e && e.message) || e);
     }
 

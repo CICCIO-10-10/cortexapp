@@ -1,12 +1,18 @@
 {
-  "mode": "pilot",
-  "expectedPilotCount": 13,
+  "mode": "selected",
+  "expectedPilotCount": 19,
   "protected": [
     "chimica-triennale-messina", "ingegneria-civile-triennale-messina",
     "ingegneria-gestionale-triennale-messina", "matematica-triennale-messina",
     "scienze-politiche-e-delle-relazioni-internazionali-messina"
   ],
   "pages": [
+    { "slug": "tolc-sps", "family": "tolc-type", "source": "public/tolc-sps.html", "reason": "Priorità traffico GA4 28 giorni: 81 sessioni nello snapshot 20 settembre" },
+    { "slug": "tolc-psi", "family": "tolc-type", "source": "public/tolc-psi.html", "reason": "Priorità traffico GA4 28 giorni: 51 sessioni" },
+    { "slug": "tolc-e", "family": "tolc-type", "source": "public/tolc-e.html", "reason": "Priorità traffico GA4 28 giorni: 42 sessioni" },
+    { "slug": "tolc-su", "family": "tolc-type", "source": "public/tolc-su.html", "reason": "Priorità traffico GA4 28 giorni: 42 sessioni" },
+    { "slug": "tolc-s", "family": "tolc-type", "source": "public/tolc-s.html", "reason": "Priorità traffico GA4 28 giorni: 35 sessioni" },
+    { "slug": "ripetere-il-tolc", "family": "tolc-guide", "source": "public/ripetere-il-tolc.html", "reason": "Priorità guida editoriale GA4 28 giorni: 19 sessioni" },
     { "slug": "scuole-superiori-messina", "family": "province", "source": "public/scuole-superiori-messina.html", "reason": "Elenco scuole, schede e collegamenti territoriali" },
     { "slug": "archeologia-e-storia-dell-arte-messina", "family": "unime-course", "source": "public/archeologia-e-storia-dell-arte-messina.html", "reason": "Corso indicizzato, programmi espandibili e titolo lungo" },
     { "slug": "medicina-e-chirurgia-messina", "family": "unime-course", "source": "public/medicina-e-chirurgia-messina.html", "reason": "Secondo corso indicizzato, ciclo unico e catalogo esteso; sostituisce il campione storico protetto" },

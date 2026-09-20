@@ -4,7 +4,8 @@ import crypto from 'node:crypto';
 import assert from 'node:assert/strict';
 import { registry, projectRoot, validateRegistry, injectDesign, stripDesign } from './seo-design-plugin.mjs';
 
-const dir = path.join(projectRoot, 'artifacts/seo-pilot');
+const reportArg = process.argv.find(arg => arg.startsWith('--report-dir='));
+const dir = path.resolve(projectRoot, reportArg?.slice('--report-dir='.length) || 'artifacts/metrics-2026-09-20/seo');
 fs.mkdirSync(dir, { recursive: true });
 const hash = s => crypto.createHash('sha256').update(s).digest('hex');
 const read = f => fs.readFileSync(path.join(projectRoot, f), 'utf8');
@@ -48,11 +49,19 @@ if (process.argv.includes('--capture')) {
     pages: Object.fromEntries(registry.pages.map(p => [p.slug, fingerprint(read(p.source), `/${p.slug}`)]))
   };
   fs.writeFileSync(baselinePath, JSON.stringify(baseline, null, 2));
-  console.log(`Captured ${Object.keys(baseline.files).length} protected files and 13 pilot SEO fingerprints.`);
+  console.log(`Captured ${Object.keys(baseline.files).length} protected files and ${registry.pages.length} selected SEO fingerprints.`);
 } else {
   const before = JSON.parse(fs.readFileSync(baselinePath, 'utf8'));
   const report = { created: new Date().toISOString(), sourceChanges: [], pages: [], nonpilotMarkers: [], protectedUniMe: [] };
-  for (const [f, sha] of Object.entries(before.files)) if (hash(read(f)) !== sha) report.sourceChanges.push(f);
+  report.presentationOnlyChanges = [];
+  for (const [f, sha] of Object.entries(before.files)) {
+    const current = read(f);
+    if (hash(current) === sha) continue;
+    // Only these two explicit presentation additions are permitted on the landing.
+    const original = f === 'home.html' ? current.replace('<body class="cortex-marketing">', '<body>').replace(/<link rel="stylesheet" href="\/cortex-marketing.css">\r?\n/, '') : current;
+    if (f === 'home.html' && hash(original) === sha) report.presentationOnlyChanges.push(f);
+    else report.sourceChanges.push(f);
+  }
   for (const p of registry.pages) {
     const source = read(p.source);
     const injected = injectDesign(source, p);

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { guardTracking, stripTrackingGuard } from './tracking-guard.mjs';
 
 export const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const registry = JSON.parse(fs.readFileSync(path.join(projectRoot, 'scripts/seo-pages.json'), 'utf8'));
@@ -22,8 +23,8 @@ const auditScript = `<script>(function(){
 })();</script>`;
 
 export function validateRegistry(root = projectRoot) {
-  if (registry.mode !== 'pilot' || registry.pages.length !== 13 || registry.expectedPilotCount !== 13)
-    throw new Error('SEO pilot guard: exactly 13 explicitly selected pages required. Rollout is disabled.');
+  if (registry.mode !== 'selected' || registry.pages.length !== 19 || registry.expectedPilotCount !== 19)
+    throw new Error('SEO guard: exactly 19 explicitly selected pages required. Full rollout is disabled.');
   const seen = new Set();
   for (const page of registry.pages) {
     if (!/^[a-z0-9-]+$/.test(page.slug) || !/^[a-z0-9-]+$/.test(page.family) || seen.has(page.slug) || registry.protected.includes(page.slug))
@@ -44,7 +45,7 @@ export function injectDesign(html, page) {
 }
 
 export function stripDesign(html) {
-  return html.replace(styleBlock, '').replace(/ data-cortex-seo="[a-z-]+"/, '');
+  return stripTrackingGuard(html).replace(styleBlock, '').replace(/ data-cortex-seo="[a-z-]+"/, '');
 }
 
 export default function seoDesignPlugin() {
@@ -65,10 +66,11 @@ export default function seoDesignPlugin() {
     res.setHeader('Cache-Control', 'no-store');
     let response = baseline ? html : injectDesign(html, page);
     if (url.searchParams.get('cortex-audit') === '1') response = response.replace(/<head>/i, '<head>' + auditScript);
-    res.end(req.method === 'HEAD' ? undefined : response);
+    res.end(req.method === 'HEAD' ? undefined : guardTracking(response));
   };
   return {
     name: 'cortex-seo-pilot',
+    transformIndexHtml: { order: 'pre', handler: guardTracking },
     configResolved(config) {
       root = config.root;
       isBuild = config.command === 'build';
@@ -85,6 +87,10 @@ export default function seoDesignPlugin() {
         const target = path.join(outDir, `${page.slug}.html`);
         if (!fs.existsSync(target)) throw new Error(`Pilot output missing: ${target}`);
         fs.writeFileSync(target, injectDesign(fs.readFileSync(target, 'utf8'), page));
+      }
+      for (const page of registry.pages) {
+        const target = path.join(outDir, `${page.slug}.html`);
+        fs.writeFileSync(target, guardTracking(fs.readFileSync(target, 'utf8')));
       }
     }
   };

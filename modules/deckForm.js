@@ -28,7 +28,7 @@ import { renderDecks }         from './decks.js';
 import { todayStr, sanitizeHTML } from '../js/utils.js';
 import { APP_CONFIG }          from '../js/config.js';
 import { track }               from '../core/analytics.js';
-import { bumpActivation }       from '../services/activation.js';
+
 
 const DRAFT_KEY = APP_CONFIG.STORAGE_KEYS.DRAFT;
 
@@ -257,11 +257,10 @@ export async function saveDeck() {
             card_count: deck.cards.length,
         });
 
-        // Activation tracking: card generate su NUOVO mazzo (evita doppio conteggio sui re-save)
+        // Saving cards is separate from successful AI generation.
         if (currentDeckIndex === null && deck.cards.length > 0) {
-            try { track('cards_generated', { count: deck.cards.length }); } catch (_) {}
-            try { if (window.clarity) window.clarity('set', 'generated', 'si'); } catch (_) {}
-            bumpActivation('cardsGenerated', deck.cards.length);
+            try { track('cards_saved', { count: deck.cards.length }); } catch (_) {}
+            try { if (window.clarity) window.clarity('set', 'cards_saved', 'si'); } catch (_) {}
         }
         renderDecks(); 
         try { if (window.triggerSmartInstallPrompt) window.triggerSmartInstallPrompt(); } catch(_) {}

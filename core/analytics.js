@@ -10,6 +10,10 @@
  */
 
 let _analytics = null;
+// Only action names, never documents, answers, email addresses or event metadata.
+const CLARITY_STEPS = new Set(['app_open', 'onboarding_start', 'onboarding_complete',
+    'cards_generated', 'cards_saved', 'generated_cards_saved', 'study_session_start',
+    'study_session_completed', 'activated', 'tolc_sim_open', 'tolc_sim_complete']);
 
 /**
  * Inizializza Analytics (chiamato una volta dal bootstrap dopo firebase.initializeApp).
@@ -34,6 +38,12 @@ export function track(eventName, params = {}) {
     try {
         if (localStorage.getItem('cortex_no_track') === '1') return;
         try { if (window.__cxLogStep) window.__cxLogStep(eventName, params); } catch (_) {}
+        try {
+            if (CLARITY_STEPS.has(eventName) && typeof window.clarity === 'function' &&
+                /^(www\.)?cortexapp\.it$/.test(window.location.hostname)) {
+                window.clarity('event', eventName);
+            }
+        } catch (_) {}
         if (_analytics) {
             _analytics.logEvent(eventName, params);
         } else if (typeof window.gtag === 'function') {

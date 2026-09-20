@@ -1,3 +1,5 @@
+import { track } from '../core/analytics.js';
+import { bumpActivation } from '../services/activation.js';
 import { t } from '../core/i18n.js';
 /**
  * modules/deckCreate.js — Phase 20
@@ -180,6 +182,8 @@ export async function autoGenerateFlashcards() {
                 container.innerHTML = '';
                 result.flashcards.forEach(fc => _deps.addPair(fc.q, fc.a));
                 toggleFlashcards(true);
+                track('cards_generated', { count: result.flashcards.length, flow: 'deck_ai', tracking_version: 2 });
+                bumpActivation('cardsGenerated', result.flashcards.length);
                 _deps.showToast(`✅ Generate ${result.flashcards.length} flashcard e un riassunto!`, "success");
             } else {
                 _deps.showToast("L'IA non è riuscita a generare flashcard valide, ma ha creato il riassunto.", "warning");

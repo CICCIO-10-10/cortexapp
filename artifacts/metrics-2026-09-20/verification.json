@@ -1,0 +1,250 @@
+{
+  "pages": [
+    {
+      "slug": "tolc-sps",
+      "seoUnchanged": true,
+      "widths": [
+        {
+          "width": 1440,
+          "overflow": false,
+          "cls": 0,
+          "brokenImages": [],
+          "background": "rgb(9, 9, 16)"
+        },
+        {
+          "width": 1024,
+          "overflow": false,
+          "cls": 0,
+          "brokenImages": [],
+          "background": "rgb(9, 9, 16)"
+        },
+        {
+          "width": 768,
+          "overflow": false,
+          "cls": 0,
+          "brokenImages": [],
+          "background": "rgb(9, 9, 16)"
+        },
+        {
+          "width": 390,
+          "overflow": false,
+          "cls": 0,
+          "brokenImages": [],
+          "background": "rgb(9, 9, 16)"
+        }
+      ]
+    },
+    {
+      "slug": "tolc-psi",
+      "seoUnchanged": true,
+      "widths": [
+        {
+          "width": 1440,
+          "overflow": false,
+          "cls": 0,
+          "brokenImages": [],
+          "background": "rgb(9, 9, 16)"
+        },
+        {
+          "width": 1024,
+          "overflow": false,
+          "cls": 0,
+          "brokenImages": [],
+          "background": "rgb(9, 9, 16)"
+        },
+        {
+          "width": 768,
+          "overflow": false,
+          "cls": 0,
+          "brokenImages": [],
+          "background": "rgb(9, 9, 16)"
+        },
+        {
+          "width": 390,
+          "overflow": false,
+          "cls": 0,
+          "brokenImages": [],
+          "background": "rgb(9, 9, 16)"
+        }
+      ]
+    },
+    {
+      "slug": "tolc-e",
+      "seoUnchanged": true,
+      "widths": [
+        {
+          "width": 1440,
+          "overflow": false,
+          "cls": 0,
+          "brokenImages": [],
+          "background": "rgb(9, 9, 16)"
+        },
+        {
+          "width": 1024,
+          "overflow": false,
+          "cls": 0,
+          "brokenImages": [],
+          "background": "rgb(9, 9, 16)"
+        },
+        {
+          "width": 768,
+          "overflow": false,
+          "cls": 0,
+          "brokenImages": [],
+          "background": "rgb(9, 9, 16)"
+        },
+        {
+          "width": 390,
+          "overflow": false,
+          "cls": 0,
+          "brokenImages": [],
+          "background": "rgb(9, 9, 16)"
+        }
+      ]
+    },
+    {
+      "slug": "tolc-su",
+      "seoUnchanged": true,
+      "widths": [
+        {
+          "width": 1440,
+          "overflow": false,
+          "cls": 0,
+          "brokenImages": [],
+          "background": "rgb(9, 9, 16)"
+        },
+        {
+          "width": 1024,
+          "overflow": false,
+          "cls": 0,
+          "brokenImages": [],
+          "background": "rgb(9, 9, 16)"
+        },
+        {
+          "width": 768,
+          "overflow": false,
+          "cls": 0,
+          "brokenImages": [],
+          "background": "rgb(9, 9, 16)"
+        },
+        {
+          "width": 390,
+          "overflow": false,
+          "cls": 0,
+          "brokenImages": [],
+          "background": "rgb(9, 9, 16)"
+        }
+      ]
+    },
+    {
+      "slug": "tolc-s",
+      "seoUnchanged": true,
+      "widths": [
+        {
+          "width": 1440,
+          "overflow": false,
+          "cls": 0,
+          "brokenImages": [],
+          "background": "rgb(9, 9, 16)"
+        },
+        {
+          "width": 1024,
+          "overflow": false,
+          "cls": 0,
+          "brokenImages": [],
+          "background": "rgb(9, 9, 16)"
+        },
+        {
+          "width": 768,
+          "overflow": false,
+          "cls": 0,
+          "brokenImages": [],
+          "background": "rgb(9, 9, 16)"
+        },
+        {
+          "width": 390,
+          "overflow": false,
+          "cls": 0,
+          "brokenImages": [],
+          "background": "rgb(9, 9, 16)"
+        }
+      ]
+    },
+    {
+      "slug": "ripetere-il-tolc",
+      "seoUnchanged": true,
+      "widths": [
+        {
+          "width": 1440,
+          "overflow": false,
+          "cls": 0,
+          "brokenImages": [],
+          "background": "rgb(9, 9, 16)"
+        },
+        {
+          "width": 1024,
+          "overflow": false,
+          "cls": 0,
+          "brokenImages": [],
+          "background": "rgb(9, 9, 16)"
+        },
+        {
+          "width": 768,
+          "overflow": false,
+          "cls": 0,
+          "brokenImages": [],
+          "background": "rgb(9, 9, 16)"
+        },
+        {
+          "width": 390,
+          "overflow": false,
+          "cls": 0,
+          "brokenImages": [],
+          "background": "rgb(9, 9, 16)"
+        }
+      ]
+    },
+    {
+      "slug": "tolc-i",
+      "seoUnchanged": true,
+      "widths": [
+        {
+          "width": 1440,
+          "overflow": false,
+          "cls": 0,
+          "brokenImages": [],
+          "background": "rgb(9, 9, 16)"
+        },
+        {
+          "width": 1024,
+          "overflow": false,
+          "cls": 0,
+          "brokenImages": [],
+          "background": "rgb(9, 9, 16)"
+        },
+        {
+          "width": 768,
+          "overflow": false,
+          "cls": 0,
+          "brokenImages": [],
+          "background": "rgb(9, 9, 16)"
+        },
+        {
+          "width": 390,
+          "overflow": false,
+          "cls": 0,
+          "brokenImages": [],
+          "background": "rgb(9, 9, 16)"
+        }
+      ]
+    }
+  ],
+  "dashboard": {
+    "error": "",
+    "conversion": "n/d",
+    "sources": "· file locali: tiktok: 20 set 01:44 · youtube: 20 set 01:45 · instagram: 20 set 01:45 · data di rilevazione sulla piattaforma non verificata",
+    "legacyLosses": false,
+    "socialPopulated": true
+  },
+  "errors": []
+}

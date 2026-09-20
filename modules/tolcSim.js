@@ -7,6 +7,7 @@
  */
 
 import { TOLC_TESTS, TOLC_ENG_BANCA, tolcTotQ, tolcTotMin } from '../data/tolc.js';
+import { track } from '../core/analytics.js';
 
 let _state = null;
 let _timer = null;
@@ -53,7 +54,7 @@ export function openTolcSim() {
     if (_state && (_state.running || _state.finished)) return;
     _remove();
   });
-  try { if (window.track) window.track('tolc_sim_open'); } catch (e) {}
+  track('tolc_sim_open');
 }
 
 function _selectorHTML() {
@@ -294,7 +295,7 @@ function _finish() {
   if (!st.scoreMode) st.scoreMode = 'cisia';
   var correct = _sectionStats(st).reduce(function (a, g) { return a + g.ok; }, 0);
   var pct = Math.max(0, Math.round(correct / (st.qs.length || 1) * 100));
-  try { if (window.track) window.track('tolc_sim_complete', { test: st.key, correct: correct, pct: pct }); } catch (e) {}
+  track('tolc_sim_complete', { test: st.key, correct: correct, pct: pct });
   try { if (window.addXP) window.addXP(correct * 5); } catch (e) {}
   _renderResult();
 }
