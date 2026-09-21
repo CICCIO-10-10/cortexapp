@@ -1,0 +1,35 @@
+{
+  "landing_view": 243,
+  "app_open": 165,
+  "onboarding_start": 162,
+  "cards_generated": 0,
+  "study_session_start": 8,
+  "activated": 0,
+  "tolc_sim_open": 43,
+  "tolc_sim_complete": 18,
+  "visitors": 249,
+  "sequential": [
+    {
+      "event": "app_open",
+      "count": 165
+    },
+    {
+      "event": "cards_generated",
+      "count": 0
+    },
+    {
+      "event": "study_session_start",
+      "count": 0
+    }
+  ],
+  "coverage": {
+    "status": "ok",
+    "unit": "browser_id",
+    "ordered": true,
+    "limited": false,
+    "eventCount": 2007,
+    "from": 1789558144874,
+    "to": 1790055593775,
+    "trackingVersion": 2
+  }
+}

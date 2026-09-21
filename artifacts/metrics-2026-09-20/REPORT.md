@@ -1,5 +1,23 @@
 # Cortex — misurazione e design, 20 settembre 2026
 
+## Verifica pubblicazione effettuata il 21 settembre
+Il precedente stato "nessun deploy" è superato: dopo la pubblicazione dell'utente ho verificato il sito reale.
+- Tutte le 19 pagine selezionate, il bundle app-D4r2i4tf.js, cortex-product.css e cortex-marketing.css rispondono HTTP 200 e coincidono byte per byte con la build locale. Dettagli in live-deploy-check.json.
+- /home include il nuovo CSS. /app contiene i controlli account condizionali, il messaggio di stato, la protezione Clarity e non contiene più la nota lunga delle impostazioni.
+- Browser su produzione con notrack: ospite riconosciuto, Accedi con Google visibile, logout nascosto, nessun errore console catturato nel controllo. Tecniche: nessun overflow o sovrapposizione barra/titolo a 1440/1024/768/390.
+- adminDashboard risponde e restituisce coverage.trackingVersion=2 con la sequenza: anche il nuovo backend è pubblicato. Campione osservato: 1483 eventi; coverage.ordered=false indica il fallback di lettura non ordinata. Non va interpretato come campione cronologico completo. Generazioni nella sequenza: ancora 0; questo controllo non prova la ricezione di una nuova generazione reale.
+- Il login/logout Google reale non è stato eseguito: nessuna conferma inventata del ciclo completo o della foto dell'account personale. L'errore storico `t is not defined` non si è ripresentato nei percorsi visitati, ma non è dimostrata la sua assenza da ogni percorso.
+
+## Aggiornamento 21 settembre: bug UI e account
+- Corretto il conflitto tra barra e contenitore app a schermo fisso: desktop ora usa il flusso normale della pagina; la navigazione mobile resta in basso. Nessuna sovrapposizione titolo/barra o overflow osservato su Tecniche, Materiale, Network e Lezioni a 1440, 1024, 768 e 390 px.
+- Stato account derivato dall'utente Firebase confermato. Sessione anonima = ospite, non account Google. Ripuliti i dati identificativi residui, senza cancellare mazzi o progressi.
+- Avatar risolto anche dai dati del provider Google quando manca nel profilo principale; fallback alle iniziali se l'immagine non è disponibile. Il pulsante profilo è accessibile da tastiera.
+- Disconnessione spostata nella sezione Account e visibile solo agli account registrati. Agli ospiti compaiono stato esplicito e accesso Google. Eliminata la nota lunga nel footer impostazioni.
+- Logout attende Firebase: se fallisce mostra errore e non finge di essere riuscito; se riesce pulisce i flag e apre `/app?login=1`. Entrare volontariamente come ospite rimane possibile.
+- Verifica browser locale: ospite con accesso Google visibile e logout nascosto, nessun errore console catturato nella verifica impostazioni. Login Google reale, foto reale e sign-out del proprio account non eseguiti nel browser dell'utente: restano da verificare dopo pubblicazione, senza simulare un esito positivo.
+- Totale finale: 54 test passati, build riuscita, diff SEO positivo per tutte le 19 pagine. Nuovi file: core/account-state.js, tests/account-state.test.js e tests/logout.test.js. Aggiornati anche core/appBoot.js, services/firebase.js, app.html e public/cortex-product.css.
+- La navigazione locale avviene da `/app.html?notrack=1&guest=1`; il server Vite non replica tutti i rewrite Firebase quando si ricarica direttamente una rotta interna. Per la verifica produzione servono i rewrite Hosting già presenti.
+
 ## Stato
 Modifiche locali, nessun deploy Hosting o Functions. Dashboard locale aggiornata mantenendo i dati originali. I nuovi eventi e il nuovo riepilogo server richiedono pubblicazione prima di produrre nuovi dati reali. Nessun recupero retroattivo inventato.
 

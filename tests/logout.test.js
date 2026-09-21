@@ -1,0 +1,20 @@
+import { it, expect } from 'vitest';
+import fs from 'node:fs';
+import vm from 'node:vm';
+const source = fs.readFileSync(new URL('../services/firebase.js', import.meta.url), 'utf8');
+const logout = source.slice(source.indexOf('export async function logout()'), source.indexOf('// ─── Import / Export')).replace('export ', '');
+it('only redirects after successful sign-out and clears identity rather than study data', async () => {
+    const removed=[], redirects=[], notices=[];
+    const context = {firebase:{auth:()=>({signOut:async()=>{}})},localStorage:{removeItem:k=>removed.push(k)},location:{assign:p=>redirects.push(p)},window:{showToast:(...args)=>notices.push(args)}};
+    await vm.runInNewContext(logout+'; logout()',context);
+    expect(redirects).toEqual(['/app?login=1']);
+    expect(removed).toContain('cortex_guest');
+    expect(removed).not.toContain('mm_decks');
+    expect(context.window._fbLoggedIn).toBe(false);
+    context.firebase.auth=()=>({signOut:async()=>{throw new Error('offline');}});
+    redirects.length=0;removed.length=0;
+    await vm.runInNewContext(logout+'; logout()',context);
+    expect(redirects).toEqual([]);
+    expect(removed).toEqual([]);
+    expect(notices).toHaveLength(1);
+});

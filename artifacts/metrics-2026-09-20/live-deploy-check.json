@@ -1,0 +1,112 @@
+[
+  {
+    "path": "/tolc-sps",
+    "status": 200,
+    "matches_local_build": true
+  },
+  {
+    "path": "/tolc-psi",
+    "status": 200,
+    "matches_local_build": true
+  },
+  {
+    "path": "/tolc-e",
+    "status": 200,
+    "matches_local_build": true
+  },
+  {
+    "path": "/tolc-su",
+    "status": 200,
+    "matches_local_build": true
+  },
+  {
+    "path": "/tolc-s",
+    "status": 200,
+    "matches_local_build": true
+  },
+  {
+    "path": "/ripetere-il-tolc",
+    "status": 200,
+    "matches_local_build": true
+  },
+  {
+    "path": "/scuole-superiori-messina",
+    "status": 200,
+    "matches_local_build": true
+  },
+  {
+    "path": "/archeologia-e-storia-dell-arte-messina",
+    "status": 200,
+    "matches_local_build": true
+  },
+  {
+    "path": "/medicina-e-chirurgia-messina",
+    "status": 200,
+    "matches_local_build": true
+  },
+  {
+    "path": "/liceo-scientifico",
+    "status": 200,
+    "matches_local_build": true
+  },
+  {
+    "path": "/tolc-i",
+    "status": 200,
+    "matches_local_build": true
+  },
+  {
+    "path": "/punteggio-tolc",
+    "status": 200,
+    "matches_local_build": true
+  },
+  {
+    "path": "/tolc-messina",
+    "status": 200,
+    "matches_local_build": true
+  },
+  {
+    "path": "/simulazione-tolc-i",
+    "status": 200,
+    "matches_local_build": true
+  },
+  {
+    "path": "/cortex-vs-anki-vs-quizlet",
+    "status": 200,
+    "matches_local_build": true
+  },
+  {
+    "path": "/scuola",
+    "status": 200,
+    "matches_local_build": true
+  },
+  {
+    "path": "/unime",
+    "status": 200,
+    "matches_local_build": true
+  },
+  {
+    "path": "/simulazione-tolc",
+    "status": 200,
+    "matches_local_build": true
+  },
+  {
+    "path": "/demo",
+    "status": 200,
+    "matches_local_build": true
+  },
+  {
+    "path": "/assets/app-D4r2i4tf.js",
+    "status": 200,
+    "matches_local_build": true
+  },
+  {
+    "path": "/cortex-product.css",
+    "status": 200,
+    "matches_local_build": true
+  },
+  {
+    "path": "/cortex-marketing.css",
+    "status": 200,
+    "matches_local_build": true
+  }
+]

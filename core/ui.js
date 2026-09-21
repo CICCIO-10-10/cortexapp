@@ -9,6 +9,7 @@
  */
 
 import { track } from './analytics.js';
+import { t } from './i18n.js';
 
 let toastTimeout;
 

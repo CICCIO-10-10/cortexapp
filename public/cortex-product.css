@@ -124,7 +124,7 @@ body.cortex-product #flip-card{height:auto!important}
 /* Targeted UX refinement: shared palette and destinations preserved. */
 body.cortex-product #guest-banner{position:relative!important;inset:auto!important;z-index:100!important;flex-wrap:wrap}
 body.cortex-product #trigger-focus{background:var(--surface2)!important;color:var(--text-muted)!important;box-shadow:none!important;border:1px solid var(--border)!important}
-@media(min-width:769px){body.cortex-product>nav{position:sticky!important;top:12px!important;left:auto!important;right:auto!important;transform:none!important;margin:12px auto!important;width:max-content!important;max-width:calc(100% - 32px)!important}}
+@media(min-width:769px){body.cortex-product>nav{position:relative!important;top:auto!important;left:auto!important;right:auto!important;transform:none!important;margin:12px auto!important;width:max-content!important;max-width:calc(100% - 32px)!important}}
 body.cortex-product #tech-cards-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:20px}
 body.cortex-product #tech-cards-grid .card{min-width:0;border-radius:var(--cx-radius)!important;padding:24px!important}
 body.cortex-product #tech-cards-grid .tag{background:none!important;color:var(--text-muted)!important;font-size:.75rem;font-weight:500;padding:0;white-space:normal}
@@ -135,3 +135,12 @@ body.cortex-product .card-body-nebula{display:flex;flex-direction:column}body.co
 body.cortex-product .settings-footer{flex-wrap:wrap;gap:12px}body.cortex-product .settings-save-note{flex-basis:100%;font-size:.8rem;color:var(--text-muted);line-height:1.5;margin:0} @media(max-width:600px){body.cortex-product .settings-footer .btn{flex:1;padding:12px!important;font-size:.9rem!important}}
 body.cortex-product .home-next-step{width:100%;margin-top:24px}body.cortex-product .has-due .hero-nebula button[data-fn="showView"]{background:var(--surface2)!important;color:var(--text)!important;border-color:var(--border)!important}body.cortex-product .has-due .hero-nebula button[data-fn="showView"] span{color:var(--text)!important}body.cortex-product .has-due .home-next-step button[data-fn="startStudyById"]{background:var(--accent)!important;color:#1a1228!important;min-height:48px;white-space:nowrap}body.cortex-product .home-comparison{font-size:.85rem}body.cortex-product #cortex-event-banner{font-size:.8rem}
 body.cortex-product .tutor-first{display:flex;flex-direction:column}body.cortex-product .tutor-first>.neural-dashboard-grid{order:-1}body.cortex-product .tutor-first .tutor-box{order:-1}body.cortex-product .tutor-first .game-stats-grid{margin-bottom:24px!important}body.cortex-product .neural-dashboard-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr))!important}
+
+/* Account visibility follows verified authentication, including legacy mobile rules. */
+body.cortex-product [hidden]{display:none!important}
+body.cortex-product #user-profile-wrap:not([style*="display: none"]):not([style*="display:none"]){display:flex!important}
+body.cortex-product .user-profile-btn{padding:0;border:0;background:transparent;color:var(--text);cursor:pointer}
+@media(min-width:769px){
+ body.cortex-product #app-root{position:relative!important;inset:auto!important;height:auto!important;min-height:calc(100dvh - 110px);overflow:visible!important}
+ body.cortex-product #app-root>div{padding-top:28px!important}
+}

@@ -54,9 +54,12 @@ if (process.argv.includes('--capture')) {
   const before = JSON.parse(fs.readFileSync(baselinePath, 'utf8'));
   const report = { created: new Date().toISOString(), sourceChanges: [], pages: [], nonpilotMarkers: [], protectedUniMe: [] };
   report.presentationOnlyChanges = [];
+  report.requestedAppChanges = [];
   for (const [f, sha] of Object.entries(before.files)) {
     const current = read(f);
     if (hash(current) === sha) continue;
+    // The app shell is not an SEO page: account/settings fixes explicitly requested 21 September.
+    if (f === 'app.html') { report.requestedAppChanges.push(f); continue; }
     // Only these two explicit presentation additions are permitted on the landing.
     const original = f === 'home.html' ? current.replace('<body class="cortex-marketing">', '<body>').replace(/<link rel="stylesheet" href="\/cortex-marketing.css">\r?\n/, '') : current;
     if (f === 'home.html' && hash(original) === sha) report.presentationOnlyChanges.push(f);

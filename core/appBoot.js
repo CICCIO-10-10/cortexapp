@@ -2,6 +2,7 @@ import { initEventBus }                                    from './eventBus.js';
 import { initAnalytics, track, setUserProperty }           from './analytics.js';
 import { touchSeen }                                       from '../services/activation.js';
 import { APP_CONFIG }                                      from '../js/config.js';
+import { renderAccountState } from './account-state.js';
 import { checkVersionUpdate, removeSplashScreen, showChangelogModal } from './boot.js';
 // Espone showChangelog globalmente (usato dal bottone "Novità" nelle impostazioni)
 window.showChangelog = () => showChangelogModal(null);
@@ -54,6 +55,7 @@ export function initApp(deps) {
 export function onAuthStateChangedHandler(user, firebaseDeps = {}) {
     if (!appDeps) return;
     const deps = appDeps;
+    renderAccountState(user, firebaseDeps.updateUserUI || (() => {}));
 
     const formContainer = document.getElementById('feedback-form-container');
     const loginPrompt   = document.getElementById('feedback-login-prompt');
@@ -102,9 +104,6 @@ export function onAuthStateChangedHandler(user, firebaseDeps = {}) {
         if (user.email)    localStorage.setItem('mm_user_email', user.email);
         if (user.photoURL) localStorage.setItem('mm_user_avatar', user.photoURL);
 
-        if (firebaseDeps.updateUserUI) {
-            firebaseDeps.updateUserUI(user.displayName || localStorage.getItem('mm_user_name'), user.photoURL || localStorage.getItem('mm_user_avatar'));
-        }
         if (firebaseDeps.loadFromCloud) {
             firebaseDeps.loadFromCloud();
         }

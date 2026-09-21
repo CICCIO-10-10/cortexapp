@@ -363,12 +363,12 @@
         <div class="nav-actions">
             <!-- USER PROFILE -->
             <div id="user-profile-wrap" style="display:none; align-items:center; margin-right:8px;">
-                <div class="user-profile-btn" data-fn="openSettings">
+                <button class="user-profile-btn" aria-label="Account e impostazioni" data-fn="openSettings">
                     <div class="user-avatar" id="user-initials">
                         <!-- foto Google iniettata da updateUserUI -->
                     </div>
                     <span style="display:none;" id="user-display-name">Guest</span>
-                </div>
+                </button>
             </div>
 
 
@@ -785,6 +785,12 @@
             <!-- SECTION: CLOUD SYNC -->
             <div class="settings-section">
                 <h3 class="settings-section-title">☁️ Account & Sincronizzazione</h3>
+                <p id="account-status" role="status">Verifica account…</p>
+                <button aria-label="Effettua il logout" class="btn btn-outline" data-account-only hidden
+                    style="border-color:rgba(239,68,68,0.3); color:rgb(239,68,68); font-size:0.85rem; padding: 12px 24px; border-radius: 12px;"
+                    data-fn="logout">
+                    🚪 Disconnettiti dall'Account
+                </button>
 
                 <div class="settings-row" style="display:block;">
                     <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:16px;">
@@ -792,7 +798,7 @@
                     </p>
                     <button class="btn btn-primary"
                         style="width:100%; padding:14px; font-size:0.95rem; border-radius:12px; font-weight:700;"
-                        data-fn="loginWithGoogle">
+                        data-guest-only data-fn="loginWithGoogle">
                         <span style="margin-right:8px;">🔐</span> Accedi con Google
                     </button>
                     <!-- Campi tecnici Firebase nascosti — non servono agli utenti -->
@@ -943,18 +949,14 @@
                         ✦ Novità
                     </button>
                 </div>
-                <button aria-label="Effettua il logout" class="btn btn-outline"
-                    style="border-color:rgba(239,68,68,0.3); color:rgb(239,68,68); font-size:0.85rem; padding: 12px 24px; border-radius: 12px;"
-                    data-fn="logout">
-                    🚪 Disconnettiti dall'Account
-                </button>
+
 
                 <!-- Nota: il bottone Elimina Account è nella sezione Privacy qui sopra -->
             </div>
         </div>
         </div><!-- /settings-body -->
 
-        <div class="settings-footer"><p class="settings-save-note">Le preferenze di lettura, Zen, voce, AI, obiettivo e timer si salvano automaticamente. “Salva modifiche” conferma anche gli eventuali campi di configurazione account. Chiudi non annulla le modifiche già applicate.</p>
+        <div class="settings-footer">
             <button aria-label="Chiudi impostazioni" class="btn btn-outline" style="padding: 16px 40px; font-size: 1.1rem; border-radius: 100px;"
                 data-fn="closeSettings">
                 Chiudi

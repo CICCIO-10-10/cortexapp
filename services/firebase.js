@@ -840,12 +840,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
 export async function logout() {
     if (typeof firebase !== 'undefined') {
-        try { await firebase.auth().signOut(); } catch (_) {}
+        try { await firebase.auth().signOut(); } catch (_) {
+            window.showToast?.('Disconnessione non riuscita. Riprova.', 'error');
+            return;
+        }
     }
-    localStorage.removeItem('mm_user_name');
-    localStorage.removeItem('mm_user_avatar');
-    localStorage.removeItem('mm_is_logged_in');
-    location.reload();
+    ['mm_user_name', 'mm_user_avatar', 'mm_user_email', 'mm_is_logged_in',
+        'cortex_uid', 'cortex_username', 'cortex_photo', 'cortex_guest',
+        'cortex_redirect_pending', 'cortex_redirect_ts'].forEach(key => localStorage.removeItem(key));
+    window._fbLoggedIn = false;
+    window._fbHasUser = false;
+    window._fbUserId = null;
+    window._cortexUserEmail = '';
+    location.assign('/app?login=1');
 }
 
 // ─── Import / Export ─────────────────────────────────────────────────────────
