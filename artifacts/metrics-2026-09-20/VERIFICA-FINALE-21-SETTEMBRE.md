@@ -43,4 +43,19 @@ Pubblicato Firebase Hosting, progetto cortex-74a4e, sito cortex-app. Verificato 
 
 ## Ambito preservato
 
+## Aggiornamento Clarity: otto imbuti salvati
+
+Alla richiesta successiva di completare la configurazione sono stati aggiunti e verificati:
+- Cortex | Ingresso → onboarding completato: app_open → onboarding_start → onboarding_complete.
+- Cortex | Ingresso → TOLC completato: app_open → tolc_sim_open → tolc_sim_complete.
+- Cortex | Dopo onboarding → avvio studio: onboarding_complete → study_session_start.
+- Cortex | TOLC aperto → completato: tolc_sim_open → tolc_sim_complete.
+- Cortex | Onboarding iniziato → completato: onboarding_start → onboarding_complete.
+
+Con i tre precedenti, tutti gli otto sono visibili nel selettore della dashboard. I due percorsi diretti isolano chi avvia effettivamente l'attività, senza obbligare il passaggio app_open nella stessa sequenza.
+
+Nel filtro visualizzato «Ultimi 3 giorni», i percorsi diretti riportano: onboarding 38 sessioni iniziali → 2 completate (5,26%); TOLC 40 aperture → 4 completamenti (10%). Sono risultati della sequenza nella stessa sessione, su un campione piccolo e con tracking appena modificato. Non provano che il resto degli utenti abbia definitivamente abbandonato: eventi mancanti, sessioni successive e ordine di emissione devono essere esclusi prima di attribuire una causa. Le registrazioni dei mancati completamenti sono accessibili dai pulsanti del relativo passaggio.
+
+Priorità diagnostica: onboarding, poi TOLC. Il funnel cards_generated resta non configurabile perché l'evento non compare ancora nel catalogo ricevuto. Nessun evento sintetico immesso per sbloccarlo. Nessun nuovo deploy necessario per gli otto imbuti.
+
 Nessun rollout generale delle pagine SEO, nessun cambio intenzionale a testi, metadata, canonical, noindex o alle cinque landing UniMe. Rimane attiva la selezione precedente di 19 pagine. Nessuna modifica a fatturazione, pubblicazione Google Play, publisher social o regole Firebase.
