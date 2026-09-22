@@ -176,7 +176,7 @@ export function renderDecks() {
                     </div>
 
                     <!-- Menu espanso "Altro" -->
-                    <div id="more-menu-${i}" class="deck-more-menu" style="display:none; flex-wrap:wrap; gap:8px; margin-top:8px;">
+                    <div id="more-menu-${i}" style="display:none; flex-wrap:wrap; gap:8px; margin-top:8px;">
                         <button class="btn-deck-action" data-fn="openMindMap" data-params="[${i}]">
                             <span>&#128506;&#65039;</span> Mind Map
                         </button>

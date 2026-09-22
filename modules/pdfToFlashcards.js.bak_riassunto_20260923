@@ -251,20 +251,11 @@ async function generateFlashcardsFromText(text, fileName = '') {
 
     const prompt = `Sei un tutor universitario italiano esperto. Analizza il seguente testo e crea esattamente ${cardCount} flashcard di alta qualità per studiare i concetti chiave.
 
-REGOLA PIÙ IMPORTANTE — UNA DOMANDA, UN CONCETTO:
-- Ogni flashcard fa UNA sola domanda su UN solo fatto. La domanda ha UN SOLO punto interrogativo e NON unisce mai due richieste con "e", "oppure", "nonché", "quali... e quali", "dove... e come".
-- Se il testo lega due informazioni (definizione + esempi, sede + funzione, causa + effetto, chi + quando), NON metterle nella stessa carta: crea DUE flashcard separate, una per ciascuna. Meglio più carte atomiche che una carta con due domande.
-
-ESEMPI (❌ sbagliato → ✅ giusto):
-❌ "Chi ha scritto la Divina Commedia e in quale periodo?"
-✅ Carta A: "Chi ha scritto la Divina Commedia?"  ✅ Carta B: "In quale periodo fu scritta la Divina Commedia?"
-❌ "Cos'è la mitosi e a cosa serve?"
-✅ Carta A: "Cos'è la mitosi?"  ✅ Carta B: "A cosa serve la mitosi?"
-
-ALTRE REGOLE:
-- La domanda testa la comprensione reale, non la memorizzazione meccanica.
-- La risposta è concisa ma completa (max 3 righe) e risponde a TUTTA la domanda posta, senza lasciare parti fuori.
-- Usa un linguaggio chiaro e accademico in italiano.
+REGOLE FONDAMENTALI:
+- Le domande devono testare la comprensione reale, non la memorizzazione meccanica
+- Le risposte devono essere concise ma complete (max 3 righe)  
+- Usa un linguaggio chiaro e accademico in italiano
+- Ogni flashcard deve coprire UN SOLO concetto
 
 TESTO DA ANALIZZARE:
 ${truncated}
@@ -331,112 +322,6 @@ Rispondi ESCLUSIVAMENTE con un oggetto JSON valido in questo formato (nessun tes
     const raw  = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!raw) throw new Error("L'AI non ha restituito dati.");
     return JSON.parse(raw.replace(/```json/g, '').replace(/```/g, '').trim());
-}
-
-// ─── Riassunto del materiale (stesso testo, output riassunto) ──────────────────
-async function generateSummaryFromText(text) {
-    const truncated = text.length > MAX_TEXT_CHARS
-        ? text.substring(0, MAX_TEXT_CHARS) + '\n\n[Testo troncato per ragioni di lunghezza]'
-        : text;
-    const custom = (document.getElementById('ai-custom-instructions')?.value || '').trim();
-    const prompt = `Sei un tutor universitario italiano esperto. Da questo materiale scrivi un RIASSUNTO di studio in italiano, chiaro e ben strutturato, pensato per ripassare prima di un esame.
-
-REGOLE:
-- Organizza per temi con titoli brevi (usa "## Titolo").
-- Sotto ogni titolo metti 2-5 punti chiave concisi (usa "- ").
-- Evidenzia in grassetto i termini, le definizioni e le formule chiave con **...**.
-- È un RIASSUNTO, non un quiz: niente domande. Resta fedele al testo, non inventare nulla.
-- Massimo ~450 parole.${custom ? '\n- Istruzione extra dall\'utente: ' + custom : ''}
-
-MATERIALE:
-${truncated}
-
-Rispondi solo con il riassunto in markdown, senza preamboli.`;
-
-    let _fbUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
-    if (!_fbUser && typeof firebase !== 'undefined' && firebase.auth) {
-        try {
-            const _cred = await firebase.auth().signInAnonymously();
-            _fbUser = _cred && _cred.user;
-        } catch (e) {
-            if (e && (e.code === 'auth/operation-not-allowed' || e.code === 'auth/admin-restricted-operation')) {
-                const g = new Error('GUEST_LOGIN_REQUIRED'); g.isGuestGate = true; throw g;
-            }
-        }
-    }
-    if (_fbUser) {
-        const result = await callGeminiProxy({
-            model: 'gemini-2.5-flash',
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.4 }
-        });
-        const raw = result.data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (!raw) throw new Error("L'AI non ha restituito dati.");
-        return raw.trim();
-    }
-    const apiKey = SecurityManager.getApiKey();
-    if (!apiKey) { const e = new Error('GUEST_LOGIN_REQUIRED'); e.isGuestGate = true; throw e; }
-    const model = await discoverGeminiModel(apiKey);
-    const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-        { method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.4 } }) }
-    );
-    if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || `Errore API (${res.status})`); }
-    const data = await res.json();
-    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!raw) throw new Error("L'AI non ha restituito dati.");
-    return raw.trim();
-}
-
-function _renderSummaryMarkdown(md) {
-    const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const inline = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-    const lines = String(md || '').split('\n');
-    let html = '', inList = false;
-    const closeList = () => { if (inList) { html += '</ul>'; inList = false; } };
-    for (const line of lines) {
-        const l = line.trim();
-        if (!l) { closeList(); continue; }
-        let m;
-        if ((m = l.match(/^#{1,6}\s+(.*)$/))) { closeList(); html += '<h4 style="margin:14px 0 6px 0; color:var(--text); font-size:1rem;">' + inline(m[1]) + '</h4>'; }
-        else if ((m = l.match(/^[-*•]\s+(.*)$/))) { if (!inList) { html += '<ul style="margin:0 0 10px 18px; padding:0;">'; inList = true; } html += '<li style="margin:4px 0;">' + inline(m[1]) + '</li>'; }
-        else { closeList(); html += '<p style="margin:6px 0;">' + inline(l) + '</p>'; }
-    }
-    closeList();
-    return html || esc(md);
-}
-
-/**
- * Riassumi il materiale incollato in #deck-text → mostra nel box #ai-summary-container.
- * Azione separata dalle flashcard, sullo stesso testo.
- */
-export async function openMaterialSummary() {
-    const ta = document.getElementById('deck-text');
-    const text = (ta && ta.value ? ta.value : '').trim();
-    if (!text) { if (window.showToast) window.showToast(t('pdf_no_text'), 'info'); return; }
-    const box = document.getElementById('ai-summary-container');
-    const body = document.getElementById('ai-summary-text');
-    if (box) box.style.display = 'block';
-    if (body) body.innerHTML = '<span style="color:var(--text-muted);">🧠 Sto riassumendo il materiale…</span>';
-    try {
-        const md = await generateSummaryFromText(text);
-        if (body) body.innerHTML = _renderSummaryMarkdown(md);
-    } catch (err) {
-        console.error('[PdfAI] Summary error:', err);
-        if (err?.isGuestGate || err?.isPaywall) {
-            if (box) box.style.display = 'none';
-            if (window.handleAIError) window.handleAIError(err, 'riassunto materiale');
-            return;
-        }
-        if (body) {
-            body.innerHTML = '';
-            const s = document.createElement('span');
-            s.style.color = '#f87171';
-            s.textContent = 'Errore: ' + (err && err.message ? err.message : 'riassunto non riuscito');
-            body.appendChild(s);
-        }
-    }
 }
 
 // ─── Entrypoint Pubblico ───────────────────────────────────────────────────────
@@ -638,7 +523,7 @@ export function closePdfAI() {
 // ─── Registrazione funzioni globali ───────────────────────────────────────────
 
 export function registerPdfAIGlobals(registry) {
-    const fns = { openPdfAIFromFile, openPdfAIFromText, openMaterialSummary, savePdfAIDeck, closePdfAI };
+    const fns = { openPdfAIFromFile, openPdfAIFromText, savePdfAIDeck, closePdfAI };
     for (const [name, fn] of Object.entries(fns)) {
         window[name] = fn;
         if (registry) registry(name, fn);

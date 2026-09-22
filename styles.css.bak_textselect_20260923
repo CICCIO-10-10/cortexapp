@@ -641,18 +641,12 @@ body {
     }
 }
 
-/* Allow selection in inputs, transcript e CONTENUTI DI LETTURA
-   (brano/domanda TOLC, risposte, flashcard, riassunto IA):
-   gli studenti evidenziano/copiano il testo senza click morti. */
+/* Allow selection in inputs and transcript */
 input,
 textarea,
 [contenteditable="true"],
 .transcript-container,
-.selectable-text,
-.tolc-opt,
-.tolc-pick,
-.flip-text,
-#ai-summary-text {
+.selectable-text {
     -webkit-user-select: text;
     user-select: text;
 }

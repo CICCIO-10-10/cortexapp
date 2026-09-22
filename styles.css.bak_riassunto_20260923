@@ -641,18 +641,12 @@ body {
     }
 }
 
-/* Allow selection in inputs, transcript e CONTENUTI DI LETTURA
-   (brano/domanda TOLC, risposte, flashcard, riassunto IA):
-   gli studenti evidenziano/copiano il testo senza click morti. */
+/* Allow selection in inputs and transcript */
 input,
 textarea,
 [contenteditable="true"],
 .transcript-container,
-.selectable-text,
-.tolc-opt,
-.tolc-pick,
-.flip-text,
-#ai-summary-text {
+.selectable-text {
     -webkit-user-select: text;
     user-select: text;
 }
@@ -6244,12 +6238,10 @@ body.light .community-filter-pill {
 .card-sub-actions {
     display: flex;
     gap: 6px;
-    flex-wrap: wrap;
 }
 
 .btn-deck-action {
-    flex: 1 1 auto;
-    min-width: 88px;
+    flex: 1;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -6276,7 +6268,6 @@ body.light .community-filter-pill {
     color: #ef4444;
 }
 .btn-deck-more { flex: 0 0 auto; padding: 9px 10px; }
-.deck-more-menu .btn-deck-action { flex: 0 0 auto; }
 
 .btn-icon-nebula {
     flex: 1;
