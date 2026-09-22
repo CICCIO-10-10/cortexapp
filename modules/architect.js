@@ -24,6 +24,7 @@ import { t } from '../core/i18n.js';
 import { awardXP }          from './gamification.js';
 import { fetchWithTimeout, todayStr }  from '../js/utils.js';
 import { callGemini }        from '../services/firebase.js';
+import { track }             from '../core/analytics.js';
 
 // ── Dependency injection ──────────────────────────────────────────────────────
 
@@ -685,6 +686,7 @@ Le domande devono essere brevi e precise. Le risposte complete ma concise (max 2
         }
 
         _deps.showToast(`✅ Mazzo "${newDeck.name}" creato con ${newDeck.cards.length} card!`, 'success');
+        track('cards_generated', { count: newDeck.cards.length, flow: 'quick_topic', tracking_version: 2 });
 
         // Naviga a Materiale e re-renderizza la lista mazzi
         if (typeof window.showPage === 'function') {
@@ -764,6 +766,7 @@ Domande brevi e precise. Risposte complete ma concise (max 3 righe).`;
         try { localStorage.removeItem('cortex_uni_insegnamento'); } catch (e) {}
 
         _deps.showToast(`✅ Kit "${newDeck.name}" pronto: ${newDeck.cards.length} flashcard + quiz!`, 'success');
+        track('cards_generated', { count: newDeck.cards.length, flow: 'unime_kit', tracking_version: 2 });
         if (typeof window.showPage === 'function') window.showPage('materiale');
         setTimeout(() => {
             if (typeof window.renderDecks === 'function') window.renderDecks();

@@ -208,7 +208,12 @@ export function triggerOnboardingOverlay() {
         const authOverlay = document.getElementById('auth-overlay');
         const onboarding  = document.getElementById('onboarding-overlay');
         if (!authOverlay || authOverlay.classList.contains('hidden') || authOverlay.style.display === 'none') {
-            if (onboarding) onboarding.style.display = 'flex';
+            if (onboarding) {
+                onboarding.style.display = 'flex';
+                // Evento REALE: l'overlay è ora davvero mostrato. onboarding_start parte 1.2s prima
+                // e anche sui deep-link ?sim=tolc → sovrastima. Usare questo per il funnel onboarding.
+                track('onboarding_shown', { is_instagram: isInstagram });
+            }
         }
     }, 1200);
 }

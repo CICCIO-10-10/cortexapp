@@ -157,6 +157,7 @@ function _start(key) {
   const secs = Math.max(180, baseSecs + engSecs);
   _state = { key: key, test: t, qs: qs, i: 0, answers: new Array(qs.length).fill(null), checked: new Array(qs.length).fill(false), left: secs, running: true };
   _renderQ();
+  track('tolc_test_start', { test: key });   // avvio REALE della prova (1a domanda mostrata), distinto da tolc_sim_open (= apertura selettore)
   _clearTimer();
   _timer = setInterval(function () {
     if (!_state) return;
@@ -492,7 +493,7 @@ document.addEventListener('click', function (e) {
   if (id === 'tolc-consegna') return _finish();
   if (id === 'tolc-annulla-consegna') { if (_state) _renderQ(); return; }
   if (id === 'tolc-next') return _next();
-  if (opt && _state) { if (_state.checked[_state.i]) return; _state.answers[_state.i] = parseInt(opt.getAttribute('data-idx'), 10); _renderQ(); }
+  if (opt && _state) { if (_state.checked[_state.i]) return; _state.answers[_state.i] = parseInt(opt.getAttribute('data-idx'), 10); if (!_state._firstAns) { _state._firstAns = true; track('tolc_first_answer', { test: _state.key }); } _renderQ(); }
 });
 
 if (typeof window !== 'undefined') window.openTolcSim = openTolcSim;

@@ -2,6 +2,11 @@
 
 *Cortex · cortexapp.it — settembre 2026*
 
+> ## ✅ Aggiornamento 2026-09-22 — il piano ha funzionato
+> Search Console (dato **live**, agg. 18/09): **215 indicizzate / 42 non indicizzate.** Quando questo piano è stato scritto erano 75/192 (e 8/263 il 3/09).
+> Le 42 non indicizzate: **3** "escluse per tag noindex" + **21** "scansionata ma non indicizzata" + **18** "rilevata ma non indicizzata" + **0** "duplicata senza canonico".
+> → **Livello 2 Opzione B applicato ~16/09** (noindex sulle pagine-provincia + rimozione dalla sitemap + link interni): il numero "non indicizzate" è crollato da 192 a 42 e le indicizzate sono salite a 215. Il testo sotto resta come storico/razionale del piano.
+
 ---
 
 ## La situazione in 4 righe
