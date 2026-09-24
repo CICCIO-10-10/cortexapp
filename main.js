@@ -63,6 +63,7 @@ import { init as initCalendar, renderCalendar, calNav }   from './modules/calend
 import { init as initQuiz,
          startQuiz, answerQuiz, closeQuiz }                from './modules/quiz.js';
 import { init as initDecks, renderDecks }                  from './modules/decks.js';
+import { registerLezioneGlobals }                          from './modules/lezione.js';
 import { init as initHome,
          renderHome }                      from './modules/home.js';
 import { init as initCommunity,
@@ -151,7 +152,7 @@ import { initCookieBanner, injectAgeCheck, validateAgeConsent,
 import { registerDuelsGlobals, init as initDuels }                          from './modules/neuralDuels.js';
 
 // --- NEW FEATURE MODULES ---
-import { initNotifications }                                                  from './services/notifications.js';
+import { initNotifications, requestNotificationPermission }                   from './services/notifications.js';
 import { checkAndSendWeeklyReport }                                           from './services/neuralCoach.js';
 import { initWidget, updateWidgetData }                                      from './services/widget.js';
 import { initSocialProfile }                                                 from './services/socialProfile.js';
@@ -799,7 +800,12 @@ hydrateFromIDB().then((updated) => {
 // Usato dalla pagina /simulazione-tolc: l'utente clicca e sta già simulando, niente muro.
 (function handleDeepSimTolc() {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('sim') !== 'tolc') return;
+    const rawSim = params.get('sim') || '';
+    // "tolc" = generico (mostra il selettore); "tolc-<codice>" (es. tolc-psi) = apri
+    // DRITTO quel TOLC sulla prima domanda, senza passaggio decisionale intermedio.
+    if (rawSim !== 'tolc' && rawSim.indexOf('tolc-') !== 0) return;
+    // La chiave in TOLC_TESTS è proprio "tolc-i", "tolc-psi", ecc. (minuscolo, col prefisso).
+    const tolcCode = rawSim.indexOf('tolc-') === 0 ? rawSim.toLowerCase() : null;
     try { localStorage.setItem('cortex_guest', '1'); } catch (e) {}
     window.history.replaceState({}, '', '/app');
     let tries = 0;
@@ -807,9 +813,16 @@ hydrateFromIDB().then((updated) => {
         tries++;
         if (typeof window.openTolcSim === 'function') {
             clearInterval(iv);
-            try { window.openTolcSim(); } catch (e) {}
+            try {
+                if (tolcCode && typeof window.startTolcDirect === 'function') window.startTolcDirect(tolcCode);
+                else window.openTolcSim();
+            } catch (e) { try { window.openTolcSim(); } catch (_e) {} }
+            var _sp = document.getElementById('sim-boot-splash');
+            if (_sp) setTimeout(function () { _sp.remove(); }, 250);
         } else if (tries > 40) {
             clearInterval(iv);
+            var _sp2 = document.getElementById('sim-boot-splash');
+            if (_sp2) _sp2.remove();
         }
     }, 150);
 })();
@@ -958,6 +971,9 @@ register('savePdfAIDeck',        savePdfAIDeck);
 register('closePdfAI',           closePdfAI);
 register('triggerPdfAIUpload',   () => document.getElementById('pdf-ai-input')?.click());
 
+// -- Lezione → Studio (feature "Importa lezione", RF-17) --
+registerLezioneGlobals(register);
+
 // -- UI & Settings --
 register('showToast',         showToast);
 register('showPaywall',       showPaywall);
@@ -1044,6 +1060,7 @@ register('hardRefresh',            () => { localStorage.clear(); location.reload
 register('openArchitect',    openArchitect);
 register('openQuickMode',    openQuickMode);
 register('openTolcSim',      openTolcSim);
+register('requestNotifications', requestNotificationPermission); // FIX: bottoni "Attiva" push
 register('closeArchitect',   closeArchitect);
 register('saveArchAnswer',       saveArchAnswer);
 register('saveArchAnswerText',   saveArchAnswerText);

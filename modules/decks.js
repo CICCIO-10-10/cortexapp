@@ -1,4 +1,5 @@
 import { t } from '../core/i18n.js';
+import { getActiveEvent, buildEventBanner } from '../services/seasonalEvents.js';
 /**
  * modules/decks.js — Cortex Nebula
  *
@@ -63,6 +64,9 @@ export function renderDecks() {
                 <button class="btn btn-outline" data-fn="promptImportDeck" style="padding:10px 16px; border-radius:12px; font-weight:700; border:1px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.04);">
                     📥 Importa
                 </button>
+                <button class="btn btn-outline" data-fn="openImportaLezione" style="padding:10px 16px; border-radius:12px; font-weight:700; border:1px solid rgba(139,92,246,0.35); background:rgba(139,92,246,0.10); color:#c084fc;">
+                    🎓 Importa lezione
+                </button>
                 <button class="btn btn-primary" data-fn="showView" data-params='["CreateDeckView"]' style="padding:10px 24px; border-radius:12px; font-weight:700; background:var(--accent-nebula); border:none; box-shadow:0 8px 24px var(--accent-glow);">
                     + Nuova Materia
                 </button>
@@ -99,6 +103,9 @@ export function renderDecks() {
                 </div>
                 <button data-fn="showView" data-params='["CreateDeckView"]' style="width:100%; max-width:340px; padding:16px; border-radius:14px; font-weight:800; font-size:1.05rem; color:#fff; background:var(--accent-nebula, #7c3aed); border:none; cursor:pointer; box-shadow:0 10px 30px var(--accent-glow, rgba(124,58,237,0.45));">
                   &#10024; Crea il primo mazzo
+                </button>
+                <button data-fn="openImportaLezione" style="width:100%; max-width:340px; margin-top:12px; padding:14px; border-radius:14px; font-weight:800; font-size:1rem; color:#c084fc; background:rgba(139,92,246,0.10); border:1px solid rgba(139,92,246,0.35); cursor:pointer;">
+                  🎓 Importa una lezione &rarr; flashcard
                 </button>
                 <div style="margin-top:14px;">
                   <button data-fn="promptImportDeck" style="background:none; border:none; color:var(--text-muted); font-size:0.9rem; text-decoration:underline; cursor:pointer;">oppure importa un mazzo che hai gi&agrave;</button>
@@ -177,6 +184,7 @@ export function renderDecks() {
 
                     <!-- Menu espanso "Altro" -->
                     <div id="more-menu-${i}" class="deck-more-menu" style="display:none; flex-wrap:wrap; gap:8px; margin-top:8px;">
+                        ${d.hasLesson ? `<button class="btn-deck-action" data-fn="openLezioneNota" data-params="[${i}]"><span>&#128214;</span> Lezione</button>` : ''}
                         <button class="btn-deck-action" data-fn="openMindMap" data-params="[${i}]">
                             <span>&#128506;&#65039;</span> Mind Map
                         </button>
@@ -234,5 +242,13 @@ export function renderDecks() {
       }
     } catch(e){}
     container.innerHTML = headerHtml + pushNudge + '<div class="nebula-grid">' + listHtml + ghostHtml + '</div>';
+    // Banner evento stagionale (spostato dalla Home 23/09/2026): in cima a Materiale.
+    try {
+        const _ev = getActiveEvent();
+        if (_ev) {
+            const _b = buildEventBanner(_ev);
+            if (_b) { _b.style.margin = '0 10px 20px'; container.insertBefore(_b, container.firstChild); }
+        }
+    } catch (e) {}
     window.cortexUpdateUIStrings?.();
 }

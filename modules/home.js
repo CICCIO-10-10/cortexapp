@@ -467,7 +467,7 @@ export function renderHome() {
 
             <!-- Same widgets and handlers, after the student's next actions. -->
             <div id="daily-quiz-slot"></div>
-            <div id="home-event-banner-slot"></div>
+            <!-- Banner evento stagionale SPOSTATO in Materiale (23/09/2026) -->
 
             <!-- Neural Trainer (AI insight) — full width, async -->
             <div id="neural-trainer-container" style="margin-bottom: 28px;"></div>
@@ -530,7 +530,7 @@ export function renderHome() {
 
                 <!-- Neural Duels card -->
                 <article class="glass nebula-card" data-fn="openNeuralDuels" style="padding: 24px; border-radius: 20px; border: 1px solid rgba(124,106,247,0.18); background: linear-gradient(135deg, rgba(124,106,247,0.06), rgba(239,68,68,0.04)); cursor:pointer; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 12px 40px rgba(124,106,247,0.2)'" onmouseout="this.style.transform='none';this.style.boxShadow='none'">
-                    <div style="font-size: 2.2rem; margin-bottom: 10px; filter: drop-shadow(0 0 10px rgba(124,106,247,0.5));">⚔️</div>
+                    <div style="font-size: 2rem; margin-bottom: 10px;">⚔️</div>
                     <div style="font-size: 0.65rem; font-weight: 900; color: #7c6af7; text-transform: uppercase; letter-spacing: 0.2em; margin-bottom: 6px; opacity: 0.8;">PvP Live</div>
                     <div style="font-size: 1rem; font-weight: 800; color:var(--text); margin-bottom: 6px; font-family: 'Outfit', sans-serif;">Neural Duels</div>
                     <div style="font-size: 0.78rem; color: rgba(255,255,255,0.4); line-height: 1.4;">${t('home_duels_desc')}</div>
@@ -538,7 +538,7 @@ export function renderHome() {
 
                 <!-- Visual Graph card -->
                 <article class="glass nebula-card" data-fn="openVisualGraph" style="padding: 24px; border-radius: 20px; border: 1px solid rgba(139,92,246,0.18); background: linear-gradient(135deg, rgba(0,212,255,0.04), rgba(139,92,246,0.06)); cursor:pointer; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 12px 40px rgba(0,212,255,0.15)'" onmouseout="this.style.transform='none';this.style.boxShadow='none'">
-                    <div style="font-size: 2.2rem; margin-bottom: 10px; filter: drop-shadow(0 0 10px rgba(0,212,255,0.4));">🌌</div>
+                    <div style="font-size: 2rem; margin-bottom: 10px;">🌌</div>
                     <div style="font-size: 0.65rem; font-weight: 900; color: #00d4ff; text-transform: uppercase; letter-spacing: 0.2em; margin-bottom: 6px; opacity: 0.8;">3D Knowledge</div>
                     <div style="font-size: 1rem; font-weight: 800; color:var(--text); margin-bottom: 6px; font-family: 'Outfit', sans-serif;">Knowledge Graph</div>
                     <div style="font-size: 0.78rem; color: rgba(255,255,255,0.4); line-height: 1.4;">${t('home_graph_desc')}</div>
@@ -554,23 +554,23 @@ export function renderHome() {
                 if (!isTester && hasRequirement) {
                     return `
                     <div id="tester-mission-card-container" style="margin-bottom: 20px;">
-                        <article class="glass nebula-card pulse-border" style="
-                            padding: 28px 32px;
-                            border-radius: 20px;
-                            border: 1px solid rgba(16,185,129,0.3);
-                            background: linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(124,58,237,0.04) 100%);
+                        <article class="glass nebula-card" style="
+                            padding: 18px 22px;
+                            border-radius: 18px;
+                            border: 1px solid rgba(16,185,129,0.20);
+                            background: rgba(16,185,129,0.05);
                             display: flex;
                             align-items: center;
-                            gap: 24px;
+                            gap: 18px;
                             flex-wrap: wrap;
                         ">
-                            <div style="font-size:2.8rem; filter:drop-shadow(0 0 12px rgba(16,185,129,0.5)); flex-shrink:0;">🚀</div>
+                            <div style="font-size:2rem; flex-shrink:0;">🚀</div>
                             <div style="flex:1; min-width:180px;">
                                 <div style="font-size:0.65rem; font-weight:900; color:#10b981; text-transform:uppercase; letter-spacing:0.2em; margin-bottom:5px; opacity:0.9; display:flex; align-items:center; gap:6px;">
                                     <span>Missione Speciale</span>
                                     <span style="background:#10b981; color:#0e0e16; padding:2px 6px; border-radius:4px; font-size:0.55rem; font-weight:900;">PREMIUM</span>
                                 </div>
-                                <div style="font-size:1.1rem; font-weight:900; color:var(--text); margin-bottom:4px; font-family:'Outfit',sans-serif;">
+                                <div style="font-size:1rem; font-weight:800; color:var(--text); margin-bottom:4px; font-family:'Outfit',sans-serif;">
                                     Diventa Tester &amp; Ricevi Cortex Premium Gratis!
                                 </div>
                                 <div style="font-size:0.8rem; color:rgba(255,255,255,0.65); line-height:1.45;">
@@ -583,10 +583,10 @@ export function renderHome() {
                                     background: linear-gradient(135deg, #10b981, #059669);
                                     color: #0e0e16;
                                     border: none;
-                                    border-radius: 14px;
-                                    padding: 14px 30px;
-                                    font-weight: 900;
-                                    font-size: 0.9rem;
+                                    border-radius: 12px;
+                                    padding: 12px 22px;
+                                    font-weight: 800;
+                                    font-size: 0.88rem;
                                     cursor: pointer;
                                     font-family: inherit;
                                     box-shadow: 0 8px 24px rgba(16,185,129,0.35);
@@ -657,17 +657,8 @@ export function renderHome() {
     renderNeuralTrainer();
     try { renderDailyQuiz(); } catch (e) {}
 
-    // Inietta banner evento stagionale (Maturità, Sessione, ecc.) se attivo.
-    // Viene fatto qui (post-render) per garantire che #home-event-banner-slot esista
-    // nel DOM — initSeasonalEvents() ha un problema di timing se chiamato prima di renderHome().
-    const bannerSlot = container.querySelector('#home-event-banner-slot');
-    if (bannerSlot) {
-        const activeEvent = getActiveEvent();
-        if (activeEvent) {
-            const banner = buildEventBanner(activeEvent);
-            if (banner) bannerSlot.replaceChildren(banner);
-        }
-    }
+    // Banner evento stagionale SPOSTATO nella pagina Materiale (23/09/2026):
+    // in Home creava rumore, ora vive in cima a "Le tue materie" (vedi decks.js).
 
     // Carica messaggi di feedback — visibili a tutti, anche senza login
     const tryLoadFeedback = () => {

@@ -57,6 +57,26 @@ export function openTolcSim() {
   track('tolc_sim_open');
 }
 
+// Deep-link: apre DRITTO un TOLC specifico sulla prima domanda (salta selettore + intro).
+// Usato dai CTA "Simula il TOLC-X" via ?sim=tolc-<codice>: meno attrito = più attivazione.
+export function startTolcDirect(key) {
+  const t = TOLC_TESTS[key];
+  // Codice inesistente o banca non pronta → ripiega sul selettore, niente schermata rotta.
+  if (!t || !t.banca || !t.banca.length) { openTolcSim(); return; }
+  _remove();
+  const ov = document.createElement('div');
+  ov.id = 'tolc-sim-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(3,3,6,0.94);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:20px;';
+  document.body.appendChild(ov);
+  ov.addEventListener('click', function (e) {
+    if (e.target !== ov) return;
+    if (_state && (_state.running || _state.finished)) return;
+    _remove();
+  });
+  track('tolc_sim_open', { direct: key });
+  _start(key);
+}
+
 function _selectorHTML() {
   const cards = Object.entries(TOLC_TESTS).map(function (pair) {
     const key = pair[0], t = pair[1];
@@ -405,7 +425,7 @@ function _shareTolc() {
   var ov = _el('tolc-sim-overlay'); if (!ov) return;
   var st2 = _state; if (!st2) return;
   var card = ov.firstElementChild; if (!card) return;
-  try { if (window.track) window.track('tolc_share_click', { test: st2.key }); } catch (e) {}
+  try { track('tolc_share_click', { test: st2.key }); } catch (e) {}
   if (window.showToast) window.showToast('Preparo l\'immagine\u2026', 'info');
   var hide = card.querySelectorAll('#tolc-close, #tolc-enter, #tolc-gen-errors, #tolc-share, #tolc-retry, #tolc-back, .tolc-mode');
   var prev = [];
@@ -459,7 +479,7 @@ document.addEventListener('click', function (e) {
   if (pick) return _intro(pick.getAttribute('data-key'));
   if (id === 'tolc-close') return _remove();
   if (id === 'tolc-enter') {
-    try { if (window.track) window.track('tolc_sim_enter_cortex'); } catch (e) {}
+    try { track('tolc_sim_enter_cortex'); } catch (e) {}
     // CATTURA VERA: converti l'ospite in account (login Google), cosi' i progressi si salvano davvero.
     try { localStorage.setItem('cortex_sim','tolc'); } catch(e){}
     if (typeof window.__guestLogin === 'function') { window.__guestLogin(); return; }
@@ -477,7 +497,7 @@ document.addEventListener('click', function (e) {
         lines.push('[' + (q.s || '') + '] ' + String(q.q || '').replace(/\s+/g, ' ').slice(0, 280) + '\nRisposta corretta: ' + String(corr).slice(0, 160));
       }
     });
-    try { if (window.track) window.track('tolc_errors_generate_click', { n: lines.length }); } catch (e) {}
+    try { track('tolc_errors_generate_click', { n: lines.length }); } catch (e) {}
     if (!lines.length) { if (window.showToast) window.showToast('Nessun errore da ripassare — ottimo! \uD83C\uDF89', 'success'); return; }
     var notes = 'Argomenti che ho SBAGLIATO nella simulazione ' + ((st2.test && st2.test.nome) ? st2.test.nome : 'TOLC') + '. Crea flashcard di ripasso mirate su questi concetti:\n\n' + lines.join('\n\n');
     try { localStorage.setItem('cortex_pending_ai', JSON.stringify({ text: notes, instructions: 'Flashcard di ripasso sugli errori della simulazione TOLC: spiega il concetto corretto, non solo la lettera della risposta.', ts: Date.now() })); } catch (e) {}
@@ -503,4 +523,4 @@ document.addEventListener('click', function (e) {
   if (opt && _state) { if (_state.checked[_state.i]) return; _state.answers[_state.i] = parseInt(opt.getAttribute('data-idx'), 10); if (!_state._firstAns) { _state._firstAns = true; track('tolc_first_answer', { test: _state.key }); } _renderQ(); }
 });
 
-if (typeof window !== 'undefined') window.openTolcSim = openTolcSim;
+if (typeof window !== 'undefined') { window.openTolcSim = openTolcSim; window.startTolcDirect = startTolcDirect; }

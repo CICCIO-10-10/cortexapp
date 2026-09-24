@@ -9,7 +9,10 @@
 const functions = require("firebase-functions/v1");
 const admin = require("firebase-admin");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const { google } = require("googleapis");
+// googleapis è enorme: caricarlo al top-level rallenta ogni cold start e può far sforare
+// il timeout di analisi al deploy ("Cannot determine backend specification"). Lazy-load.
+let _googleapis = null;
+function getGoogle() { if (!_googleapis) _googleapis = require("googleapis").google; return _googleapis; }
 
 admin.initializeApp();
 
@@ -111,7 +114,10 @@ exports.callGeminiHttp = functions.https.onRequest(async (req, res) => {
     res.status(400).json({ error: 'Parametro contents non valido' });
     return;
   }
-  if (JSON.stringify(req.body).length > 50000) {
+  // 1.5MB: prima era 50KB (solo testo). Alzato per supportare le foto inline
+  // (Gemini Vision) della feature "Importa lezione". Il costo resta protetto dal
+  // rate limit giornaliero per utente/piano più sotto.
+  if (JSON.stringify(req.body).length > 1500000) {
     res.status(400).json({ error: 'Payload troppo grande' });
     return;
   }
@@ -256,8 +262,8 @@ exports.dailyStudyReminder = functions.pubsub.schedule('0 19 * * *')
           _ref: doc.ref,
           token,
           notification: {
-            title: '🧠 È ora di ripassare!',
-            body: `Hai ${dueCount} ${dueCount === 1 ? 'mazzo' : 'mazzi'} pronti oggi. Mantieni il tuo streak!`
+            title: '🧠 Non perdere quello che hai imparato',
+            body: `${dueCount} ${dueCount === 1 ? 'ripasso sta' : 'ripassi stanno'} scadendo dalla tua memoria. Bastano 3 minuti per salvarli.`
           },
           android: { notification: { icon: 'https://cortexapp.it/pwa-192x192.png', color: '#8b5cf6' } },
           webpush: { notification: { icon: 'https://cortexapp.it/pwa-192x192.png', badge: 'https://cortexapp.it/pwa-192x192.png' } }
@@ -595,6 +601,7 @@ exports.verifyGooglePlayPurchase = functions.https.onCall(async (data, context) 
   }
 
   // Auth con Google Play Developer API
+  const google = getGoogle();
   const auth = new google.auth.GoogleAuth({
     credentials: serviceAccount,
     scopes: ['https://www.googleapis.com/auth/androidpublisher'],
@@ -957,6 +964,7 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
     let usersActivated = 0;   // activation VERA (activation.activated) da services/activation.js
     let usersNoEmail = 0;     // utenti senza email (anonimi/non-Google): non sono "account Google"
     const registrationByMonth = {};
+    const _noCreated = [];    // FIX 25/09: doc senza createdAt (nati da touchSeen) -> data da Firebase Auth
 
     usersSnap.docs.forEach(doc => {
       if (doc.id === ADMIN_UID) return;  // non contare l'admin tra gli utenti reali
@@ -977,6 +985,8 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
       if (createdAt) {
         const month = `${createdAt.getFullYear()}-${String(createdAt.getMonth() + 1).padStart(2, '0')}`;
         registrationByMonth[month] = (registrationByMonth[month] || 0) + 1;
+      } else {
+        _noCreated.push(doc.id);
       }
     });
 
@@ -1006,6 +1016,7 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
           authAct[u.uid] = {
             lastActive: lastAct ? new Date(lastAct).toISOString().slice(0, 10) : null,
             returned, active7d,
+            createdMs: created, email: u.email || null,
           };
           if (lastAct) usersEverOpened++;
           if (active7d) usersActive7d++;
@@ -1016,6 +1027,19 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
     } catch (e) {
       console.error('[adminDashboard] auth activity error:', e);
     }
+
+    // FIX 25/09/2026: dal 12/09 i nuovi doc utente non hanno createdAt (li crea
+    // touchSeen prima dell'init). Per non perderli, la data d'iscrizione si prende
+    // da Firebase Auth (metadata.creationTime), che è sempre affidabile.
+    let _newTodayExtra = 0;
+    _noCreated.forEach(uid => {
+      const a = authAct[uid];
+      if (!a || !a.createdMs) return;
+      const dt = new Date(a.createdMs);
+      const month = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
+      registrationByMonth[month] = (registrationByMonth[month] || 0) + 1;
+      if (a.createdMs >= todayStart.getTime()) _newTodayExtra++;
+    });
 
     // ── Dettaglio per-utente: cosa fanno DAVVERO nell'app ──
     let usersDetail = [];
@@ -1037,11 +1061,12 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
           const a = authAct[uid] || {};
           return {
             uid: uid.slice(0, 6),
-            email: d.email || null,
+            email: d.email || (authAct[uid] || {}).email || null,
             source: d.source || 'diretto',
             plan: d.plan || 'free',
             sparks: d.sparksBalance || 0,
-            created: d.createdAt?.toDate ? d.createdAt.toDate().toISOString().slice(0, 10) : null,
+            created: d.createdAt?.toDate ? d.createdAt.toDate().toISOString().slice(0, 10)
+                   : ((authAct[uid] || {}).createdMs ? new Date(authAct[uid].createdMs).toISOString().slice(0, 10) : null),
             lastActive: a.lastActive || null,
             returned: !!a.returned,
             active7d: !!a.active7d,
@@ -1185,7 +1210,7 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
       },
       firestore: {
         totalUsers: usersSnap.docs.filter(x => x.id !== ADMIN_UID).length,
-        newUsersToday: newUsersSnap.docs.filter(x => x.id !== ADMIN_UID).length,
+        newUsersToday: newUsersSnap.docs.filter(x => x.id !== ADMIN_UID).length + _newTodayExtra,
         usersByPlan,
         usersWithFCM,
         usersWithSparks,
@@ -1569,6 +1594,7 @@ exports.textToSpeechHttp = functions.https.onRequest(async (req, res) => {
 
   // Chiama Google Cloud TTS via googleapis (usa ADC del service account della Function)
   try {
+    const google = getGoogle();
     const ttsClient = google.texttospeech({ version: 'v1', auth: new google.auth.GoogleAuth({
       scopes: ['https://www.googleapis.com/auth/cloud-platform'],
     })});

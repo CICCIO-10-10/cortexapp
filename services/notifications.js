@@ -84,15 +84,41 @@ export async function requestNotificationPermission() {
 }
 
 async function _getFCMToken() {
-    try {
-        // TODO: sostituire VAPID key con quella reale da Firebase Console
-        // Firebase Console → Project Settings → Cloud Messaging → Web Push certificates
-        const VAPID_KEY = 'TODO_VAPID_KEY_DA_FIREBASE_CONSOLE';
+    // Chiave pubblica VAPID (Web Push) da Firebase Console → Cloud Messaging.
+    // È pubblica lato client: può stare nel bundle.
+    const VAPID_KEY = 'BAJ-5Wxyw_lTw_gRieCu8Lw_qMAAXvpIpe8XUb8Wn_wnLSAOPiUW1XoWiA0Nr7vA-7JXvRtFufzJJPLn8JjikNA';
 
-        if (typeof firebase === 'undefined' || !firebase.messaging) return null;
-        const messaging = firebase.messaging();
-        return await messaging.getToken({ vapidKey: VAPID_KEY });
+    if (typeof firebase === 'undefined' || !firebase.messaging) return null;
+
+    const tryGet = () => firebase.messaging().getToken({ vapidKey: VAPID_KEY });
+
+    try {
+        return await tryGet();
     } catch (e) {
+        // Caso tipico dopo la migrazione del progetto Firebase: in questo browser è rimasta
+        // una push subscription vecchia legata al vecchio applicationServerKey, e Chrome
+        // rifiuta la nuova con "could not retrieve the public key" (AbortError).
+        // Ripuliamo la subscription residua e ritentiamo UNA volta (self-heal per utenti reali).
+        const isPushConflict = !!e && (e.name === 'AbortError' || /public key|subscribe/i.test(String(e.message || e)));
+        if (isPushConflict) {
+            try {
+                const regs = await navigator.serviceWorker.getRegistrations();
+                for (const r of regs) {
+                    const sub = await r.pushManager.getSubscription();
+                    if (sub) await sub.unsubscribe();
+                }
+                console.warn('[Notif] Rimossa subscription push residua, ritento getToken…');
+                return await tryGet();
+            } catch (e2) {
+                console.error(
+                    '[Notif] getToken fallito anche dopo la pulizia della subscription. ' +
+                    'Probabile blocco push a livello di browser/rete (estensione adblock/privacy o firewall che ' +
+                    'blocca i server FCM di Google): NON è un problema di configurazione. ' +
+                    'Testare in incognito o da mobile.', e2
+                );
+                return null;
+            }
+        }
         console.error('[Notif] Errore get FCM token:', e);
         return null;
     }
@@ -331,6 +357,10 @@ async function _isPremiumUser() {
 // ─── Init (da chiamare in main.js dopo login) ─────────────────────────────────
 
 export function initNotifications() {
+    // FIX 23/09/2026: la UI (bottoni "Attiva", nudge push) chiama `requestNotifications`,
+    // ma la funzione reale è `requestNotificationPermission`. Le colleghiamo qui, altrimenti
+    // il click non fa nulla e NESSUN utente attiva le push (ecco lo 0/16 in dashboard).
+    if (typeof window !== 'undefined') window.requestNotifications = requestNotificationPermission;
     // Ascolta visibilitychange per valutare promemoria quando l'app va in background
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {

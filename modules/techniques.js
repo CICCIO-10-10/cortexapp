@@ -130,12 +130,13 @@ export function getTechPageHTML() {
     </div>
     
     <!-- OVERLAY ESERCIZIO PRATICO -->
-    <div id="tech-practice-overlay" class="glass" style="display:none; position:fixed; inset:0; z-index:2000; align-items:center; justify-content:center; padding:20px; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px);">
+    <div id="tech-practice-overlay" style="display:none; position:fixed; inset:0; z-index:5000; align-items:center; justify-content:center; padding:20px; background:rgba(6,6,10,0.86); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);">
         <div class="card" style="width:100%; max-width:600px; max-height:85vh; overflow-y:auto; position:relative; padding:40px; border-radius:24px; border:1px solid rgba(255,255,255,0.1); background:var(--bg-elevated);">
             <button aria-label="Chiudi esercizio" data-fn="closeTechPractice" style="position:absolute; top:20px; right:20px; background:rgba(255,255,255,0.1); border:none; border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:var(--text); font-size:1.2rem; cursor:pointer; transition:background 0.2s;">&times;</button>
             <h2 id="tech-practice-title" style="margin-bottom:24px; font-size:1.8rem; font-weight:800;"></h2>
-            <div id="tech-practice-content" style="font-size:1.1rem; line-height:1.6; color:rgba(255,255,255,0.9);"></div>
-            <textarea id="tech-practice-input" placeholder="Scrivi qui la tua soluzione..." style="display:none; width:100%; min-height:120px; background:rgba(0,0,0,0.3); color:var(--text); border:2px solid rgba(255,255,255,0.1); border-radius:16px; padding:20px; margin-top:24px; font-family:inherit; font-size:1rem; resize:vertical; transition:border-color 0.2s; outline:none;"></textarea>
+            <div id="tech-practice-content" style="font-size:1.05rem; line-height:1.6; color:rgba(255,255,255,0.92);"></div>
+            <label id="tech-practice-label" for="tech-practice-input" style="display:none; margin-top:22px; margin-bottom:8px; font-size:0.8rem; font-weight:700; letter-spacing:0.02em; color:var(--text-muted);">✍️ La tua risposta</label>
+            <textarea id="tech-practice-input" placeholder="Scrivi qui, seguendo la consegna qui sopra…" onfocus="this.style.borderColor='rgba(168,85,247,0.55)'; this.style.boxShadow='none';" onblur="this.style.borderColor='rgba(255,255,255,0.14)'; this.style.boxShadow='none';" style="display:none; width:100%; min-height:120px; background:rgba(255,255,255,0.04); color:var(--text); border:1px solid rgba(255,255,255,0.14); border-radius:14px; padding:14px 16px; font-family:inherit; font-size:1rem; line-height:1.5; resize:vertical; transition:border-color 0.2s; outline:none; box-shadow:none !important; box-sizing:border-box;"></textarea>
             <button aria-label="Invia risposta all'IA per la valutazione" id="tech-practice-submit" class="btn btn-primary" data-fn="submitTechPractice" style="display:none; width:100%; margin-top:24px; padding:16px; border-radius:12px; font-weight:800; font-size:1.1rem;">Invia Risultato all'IA</button>
         </div>
     </div>`;
@@ -171,7 +172,14 @@ export async function startTechExercise(i) {
     currentTechForPractice = TECHNIQUES[i];
     const overlay = document.getElementById('tech-practice-overlay');
     if (!overlay) return;
-    
+    // Sposta l'overlay in <body>: dentro .page-content (che ha un transform) il
+    // position:fixed verrebbe confinato alla colonna e il velo scuro non coprirebbe
+    // tutto lo schermo. In body copre l'intera viewport, senza rettangoli annidati.
+    if (overlay.parentElement !== document.body) {
+        document.querySelectorAll('body > #tech-practice-overlay').forEach(el => { if (el !== overlay) el.remove(); });
+        document.body.appendChild(overlay);
+    }
+
     overlay.style.display = 'flex';
     document.getElementById('tech-practice-title').innerHTML = `${currentTechForPractice.icon} Esercizio: ${currentTechForPractice.name}`;
     const content = document.getElementById('tech-practice-content');
@@ -180,19 +188,31 @@ export async function startTechExercise(i) {
     
     input.style.display = 'none';
     submitBtn.style.display = 'none';
+    const _lbl = document.getElementById('tech-practice-label');
+    if (_lbl) _lbl.style.display = 'none';
     input.value = '';
     
     content.innerHTML = `<div style="text-align:center; padding:40px 0;"><div class="loader-aura" style="width:50px; height:50px; margin:0 auto; border:4px solid var(--accent); border-top-color:transparent; border-radius:50%; animation:spin 1s linear infinite;"></div><p style="margin-top:20px; color:var(--text-muted); font-weight:600;">L'AI sta creando un esercizio sfidante su cui allenarti...</p></div>`;
 
-    const prompt = `Sei il Coach di memoria di Cortex. Crea un esercizio pratico per la tecnica: "${currentTechForPractice.name}".
+    const _steps = (currentTechForPractice.steps || []).map(s => '- ' + s.title).join('\n');
+    const prompt = `Sei un tutor didattico esperto di Cortex. Prepara UN esercizio pratico per allenare davvero la tecnica di studio "${currentTechForPractice.name}".
+
+Descrizione della tecnica: ${currentTechForPractice.summary || ''}
+Passaggi chiave:
+${_steps}
+
+OBIETTIVO: l'esercizio deve far ESEGUIRE il meccanismo specifico di QUESTA tecnica (non un quiz generico), ed essere svolgibile subito scrivendo la risposta nel box di testo.
 
 REGOLE:
-- Usa dati reali e concreti (es. date storiche vere, parole italiane comuni, elementi chimici reali, nomi di città)
-- L'esercizio deve essere risolvibile subito nel box di testo sottostante
-- Sii specifico: indica ESATTAMENTE cosa memorizzare e come rispondere nel box
-- Max 5 righe, lingua italiana, niente markdown complesso
-- Esempio buono per il PAO: "Memorizza queste 5 date: 1789 (Rivoluzione Francese), 1492 (scoperta America), 1945 (fine WWII), 1969 (Luna), 1861 (Unità d'Italia). Nel box scrivi la tua sequenza PAO per ciascuna."
-- Esempio buono per il Palazzo: "Immagina il tuo percorso da casa a scuola. Posiziona questi 5 concetti in ordine: fotosintesi, mitosi, DNA, ATP, ribosoma. Nel box descrivi dove hai messo ciascuno."
+- Adatta il compito alla natura della tecnica:
+  · memoria (Palazzo, PAO, Spaced Repetition) → fornisci elementi concreti da memorizzare e chiedi di applicare il metodo;
+  · comprensione (Feynman, Active Recall, Chunking, Mind Map) → dai un concetto reale e chiedi di spiegarlo, richiamarlo o strutturarlo col metodo;
+  · produttività (Pomodoro, Deep Work) → chiedi di pianificare una sessione reale secondo il metodo;
+  · informatica (Rubber Duck, Traccia di Esecuzione) → fornisci un piccolo snippet o problema e chiedi di applicarvi la tecnica.
+- Usa dati reali e concreti (date storiche vere, concetti reali, snippet validi).
+- La consegna dev'essere SEMPLICE e immediata: UN solo compito, non incastrare più richieste nello stesso esercizio.
+- Chiudi SEMPRE con una riga che inizia con «Scrivi nel box:» e dice esattamente, in modo breve, cosa deve scrivere lo studente.
+- Tono professionale e chiaro. Massimo 5 righe. Italiano. Niente markdown complesso.
 
 Genera ora l'esercizio:`;
 
@@ -200,6 +220,7 @@ Genera ora l'esercizio:`;
         const text = await callGemini(prompt, { temperature: 0.7 });
         content.dataset.originalExercise = text;
         content.innerHTML = _mdToHtml(text);
+        if (_lbl) _lbl.style.display = 'block';
         input.style.display = 'block';
         submitBtn.style.display = 'block';
         setTimeout(() => input.focus(), 100);
@@ -234,9 +255,11 @@ export async function submitTechPractice() {
     
     input.style.display = 'none';
     submitBtn.style.display = 'none';
+    const _lbl2 = document.getElementById('tech-practice-label');
+    if (_lbl2) _lbl2.style.display = 'none';
     content.innerHTML += `<div style="margin-top:32px; padding-top:32px; border-top:1px solid rgba(255,255,255,0.1);"><p style="font-style:italic; color:var(--text-muted); padding:16px; background:rgba(255,255,255,0.02); border-radius:12px;">Soluzione fornita: "${val}"</p><div style="text-align:center; margin-top:24px;"><div class="loader-aura" style="width:40px; height:40px; margin:0 auto; border:3px solid var(--accent); border-top-color:transparent; border-radius:50%; animation:spin 1s linear infinite;"></div><p style="margin-top:16px; font-weight:600; color:var(--text-muted);">Valutazione AI in corso...</p></div></div>`;
 
-    const prompt = `Sei il fantastico Mental Coach di Cortex. Hai appena assegnato questo esercizio sulla tecnica di memoria "${currentTechForPractice.name}":\n\n"${originalExerciseString}"\n\nL'utente ha risposto nel box con:\n"${val}"\n\nValuta in modo preciso se l'applicazione della tecnica è corretta (non importa che sia perfetta, ma che la logica del metodo sia giusta). Assegna un voto secco da 1 a 10. Fornisci un feedback costruttivo e gasante. Max 5 righe. Usa toni entusiasti ma correggi eventuali sbavature.`;
+    const prompt = `Sei un tutor didattico esperto di Cortex. Hai assegnato questo esercizio sulla tecnica "${currentTechForPractice.name}":\n\n"${originalExerciseString}"\n\nRisposta dello studente:\n"${val}"\n\nValuta se ha applicato CORRETTAMENTE il meccanismo della tecnica (conta la logica del metodo, non la perfezione formale). Rispondi in italiano, con tono professionale, incoraggiante ma onesto, in questa struttura esatta:\n- Voto: X/10\n- Cosa hai fatto bene: (1 frase)\n- Cosa migliorare: (1-2 punti concreti e attuabili)\n- Consiglio per padroneggiare la tecnica: (1 frase)\n\nMassimo 6 righe totali. Niente markdown complesso.`;
 
     try {
         const text = await callGemini(prompt, { temperature: 0.6 });

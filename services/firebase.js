@@ -91,6 +91,12 @@ export function getFirestoreDB() {
             apiKey:    localStorage.getItem('fb_api_key')    || 'AIzaSyA2Nnu6CYVauecQZQhvr4mud3aYJbdDVx0',
             authDomain:localStorage.getItem('fb_auth_domain')|| 'cortexapp.it',
             projectId: localStorage.getItem('fb_project_id') || 'cortex-74a4e',
+            // FIX 23/09/2026: aggiunti storageBucket/messagingSenderId/appId — senza appId
+            // FCM (getToken) falliva con "Missing App configuration value: appId".
+            storageBucket: 'cortex-74a4e.firebasestorage.app',
+            messagingSenderId: '453795160523',
+            appId: '1:453795160523:web:43307c7a9b909e3737d64e',
+            measurementId: 'G-DFJ42477QK',
         };
         if (config.apiKey && config.authDomain && config.projectId) {
             firebaseApp = firebase.initializeApp(config);
@@ -181,6 +187,11 @@ export async function initFirebase() {
         apiKey:    localStorage.getItem('fb_api_key')    || 'AIzaSyA2Nnu6CYVauecQZQhvr4mud3aYJbdDVx0',
         authDomain:localStorage.getItem('fb_auth_domain')|| 'cortexapp.it',
         projectId: localStorage.getItem('fb_project_id') || 'cortex-74a4e',
+        // FIX 23/09/2026: campi necessari a FCM (senza appId getToken fallisce).
+        storageBucket: 'cortex-74a4e.firebasestorage.app',
+        messagingSenderId: '453795160523',
+        appId: '1:453795160523:web:43307c7a9b909e3737d64e',
+        measurementId: 'G-DFJ42477QK',
     };
     if (fbConfig.apiKey && fbConfig.authDomain && fbConfig.projectId) { // Changed condition and variable name
         try {
@@ -408,7 +419,25 @@ export async function loadFromCloud() {
         // alle stats) e i progressi fatti da ospite non venivano mai caricati sul cloud
         // finché l'utente non salvava un nuovo mazzo. Ora: creiamo il doc e pushiamo
         // subito tutti i dati locali (mazzi, gamification) con syncToCloud().
-        if (!doc.exists) {
+        // FIX 25/09/2026 — dal 12/09 il doc utente nasceva PRIMA di qui, creato da
+        // touchSeen()/bumpActivation() (services/activation.js, set merge) → doc.exists
+        // era già true e questo blocco veniva saltato: niente createdAt/email/plan e
+        // niente sync dei mazzi ospite. Utenti invisibili a dashboard e email D1/D3.
+        // Ora: si inizializza anche se il doc esiste ma NON ha createdAt, senza
+        // sovrascrivere campi già presenti (plan, refCode, referredBy).
+        const _existing = doc.exists ? (doc.data() || {}) : null;
+        // Doc senza createdAt MA con dati cloud (mazzi già sincronizzati): si
+        // completano solo i campi mancanti e si prosegue col caricamento normale
+        // (niente syncToCloud, che potrebbe spingere uno stato locale vuoto).
+        if (_existing && !_existing.createdAt &&
+            (_existing.migratedToSubcollections || (Array.isArray(_existing.decksMetadata) && _existing.decksMetadata.length))) {
+            try {
+                const _p = { createdAt: (_existing.activation && _existing.activation.firstSeen) || firebase.firestore.FieldValue.serverTimestamp() };
+                if (!_existing.email && window._cortexUserEmail) _p.email = window._cortexUserEmail;
+                if (!_existing.plan) _p.plan = 'free';
+                await _db.collection('users').doc(window._fbUserId).set(_p, { merge: true });
+            } catch (e) { console.warn('[Firebase] completamento doc utente fallito:', e); }
+        } else if (!doc.exists || !_existing.createdAt) {
             const uid = window._fbUserId;
             let localDecksCount = 0;
             try {
@@ -417,15 +446,18 @@ export async function loadFromCloud() {
                     || []).length;
             } catch (_) {}
             try {
-                await _db.collection('users').doc(uid).set({
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    email:     window._cortexUserEmail || null,
-                    plan:      'free',
-                    refCode:   uid.slice(0, 8),
-                    referredBy: (function(){try{return localStorage.getItem('cortex_ref')||null;}catch(e){return null;}})(),
+                const _ex = _existing || {};
+                const _init = {
+                    // se il doc è nato da touchSeen, la data vera d'iscrizione è activation.firstSeen
+                    createdAt: (_ex.activation && _ex.activation.firstSeen) || firebase.firestore.FieldValue.serverTimestamp(),
                     migratedToSubcollections: true
-                }, { merge: true });
-                localStorage.setItem('cortex_user_plan', 'free');
+                };
+                if (!_ex.email)      _init.email      = window._cortexUserEmail || null;
+                if (!_ex.plan)       _init.plan       = 'free';
+                if (!_ex.refCode)    _init.refCode    = uid.slice(0, 8);
+                if (!_ex.referredBy) _init.referredBy = (function(){try{return localStorage.getItem('cortex_ref')||null;}catch(e){return null;}})();
+                await _db.collection('users').doc(uid).set(_init, { merge: true });
+                if (!_ex.plan) localStorage.setItem('cortex_user_plan', 'free');
                 window._cortexPlanVerified = true;
                 // Push dei progressi ospite (mazzi + gamification) sul cloud
                 await syncToCloud();

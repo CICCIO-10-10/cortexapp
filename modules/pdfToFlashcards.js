@@ -603,6 +603,9 @@ export function savePdfAIDeck() {
     // BUG FIX "mazzo sparito": window.saveState NON e' mai stato esposto su
     // window — il check falliva in silenzio e il mazzo restava solo in RAM,
     // svanendo al primo reload. Ora importiamo la saveState vera.
+    // HOOK opzionale (feature Lezione → Studio): lega la nota+foto al mazzo appena
+    // creato/aggiornato. No-op per tutti gli altri flussi (globale assente).
+    try { if (typeof window !== 'undefined' && window.__cortexAttachLesson) window.__cortexAttachLesson(newDeck || _materia); } catch (_) {}
     saveState();
     track('generated_cards_saved', { count: _newCards.length, flow: 'pdf_photo_text', tracking_version: 2 });
 

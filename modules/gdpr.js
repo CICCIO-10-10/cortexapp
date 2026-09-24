@@ -79,6 +79,17 @@ export function initCookieBanner() {
 
 function _setCookieConsent(choice) {
     localStorage.setItem(COOKIE_KEY, choice);
+    // 25/09/2026: comunica la scelta a Microsoft Clarity (ConsentV2). Senza questo
+    // segnale Clarity, per gli utenti UE, non usa cookie e spezza ogni pagina in
+    // una sessione nuova. 'declined' = resta senza cookie. Mai bloccante.
+    try {
+        if (typeof window.clarity === 'function') {
+            window.clarity('consentv2', {
+                ad_Storage: 'denied',
+                analytics_Storage: choice === 'accepted' ? 'granted' : 'denied'
+            });
+        }
+    } catch (_) {}
     const banner = document.getElementById('gdpr-cookie-banner');
     if (banner) banner.remove();
 }

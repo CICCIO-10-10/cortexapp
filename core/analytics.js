@@ -13,7 +13,10 @@ let _analytics = null;
 // Only action names, never documents, answers, email addresses or event metadata.
 const CLARITY_STEPS = new Set(['app_open', 'onboarding_start', 'onboarding_shown', 'onboarding_complete',
     'cards_generated', 'cards_saved', 'generated_cards_saved', 'study_session_start',
-    'study_session_completed', 'activated', 'tolc_sim_open', 'tolc_test_start', 'tolc_first_answer', 'tolc_sim_complete']);
+    'study_session_completed', 'activated', 'tolc_sim_open', 'tolc_test_start', 'tolc_first_answer', 'tolc_sim_complete',
+    'lezione_aperta', 'lezione_foto_ocr', 'lezione_strutturata', 'lezione_riassunto', 'lezione_genera', 'lezione_mazzo_salvato',
+    // 25/09/2026: ponte TOLC -> studio, per vederlo negli imbuti Clarity
+    'tolc_errors_generate_click', 'tolc_sim_enter_cortex', 'tolc_share_click']);
 
 /**
  * Inizializza Analytics (chiamato una volta dal bootstrap dopo firebase.initializeApp).

@@ -6,6 +6,7 @@
   <link rel="canonical" href="https://cortexapp.it/app">
 
 <script type="text/javascript">(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window, document, "clarity", "script", "y5ldvczo6y");</script>
+<script src="/cortex-consent.js" defer></script>
 <script type="text/javascript">
 /* Cortex: aggancia l'utente loggato a Clarity (uid + email come tag filtrabili),
    così le registrazioni si ritrovano per singolo utente. 0 impatto su UX. */
@@ -238,6 +239,10 @@
 </head>
 
 <body class="dark cortex-product">
+    <!-- SPLASH TOLC (23/09/2026): chi arriva con ?sim vede SUBITO "Preparo la simulazione TOLC",
+         non lo skeleton generico né un flash di login. Attacca il rimbalzo a 1s del traffico TOLC.
+         Rimosso da main.js (handleDeepSimTolc) quando la simulazione si apre. -->
+    <script>(function(){try{var _sv=(new URLSearchParams(location.search).get('sim')||'');if(_sv==='tolc'||_sv.indexOf('tolc-')===0){var d=document.createElement('div');d.id='sim-boot-splash';d.style.cssText='position:fixed;inset:0;z-index:100000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#08080f;color:#e8e8ee;font-family:system-ui,-apple-system,sans-serif;text-align:center;padding:24px;';d.innerHTML='<div style="font-size:2.6rem">🎯</div><div style="font-size:1.15rem;font-weight:800">Preparo la tua simulazione TOLC…</div><div style="font-size:.85rem;color:rgba(255,255,255,.5)">un attimo, ci siamo</div><div style="width:34px;height:34px;border:3px solid rgba(168,85,247,.3);border-top-color:#a855f7;border-radius:50%;margin-top:6px;animation:sbspin .9s linear infinite"></div><style>@keyframes sbspin{to{transform:rotate(360deg)}}</style>';(document.body||document.documentElement).appendChild(d);setTimeout(function(){var s=document.getElementById('sim-boot-splash');if(s)s.remove();},8000);}}catch(e){}})();</script>
     <link rel="stylesheet" href="/cortex-product.css">
     <!-- SKELETON SCREEN — visibile prima del bundle JS (FCP fix) -->
     <div id="cortex-skeleton" role="progressbar" aria-label="Cortex in caricamento...">
@@ -356,7 +361,8 @@
                 <span class="label" data-i18n="nav_material">Materiale</span></button>
             <button aria-label="Accedi al network e alle statistiche" class="nav-tab" data-fn="showCommunity" id="tab-community"><span class="icon">🌍</span>
                 <span class="label">Network & Stats</span></button>
-            <button aria-label="Ascolta le tue lezioni" class="nav-tab" data-fn="showAudio" id="tab-audio"><span
+            <!-- Lezioni NASCOSTO (23/09/2026): l'app punta al modello Notebook (solo appunti/registrazioni dentro le materie). Codice conservato, riattivabile togliendo display:none. -->
+            <button aria-label="Ascolta le tue lezioni" class="nav-tab" data-fn="showAudio" id="tab-audio" style="display:none;"><span
                     class="icon">🎙️</span>
                 <span class="label">Lezioni</span></button>
         </div>
