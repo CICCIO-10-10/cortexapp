@@ -126,7 +126,7 @@ export function injectGamPanel() {
                     </div>
                     <div style="margin-left:auto;text-align:right;">
                         <div style="font-size:1.5rem;font-weight:900;color:var(--accent);">${gState.xp} XP</div>
-                        <div class="streak-chip">🔥 ${gState.streak} ${t('stats_streak_days')}</div>
+                        <div class="streak-chip">🔥 ${gState.streak} ${t(gState.streak === 1 ? 'stats_streak_day' : 'stats_streak_days')}</div>
                     </div>
                 </div>
                 ${next ? `<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;">${xpInLevel} / ${xpForNext} XP → ${next.icon} ${next.name}</div><div class="xp-bar-wrap"><div class="xp-bar" style="width:${pct}%"></div></div>` : `<div style="color:var(--gold);font-size:0.85rem;font-weight:700;">⚡ ${t('stats_max_level')}</div>`}

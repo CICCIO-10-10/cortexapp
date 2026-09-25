@@ -313,6 +313,7 @@ export async function testFirebaseConnection() {
  * i metadati nel documento radice e il payload completo nella sub-collection.
  */
 let _syncInFlight = false;
+function _cleanForFs(v) { try { return v == null ? v : JSON.parse(JSON.stringify(v)); } catch (_) { return v; } }
 export async function syncToCloud(deckId = null) {
     if (!firebase?.apps?.length || !window._fbUserId) return;
     // Hardening: se una sync e' gia' in corso non accodarne altre —
@@ -347,21 +348,26 @@ async function _syncToCloudInner(deckId = null) {
             ).length;
             return {
                 id:          d.id || Date.now(),
-                name:        d.name,
+                // FIX 26/09: i mazzi demo hanno 'title' e non 'name' → name undefined → Firestore rifiuta tutto
+                name:        d.name || d.title || '',
                 subject:     d.subject || '',
                 examDate:    d.examDate || '',
                 studyMethod: d.studyMethod || 'cortex',
                 cardsCount:  cards.length,
                 dueCount:    computedDueCount,
-                updatedAt:   firebase.firestore.FieldValue.serverTimestamp()
+                // FIX 26/09/2026 (GRAVE): serverTimestamp() NON è ammesso dentro un array
+                // (decksMetadata è un array) → batch.set lanciava un errore e OGNI sync
+                // falliva in silenzio: nessun mazzo arrivava sul cloud (lastSync fermo a luglio).
+                updatedAt:   firebase.firestore.Timestamp.now()
             };
         });
 
         const rootData = {
             decksMetadata: decksMetadata,
-            sessions:      legacyState?.sessions      || [],
-            recordings:    legacyState?.recordings    || [],
-            gamification:  window.gState              || null,
+            // FIX 26/09: copie "pulite" via JSON (un solo campo undefined fa rifiutare TUTTO il batch)
+            sessions:      _cleanForFs(legacyState?.sessions   || []),
+            recordings:    _cleanForFs(legacyState?.recordings || []),
+            gamification:  _cleanForFs(window.gState           || null),
             // FIX 25/09/2026 (GRAVE): 'plan' NON va piu' scritto dal client.
             // Le regole Firestore proteggono i campi di abbonamento: se il doc
             // utente non ha gia' plan identico (i doc nati da touchSeen non ce
@@ -378,8 +384,11 @@ async function _syncToCloudInner(deckId = null) {
             const deck = (legacyState?.decks || []).find(d => d.id === deckId);
             if (deck) {
                 const deckRef = userRef.collection('decks').doc(deckId.toString());
+                // FIX 26/09: copia "pulita" (via JSON) — un campo undefined faceva fallire il batch
+                let plainDeck = deck;
+                try { plainDeck = JSON.parse(JSON.stringify(deck)); } catch (_) {}
                 batch.set(deckRef, {
-                    ...deck,
+                    ...plainDeck,
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
             }

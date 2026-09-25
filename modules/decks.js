@@ -55,19 +55,19 @@ export function renderDecks() {
     if (!container) return;
 
     const headerHtml = `
-        <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:24px; padding:0 10px;">
+        <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:14px; margin-bottom:24px; padding:0 10px;">
             <div>
                 <h2 style="font-size:1.8rem; font-weight:800; color:var(--text); margin:0;">I Tuoi Mazzi</h2>
                 <p style="color:var(--text-muted); font-size:0.9rem; margin-top:4px;">${state.decks.length} ${t('deck_subjects_active')}</p>
             </div>
-            <div style="display:flex; gap:12px;">
-                <button class="btn btn-outline" data-fn="promptImportDeck" style="padding:10px 16px; border-radius:12px; font-weight:700; border:1px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.04);">
+            <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                <button class="btn btn-outline" data-fn="promptImportDeck" style="white-space:nowrap; padding:10px 16px; border-radius:12px; font-weight:700; border:1px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.04);">
                     📥 Importa
                 </button>
-                <button class="btn btn-outline" data-fn="openImportaLezione" style="padding:10px 16px; border-radius:12px; font-weight:700; border:1px solid rgba(139,92,246,0.35); background:rgba(139,92,246,0.10); color:#c084fc;">
+                <button class="btn btn-outline" data-fn="openImportaLezione" style="white-space:nowrap; padding:10px 16px; border-radius:12px; font-weight:700; border:1px solid rgba(139,92,246,0.35); background:rgba(139,92,246,0.10); color:#c084fc;">
                     🎓 Importa lezione
                 </button>
-                <button class="btn btn-primary" data-fn="showView" data-params='["CreateDeckView"]' style="padding:10px 24px; border-radius:12px; font-weight:700; background:var(--accent-nebula); border:none; box-shadow:0 8px 24px var(--accent-glow);">
+                <button class="btn btn-primary" data-fn="showView" data-params='["CreateDeckView"]' style="white-space:nowrap; padding:10px 20px; border-radius:12px; font-weight:700; background:var(--accent-nebula); border:none; box-shadow:0 8px 24px var(--accent-glow);">
                     + Nuova Materia
                 </button>
             </div>

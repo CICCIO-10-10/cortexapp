@@ -210,7 +210,13 @@ export function triggerOnboardingOverlay() {
 
     track('onboarding_start', { is_instagram: isInstagram });
 
-    setTimeout(() => {
+    // FIX 25/09/2026: chi arriva con ?sim=tolc vedeva l'onboarding aprirsi SOTTO il
+    // simulatore (due overlay insieme). Ora, se il simulatore TOLC è in arrivo o aperto,
+    // l'onboarding aspetta che venga chiuso e solo dopo si mostra (se serve ancora).
+    const _simArrival = !!document.getElementById('sim-boot-splash') || /[?&]sim=/.test(window.location.search);
+    const _simBusy = () => !!(document.getElementById('tolc-sim-overlay') || document.getElementById('sim-boot-splash') || document.getElementById('tolc-exit-ask'));
+    const _showOverlay = () => {
+        if (localStorage.getItem('cortex_onboarded') === '1') return;
         const authOverlay = document.getElementById('auth-overlay');
         const onboarding  = document.getElementById('onboarding-overlay');
         if (!authOverlay || authOverlay.classList.contains('hidden') || authOverlay.style.display === 'none') {
@@ -218,9 +224,20 @@ export function triggerOnboardingOverlay() {
                 onboarding.style.display = 'flex';
                 // Evento REALE: l'overlay è ora davvero mostrato. onboarding_start parte 1.2s prima
                 // e anche sui deep-link ?sim=tolc → sovrastima. Usare questo per il funnel onboarding.
-                track('onboarding_shown', { is_instagram: isInstagram });
+                track('onboarding_shown', { is_instagram: isInstagram, after_sim: _simArrival });
             }
         }
+    };
+
+    setTimeout(() => {
+        if (!_simArrival && !_simBusy()) return _showOverlay();
+        let seen = _simBusy(), waited = 0;
+        const iv = setInterval(() => {
+            waited += 1000;
+            if (_simBusy()) { seen = true; return; }
+            // Il simulatore è stato aperto e poi chiuso, oppure non è mai partito (15 s)
+            if (seen || waited >= 15000) { clearInterval(iv); _showOverlay(); }
+        }, 1000);
     }, 1200);
 }
 

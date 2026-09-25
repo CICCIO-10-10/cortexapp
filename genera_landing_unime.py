@@ -99,7 +99,7 @@ def build_page(corso, ins_list, correlati=None, canon_slug=None):
             body += _sec("Modalità d'esame", i.get("verifica"), 350)
             body += _sec("Testi / bibliografia", i.get("testi"), 450)
             if not has_prog:
-                body += '<p class="hint" style="margin:8px 0">Programma non ancora pubblicato dal docente per il 2026/2027 — Cortex genera comunque flashcard e ripasso dal titolo dell\'insegnamento.</p>'
+                body += '<p class="hint" style="margin:8px 0">Il programma 2026/2027 non è ancora disponibile. Carica appunti, dispense o syllabus per creare un ripasso personalizzato.</p>'
             cta = f'/unime?utm_source=seo&utm_campaign={sl}'
             body += f'<a class="mcta" href="{cta}">Studia {esc(i["nome"])} con Cortex →</a>'
             summ = esc(i["nome"]) + (f' <span class="hint">· {metah}</span>' if metah else "")

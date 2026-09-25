@@ -383,7 +383,7 @@ function _celebrateGoal(goal) {
     window._shareGoalAchieved = async (g) => {
         const streak = typeof window.getStreakStatus === 'function'
             ? window.getStreakStatus().streak : 0;
-        const streakPart = streak > 0 ? `\n🔥 ${streak} giorni di streak!` : '';
+        const streakPart = streak > 0 ? `\n🔥 ${streak} ${streak === 1 ? 'giorno' : 'giorni'} di streak!` : '';
         const text = `Obiettivo raggiunto! 🎯 Ho studiato ${g} carte oggi su Cortex 🧠${streakPart}\ncortexapp.it\n#Cortex #StudyTok #DailyGoal #Studenti`;
         try {
             if (navigator.share) await navigator.share({ title: `Obiettivo ${g} carte — Cortex`, text });
@@ -401,7 +401,7 @@ function _celebrateGoal(goal) {
  * Condivide i risultati della sessione — TikTok/Instagram-ready.
  */
 async function _shareStudyResult(cards, accuracy, duration, streak, deckName) {
-    const streakPart = streak > 0 ? `🔥 ${streak} giorni di streak` : '';
+    const streakPart = streak > 0 ? `🔥 ${streak} ${streak === 1 ? 'giorno' : 'giorni'} di streak` : '';
     const text = [
         `Appena finito una sessione di studio su Cortex 🧠`,
         `📚 ${cards} carte studiate in ${duration}`,

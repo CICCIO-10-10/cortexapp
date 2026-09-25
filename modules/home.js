@@ -151,7 +151,7 @@ function renderQuickStats() {
             <div class="stat-pill" style="cursor:${streak >= 3 ? 'pointer' : 'default'}; position:relative;"
                  ${streak >= 3 ? 'onclick="window._shareStreakFromHome && window._shareStreakFromHome()"' : ''}>
                 <span style="color:${streakColor}">${streakIcon}</span>
-                <span>${streak} ${t('home_streak_days_label')}</span>
+                <span>${streak} ${t(streak === 1 ? 'home_streak_day_label' : 'home_streak_days_label')}</span>
                 ${streakSuffix}
             </div>
         </div>

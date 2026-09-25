@@ -29,7 +29,11 @@ function _math(str) {
   s = s.replace(/\+\s*inf(inity)?\b/gi, '+∞').replace(/-\s*inf(inity)?\b/gi, '−∞').replace(/\binf(inity)?\b/gi, '∞');
   s = s.replace(/<=/g, '≤').replace(/>=/g, '≥').replace(/!=/g, '≠').replace(/<>/g, '≠');
   s = s.replace(/ U /g, ' ∪ ');
-  s = s.replace(/\bpi\b/g, 'π').replace(/\*/g, '·');
+  // FIX 26/09: \bpi\b trasformava "più" in "πù" (in JS \b non conosce le lettere accentate)
+  // e non prendeva "2pi". Ora pi diventa π solo se non è attaccato a lettere (anche accentate).
+  s = s.replace(/\+-/g, '±');
+  s = s.replace(/(^|[^A-Za-z\u00C0-\u024F])pi(?![A-Za-z\u00C0-\u024F])/g, '$1π').replace(/\*/g, '·');
+  s = s.replace(/\b([a-z]) in ([ZRNQ])\b/g, function (m, v, S) { return v + ' ∈ ' + ({ Z: 'ℤ', R: 'ℝ', N: 'ℕ', Q: 'ℚ' })[S]; });
   s = s.replace(/ - /g, ' − ').replace(/\(-/g, '(−').replace(/,\s*-/g, ', −'); // meno tipografico
   return s;
 }
@@ -37,7 +41,7 @@ function _clearTimer() { if (_timer) { clearInterval(_timer); _timer = null; } }
 function _remove() { _clearTimer(); const ov = _el('tolc-sim-overlay'); if (ov) ov.remove(); _state = null; }
 
 function _shell(inner) {
-  return '<div style="max-width:940px;width:min(94vw,940px);max-height:92vh;overflow-y:auto;background:rgba(16,16,22,0.96);border:1px solid rgba(168,85,247,0.28);border-radius:22px;padding:28px;box-shadow:0 40px 120px rgba(168,85,247,0.18);color:#e8e8ee;font-family:Inter,system-ui,sans-serif;">' + inner + '</div>';
+  return '<div style="max-width:940px;width:min(94vw,940px);max-height:92vh;overflow-y:auto;background:rgba(16,16,22,0.96);border:1px solid rgba(168,85,247,0.28);border-radius:22px;padding:clamp(16px,4.5vw,28px);box-shadow:0 40px 120px rgba(168,85,247,0.18);color:#e8e8ee;font-family:Inter,system-ui,sans-serif;">' + inner + '</div>';
 }
 
 export function openTolcSim() {
@@ -253,6 +257,16 @@ function _renderQ() {
       '</div>';
   });
   var nav = '<div style="display:flex;flex-wrap:wrap;gap:6px;">' + chips + '</div>' + numsRow;
+  // MOBILE 25/09/2026: la barra sezioni + numeri occupava mezzo schermo. Su telefono
+  // parte chiusa: una riga compatta "Sezione · risposte" che si apre al tocco.
+  var _mob = false; try { _mob = window.matchMedia('(max-width:640px)').matches; } catch (eM) {}
+  if (_mob) {
+    if (st.navOpen === undefined) st.navOpen = false;
+    var _answered = st.answers.filter(function (a) { return a !== null; }).length;
+    var _tog = '<button id="tolc-navtoggle" aria-expanded="' + (st.navOpen ? 'true' : 'false') + '" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 0;border:none;background:transparent;color:#e8e8ee;font-size:.78rem;font-weight:800;cursor:pointer;font-family:inherit;">' +
+      '<span>☰ Sezioni e domande</span><span style="color:rgba(255,255,255,.55);font-weight:700;">' + _answered + '/' + st.qs.length + ' risposte ' + (st.navOpen ? '▴' : '▾') + '</span></button>';
+    nav = _tog + (st.navOpen ? '<div style="margin-top:10px;">' + nav + '</div>' : '');
+  }
   ov.innerHTML = _shell(
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">' +
       '<span style="font-size:.76rem;font-weight:700;color:#c084fc;text-transform:uppercase;letter-spacing:.5px;">' + st.test.nome + ' · ' + d.s + '</span>' +
@@ -497,7 +511,8 @@ document.addEventListener('click', function (e) {
   const jump = e.target.closest && e.target.closest('.tolc-jump');
   const md = e.target.closest && e.target.closest('.tolc-mode');
   if (md && _state) { _state.scoreMode = md.getAttribute('data-mode'); _renderResult(); return; }
-  if (jump && _state) { _state.i = parseInt(jump.getAttribute('data-jump'), 10); _state.navSec = _state.qs[_state.i].s; _renderQ(); return; }
+  if (id === 'tolc-navtoggle' && _state) { _state.navOpen = !_state.navOpen; _renderQ(); return; }
+  if (jump && _state) { _state.i = parseInt(jump.getAttribute('data-jump'), 10); _state.navSec = _state.qs[_state.i].s; if (_state.navOpen) _state.navOpen = false; _renderQ(); return; }
   const sec = e.target.closest && e.target.closest('.tolc-sec');
   if (sec && _state) { var sn = sec.getAttribute('data-sec'); _state.navSec = (_state.navSec === sn ? '' : sn); _renderQ(); return; }
   const cs = e.target.closest && e.target.closest('.tolc-checksec');
