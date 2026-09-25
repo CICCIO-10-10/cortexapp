@@ -48,7 +48,10 @@ def build_page(corso, ins_list):
     area = corso.get("area", "")
     sl = corso["_slug"]
     url = f"https://cortexapp.it/{sl}"
-    title = f"{nome_h} a Messina (UNIME): esami, programma e ripasso | Cortex"
+    # 25/09/2026: il tipo di laurea nel titolo -> triennale e magistrale con lo
+    # stesso nome non risultano piu' "pagine duplicate" per Google.
+    _lv = f" ({gruppo})" if gruppo else ""
+    title = f"{nome_h}{_lv} a Messina (UNIME): esami, programma e ripasso | Cortex"
     desc = (f"Tutti gli insegnamenti del corso di {nome_h} all'Università di Messina (UNIME), "
             f"con CFU e programma. Ripassa con le flashcard AI di Cortex, gratis e senza registrarti.")
 

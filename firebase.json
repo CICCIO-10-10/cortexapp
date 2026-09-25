@@ -92,6 +92,31 @@
         ],
         "redirects": [
             {
+                "source": "/chimica-triennale-messina",
+                "destination": "/chimica-messina",
+                "type": 301
+            },
+            {
+                "source": "/ingegneria-civile-triennale-messina",
+                "destination": "/ingegneria-civile-messina",
+                "type": 301
+            },
+            {
+                "source": "/ingegneria-gestionale-triennale-messina",
+                "destination": "/ingegneria-gestionale-messina",
+                "type": 301
+            },
+            {
+                "source": "/matematica-triennale-messina",
+                "destination": "/matematica-messina",
+                "type": 301
+            },
+            {
+                "source": "/scienze-politiche-e-delle-relazioni-internazionali-messina",
+                "destination": "/unime",
+                "type": 301
+            },
+            {
                 "source": "/t",
                 "destination": "/?utm_source=tiktok&utm_medium=video",
                 "type": 302
