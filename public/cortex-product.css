@@ -144,3 +144,16 @@ body.cortex-product .user-profile-btn{padding:0;border:0;background:transparent;
  body.cortex-product #app-root{position:relative!important;inset:auto!important;height:auto!important;min-height:calc(100dvh - 110px);overflow:visible!important}
  body.cortex-product #app-root>div{padding-top:28px!important}
 }
+
+/* 25/09/2026 anti-CLS: impedisce al margine del primo elemento (nav) di "uscire" dal body:
+   prima il body si spostava di 12px appena cambiava il primo elemento (Clarity CLS = 1). */
+body.cortex-product{display:flow-root}
+
+/* 25/09/2026 anti-CLS: il banner "Attiva le notifiche" veniva appeso in fondo
+   al body e spostava il layout. Ora e' un toast fisso (sotto il cookie banner). */
+body.cortex-product .notif-banner{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(24px + env(safe-area-inset-bottom,0px));z-index:9000;width:min(560px,calc(100% - 24px));box-sizing:border-box;margin:0;background:linear-gradient(135deg,rgba(124,106,247,.22),rgba(16,185,129,.14)),#14141c;box-shadow:0 12px 40px rgba(0,0,0,.45);color:#e8e8ee;font-size:.9rem;flex-wrap:wrap}
+@media (max-width:768px){body.cortex-product .notif-banner{bottom:calc(88px + env(safe-area-inset-bottom,0px))}}
+/* 25/09/2026 anti-CLS mobile: styles.css (max-width:800px) mette transition-duration:.1s su TUTTO,
+   quindi padding/width dei contenitori si animavano al primo render = salti di layout.
+   Sui contenitori di pagina lasciamo animare solo opacity/transform. */
+@media (max-width:800px){body.cortex-product #app-root,body.cortex-product .page,body.cortex-product .page-content,body.cortex-product .dashboard-nebula,body.cortex-product .dashboard-nebula>section,body.cortex-product .hero-nebula{transition-property:opacity,transform!important}}

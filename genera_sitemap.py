@@ -7,7 +7,7 @@ referenzia. Vite copia public/ in dist → servite su cortexapp.it/sitemap.xml.
 
 Uso: python genera_sitemap.py   (dopo aver generato le landing)
 """
-import glob
+import glob, re
 from pathlib import Path
 from datetime import date
 
@@ -33,10 +33,21 @@ def main():
     urls = list(CORE)
     for f in sorted(glob.glob(str(OUT / "*.html"))):
         name = Path(f).stem
-        if name in EXCLUDE:
+        if name in EXCLUDE or name.startswith("google"):  # file di verifica Search Console
             continue
         if name.startswith("scuole-superiori-"):
             continue  # pagine-provincia: noindex, fuori dalla sitemap
+        # 25/09/2026: in sitemap SOLO pagine canoniche (le copie di sede Siracusa/Noto
+        # puntano col canonical alla versione di Messina) e niente pagine noindex.
+        try:
+            _h = Path(f).read_text(encoding="utf-8", errors="ignore")[:20000]
+            _m = re.search(r'rel="canonical" href="([^"]+)"', _h)
+            if _m and _m.group(1).rstrip("/") != f"{DOMAIN}/{name}":
+                continue
+            if re.search(r'<meta[^>]+name="robots"[^>]+noindex', _h, re.I):
+                continue
+        except Exception:
+            pass
         urls.append(("/" + name, priority(name)))   # cleanUrls: /pagina
 
     body = "\n".join(

@@ -92,6 +92,41 @@
         ],
         "redirects": [
             {
+                "source": "/consulente-del-lavoro-e-scienze-dei-servizi-giuridici-triennale-messina",
+                "destination": "/consulente-del-lavoro-e-scienze-dei-servizi-giuridici-messina",
+                "type": 301
+            },
+            {
+                "source": "/giurisprudenza-magistrale-a-ciclo-unico-messina",
+                "destination": "/giurisprudenza-messina",
+                "type": 301
+            },
+            {
+                "source": "/scienze-gastronomiche-triennale-messina",
+                "destination": "/scienze-gastronomiche-messina",
+                "type": 301
+            },
+            {
+                "source": "/scienze-della-formazione-e-della-comunicazione-triennale-messina",
+                "destination": "/scienze-della-formazione-e-della-comunicazione-messina",
+                "type": 301
+            },
+            {
+                "source": "/scienze-e-tecniche-psicologiche-triennale-messina",
+                "destination": "/scienze-e-tecniche-psicologiche-messina",
+                "type": 301
+            },
+            {
+                "source": "/scienze-dell-amministrazione-e-dell-organizzazione-triennale-messina",
+                "destination": "/scienze-dell-amministrazione-e-dell-organizzazione-messina",
+                "type": 301
+            },
+            {
+                "source": "/infermieristica-triennale-messina",
+                "destination": "/infermieristica-messina",
+                "type": 301
+            },
+            {
                 "source": "/chimica-triennale-messina",
                 "destination": "/chimica-messina",
                 "type": 301

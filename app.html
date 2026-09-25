@@ -239,6 +239,19 @@
 </head>
 
 <body class="dark cortex-product">
+<script>/* 25/09/2026 anti-CLS: il banner ospite entra PRIMA che la pagina si disegni,
+   cosi' non spinge giu' tutto dopo 1-2 secondi (Clarity: CLS 'scarso'). Stesse condizioni
+   di __autoGuestFromURL/__initGuestMode; i pulsanti li collega poi __initGuestMode. */
+(function(){try{var p=new URLSearchParams(location.search);
+if(localStorage.getItem('mm_is_logged_in')==='true')return;
+if(!(localStorage.getItem('cortex_guest')==='1'||p.get('guest')==='1'||p.get('sim')||p.get('area')))return;
+var b=document.createElement('div');b.id='guest-banner';b.setAttribute('data-early','1');
+b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:15000;display:flex;align-items:center;justify-content:center;gap:12px;padding:8px 14px;font-family:Inter,system-ui,sans-serif;font-size:0.86rem;color:#fff;background:linear-gradient(90deg,rgba(139,92,246,0.96),rgba(217,70,239,0.96));box-shadow:0 4px 20px rgba(0,0,0,0.3);';
+b.innerHTML='<span>👤 Stai usando Cortex come <b>ospite</b> — i progressi non sono salvati.</span>'+
+'<button id="guest-demo-btn" style="background:rgba(255,255,255,0.18);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-weight:800;font-size:0.82rem;cursor:pointer;">▶ Esempio</button>'+
+'<button id="guest-save-btn" style="background:#fff;color:#7c3aed;border:none;border-radius:8px;padding:6px 14px;font-weight:800;font-size:0.82rem;cursor:pointer;">Salva i progressi</button>'+
+'<button id="guest-dismiss-btn" aria-label="Chiudi" style="background:transparent;border:none;color:rgba(255,255,255,0.85);font-size:1.1rem;cursor:pointer;line-height:1;">×</button>';
+document.body.prepend(b);setTimeout(function(){try{var e=document.getElementById('guest-banner');if(!e||!e.getAttribute('data-early'))return;if(localStorage.getItem('cortex_guest')==='1'&&localStorage.getItem('mm_is_logged_in')!=='true'&&window._fbLoggedIn!==true&&typeof window.__initGuestMode==='function'){window.__initGuestMode();}else{e.remove();}}catch(_){}},6000);}catch(e){}})();</script>
     <!-- SPLASH TOLC (23/09/2026): chi arriva con ?sim vede SUBITO "Preparo la simulazione TOLC",
          non lo skeleton generico né un flash di login. Attacca il rimbalzo a 1s del traffico TOLC.
          Rimosso da main.js (handleDeepSimTolc) quando la simulazione si apre. -->
@@ -1939,9 +1952,13 @@
       // Un link tipo /app?guest=1&area=tolc entra in guest DA SOLO, senza il
       // click sul bottone: serve all'hub che smista il traffico social.
       // area= viene salvata (uso futuro per preselezionare il tema).
+      // FIX 25/09/2026: la query va letta SUBITO. Prima del 'load' il listener
+      // auth (utente non loggato) fa pushState('/') e cancella ?guest=1&area=...:
+      // risultato, tutti i "Prova gratis" finivano sul login invece che in guest.
+      var __q0 = location.search;
       window.__autoGuestFromURL = function(){
         try{
-          var p = new URLSearchParams(location.search);
+          var p = new URLSearchParams(location.search || __q0);
           var sim = p.get('sim'), area = p.get('area');
           // Scatta su guest=1 OPPURE su sim=/area= (così funzionano anche i link
           // di simulazione-tolc.html e dell'hub, senza toccarli uno per uno).
@@ -1998,7 +2015,9 @@
       // Banner fisso in alto, ignorabile
       window.__initGuestMode = function(){
         if(!isGuest() || isLogged()) return;
-        if(document.getElementById('guest-banner')) return;
+        var _early=document.getElementById('guest-banner');
+        if(_early && !_early.getAttribute('data-early')) return;
+        if(_early){ _early.removeAttribute('data-early'); var b=_early; } else {
         var b=document.createElement('div');
         b.id='guest-banner';
         b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:15000;display:flex;align-items:center;justify-content:center;gap:12px;padding:8px 14px;font-family:Inter,system-ui,sans-serif;font-size:0.86rem;color:#fff;background:linear-gradient(90deg,rgba(139,92,246,0.96),rgba(217,70,239,0.96));box-shadow:0 4px 20px rgba(0,0,0,0.3);';
@@ -2006,7 +2025,7 @@
           '<button id="guest-demo-btn" style="background:rgba(255,255,255,0.18);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-weight:800;font-size:0.82rem;cursor:pointer;">▶ Esempio</button>'+
           '<button id="guest-save-btn" style="background:#fff;color:#7c3aed;border:none;border-radius:8px;padding:6px 14px;font-weight:800;font-size:0.82rem;cursor:pointer;">Salva i progressi</button>'+
           '<button id="guest-dismiss-btn" aria-label="Chiudi" style="background:transparent;border:none;color:rgba(255,255,255,0.85);font-size:1.1rem;cursor:pointer;line-height:1;">×</button>';
-        document.body.prepend(b);
+        document.body.prepend(b); }
         document.body.style.paddingTop='';
         document.getElementById('guest-save-btn').onclick=window.__guestLogin;
         var _gd=document.getElementById('guest-demo-btn'); if(_gd) _gd.onclick=function(){ window.__cortexDemo(true); };

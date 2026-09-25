@@ -21,6 +21,7 @@ import genera_landing_scuola as gls  # riusa CSS e FX
 BASE = Path(__file__).resolve().parent
 OUT = BASE / "public"
 UNIME = OUT / "unime"
+HUB_SLUG = "corsi-unime-messina"  # pagina-elenco statica di tutti i corsi (25/09/2026)
 
 def slug(s):
     s = s.lower()
@@ -41,17 +42,26 @@ def splita_arg(t):
         parts = [p.strip() for p in re.split(r"\.\s+(?=[A-ZÀ-Ù])", t) if len(p.strip()) > 3]
     return parts[:14]
 
-def build_page(corso, ins_list):
+def build_page(corso, ins_list, correlati=None, canon_slug=None):
     nome = corso["nome"]
     nome_h = nome.title() if nome.isupper() else nome
     gruppo = corso.get("gruppo", "")
     area = corso.get("area", "")
     sl = corso["_slug"]
     url = f"https://cortexapp.it/{sl}"
+    # 25/09/2026: stesso corso in piu' sedi (Siracusa/Noto) = contenuto quasi identico.
+    # La copia di sede punta (canonical) alla versione di Messina -> niente duplicati.
+    canon = f"https://cortexapp.it/{canon_slug or sl}"
+    sede = (corso.get("sede") or "MESSINA").strip()
+    sede_h = sede.title()
     # 25/09/2026: il tipo di laurea nel titolo -> triennale e magistrale con lo
     # stesso nome non risultano piu' "pagine duplicate" per Google.
     _lv = f" ({gruppo})" if gruppo else ""
+    if sede != "MESSINA":
+        _lv = f" ({gruppo + ', ' if gruppo else ''}sede di {sede_h})"
     title = f"{nome_h}{_lv} a Messina (UNIME): esami, programma e ripasso | Cortex"
+    if sede != "MESSINA":
+        title = f"{nome_h} ({gruppo + ', ' if gruppo else ''}sede di {sede_h}) — Università di Messina (UNIME): esami e programma | Cortex"
     desc = (f"Tutti gli insegnamenti del corso di {nome_h} all'Università di Messina (UNIME), "
             f"con CFU e programma. Ripassa con le flashcard AI di Cortex, gratis e senza registrarti.")
 
@@ -109,6 +119,17 @@ def build_page(corso, ins_list):
           "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in faqs]}
 
     tag = gruppo or "Corso di laurea"
+    # 25/09/2026 SEO: link interni verso i corsi dello stesso dipartimento.
+    # Prima le landing erano "orfane" (0 link in ingresso, solo sitemap) e
+    # Google le lasciava in "rilevata/scansionata ma non indicizzata".
+    altri_html = ""
+    if correlati:
+        _li = "".join(
+            f'<li><a href="/{x["slug"]}">{esc(x["nome_h"])}</a> <span class="hint">· {esc(x["gruppo"] or "Corso")}{(" · " + esc(x["sede"])) if x["sede"] != "Messina" else ""}</span></li>'
+            for x in correlati)
+        altri_html = (f'<h2>Altri corsi di {esc(area) if area else "UNIME"} a Messina</h2>'
+                      f'<ul class="tips">{_li}</ul>'
+                      f'<p><a href="/{HUB_SLUG}">Vedi tutti i corsi di laurea UNIME →</a></p>')
     return f"""<!DOCTYPE html>
 <html lang="it">
 <head>
@@ -122,9 +143,9 @@ if(!_nt){{gtag('js',new Date());gtag('config','G-DFJ42477QK');}}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{esc(title)}</title>
 <meta name="description" content="{esc(desc)}">
-<link rel="canonical" href="{url}">
+<link rel="canonical" href="{canon}">
 <meta property="og:title" content="{esc(title)}"><meta property="og:description" content="{esc(desc)}">
-<meta property="og:url" content="{url}"><meta property="og:type" content="article">
+<meta property="og:url" content="{canon}"><meta property="og:type" content="article">
 <meta property="og:image" content="https://cortexapp.it/og-image.png">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -140,8 +161,9 @@ if(!_nt){{gtag('js',new Date());gtag('config','G-DFJ42477QK');}}</script>
 </div></header>
 <main class="container">
 
-<p class="crumb"><a href="/">Home</a> › <a href="/unime">Università di Messina</a> › {esc(nome_h)}</p>
-<div class="badge">🎓 {esc(tag)} · UNIME · A.A. 2026/2027</div>
+<p class="crumb"><a href="/">Home</a> › <a href="/{HUB_SLUG}">Corsi UNIME</a> › {esc(nome_h)}</p>
+<div class="badge">🎓 {esc(tag)} · UNIME{(' · sede di ' + esc(sede_h)) if sede != "MESSINA" else ''} · A.A. 2026/2027</div>
+{(f'<p class="hint">Questo corso si tiene anche a Messina: <a href="/{canon_slug}">vedi {esc(nome_h)} (sede di Messina)</a>.</p>') if canon_slug else ''}
 <h1>{esc(nome_h)}: <span class="grad">esami e programma</span></h1>
 <p class="sub">Tutti gli insegnamenti del corso di <strong>{esc(nome_h)}</strong> all'Università di Messina, con CFU e argomenti del programma. Ripassa ogni esame con le flashcard AI di Cortex — gratis, senza registrarti.</p>
 <a class="btn btn-p btn-xl" href="/unime?utm_source=seo&utm_campaign={sl}">Apri il tuo corso su Cortex →</a>
@@ -158,6 +180,7 @@ if(!_nt){{gtag('js',new Date());gtag('config','G-DFJ42477QK');}}</script>
 <li><strong>Zero appunti? Nessun problema:</strong> Cortex parte dal programma ufficiale del corso e costruisce il ripasso per te.</li>
 </ul>
 
+{altri_html}
 <h2>Domande frequenti</h2>
 {faq_html}
 
@@ -166,7 +189,7 @@ if(!_nt){{gtag('js',new Date());gtag('config','G-DFJ42477QK');}}</script>
 
 </main>
 <footer><div class="fgrid">
-<div><h4>Università di Messina</h4><a href="/unime">Tutti i corsi UNIME</a><a href="/unime">Trova il tuo corso</a><a href="/app">Apri l'app</a></div>
+<div><h4>Università di Messina</h4><a href="/{HUB_SLUG}">Tutti i corsi UNIME</a><a href="/unime">Trova il tuo corso</a><a href="/app">Apri l'app</a></div>
 <div><h4>Scuola & TOLC</h4><a href="/scuola">Trova il tuo indirizzo</a><a href="/simulazione-tolc?sim=tolc">Simulazione TOLC gratis</a></div>
 <div><h4>Cortex</h4><a href="/">Home</a><a href="/privacy">Privacy</a><a href="/terms">Termini</a></div>
 </div><p style="text-align:center;color:var(--muted2);margin-top:36px;font-size:.8rem">© 2026 Cortex — cortexapp.it · Dati dal catalogo dell'Università di Messina; possibili variazioni per anno accademico.</p></footer>
@@ -174,12 +197,78 @@ if(!_nt){{gtag('js',new Date());gtag('config','G-DFJ42477QK');}}</script>
 </body>
 </html>"""
 
+def _nome_h(n):
+    return n.title() if n.isupper() else n
+
+def build_hub(voci):
+    """Pagina statica /corsi-unime-messina: TUTTI i corsi raggruppati per dipartimento,
+    con link HTML veri (la pagina /unime li costruisce via JS e Google non li segue bene)."""
+    per_area = {}
+    for v in voci:
+        per_area.setdefault(v["area"] or "Altri corsi", []).append(v)
+    url = f"https://cortexapp.it/{HUB_SLUG}"
+    title = "Corsi di laurea Università di Messina (UNIME) 2026/2027: elenco completo | Cortex"
+    desc = (f"L'elenco completo dei {len(voci)} corsi di laurea dell'Università di Messina, divisi per dipartimento: "
+            "triennali, magistrali e a ciclo unico, con esami e programmi. Ripassa con le flashcard AI di Cortex.")
+    sez = ""
+    for a in sorted(per_area):
+        items = sorted(per_area[a], key=lambda v: (v["gruppo"] != "Triennale", v["nome_h"]))
+        sez += (f'<h2>{esc(a)}</h2><ul class="tips">' +
+                "".join(f'<li><a href="/{v["slug"]}">{esc(v["nome_h"])}</a> <span class="hint">· {esc(v["gruppo"] or "Corso")}{(" · sede di " + esc(v["sede"])) if v["sede"] != "Messina" else ""}</span></li>' for v in items) +
+                "</ul>")
+    return f"""<!DOCTYPE html>
+<html lang="it">
+<head>
+<script type="text/javascript">(function(c,l,a,r,i,t,y){{c[a]=c[a]||function(){{(c[a].q=c[a].q||[]).push(arguments)}};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);}})(window, document, "clarity", "script", "y5ldvczo6y");</script>
+<script src="/cortex-consent.js" defer></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-DFJ42477QK"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){{dataLayer.push(arguments);}}
+var _nt=false;try{{if(new URLSearchParams(location.search).get('notrack')==='1')localStorage.setItem('cortex_no_track','1');_nt=localStorage.getItem('cortex_no_track')==='1';}}catch(e){{}}
+if(!_nt){{gtag('js',new Date());gtag('config','G-DFJ42477QK');}}</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{esc(title)}</title>
+<meta name="description" content="{esc(desc)}">
+<link rel="canonical" href="{url}">
+<meta property="og:title" content="{esc(title)}"><meta property="og:description" content="{esc(desc)}">
+<meta property="og:url" content="{url}"><meta property="og:type" content="website">
+<meta property="og:image" content="https://cortexapp.it/og-image.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@700;800;900&display=swap" rel="stylesheet">
+<style>{gls.CSS}</style>
+</head>
+<body>
+<div class="bg-mesh"></div><div class="orb orb1"></div><div class="orb orb2"></div>
+<header><div class="hin">
+<a href="/" class="hlogo"><img src="/LOGO_PREMIUM.png" alt="Cortex">Cortex</a>
+<nav class="hnav"><a href="/unime" class="hidem">Università</a><a href="/scuola" class="hidem">Scuola</a><a href="/unime" class="btn btn-p" style="padding:10px 20px">Prova gratis</a></nav>
+</div></header>
+<main class="container">
+<p class="crumb"><a href="/">Home</a> › <a href="/unime">Università di Messina</a> › Tutti i corsi</p>
+<div class="badge">🎓 UNIME · A.A. 2026/2027</div>
+<h1>Corsi di laurea <span class="grad">Università di Messina</span></h1>
+<p class="sub">Tutti i {len(voci)} corsi dell'Università di Messina divisi per dipartimento. Apri il tuo corso per vedere esami, CFU e programma — e ripassa con le flashcard AI di Cortex, gratis.</p>
+<a class="btn btn-p btn-xl" href="/unime?utm_source=seo&utm_campaign={HUB_SLUG}">Trova il tuo corso su Cortex →</a>
+{sez}
+<p class="hint">📅 Dati dal catalogo ufficiale UNIME, Anno Accademico 2026/2027. Corsi e programmi possono cambiare di anno in anno.</p>
+</main>
+<footer><div class="fgrid">
+<div><h4>Università di Messina</h4><a href="/unime">Trova il tuo corso</a><a href="/app">Apri l'app</a></div>
+<div><h4>Scuola & TOLC</h4><a href="/scuola">Trova il tuo indirizzo</a><a href="/simulazione-tolc?sim=tolc">Simulazione TOLC gratis</a></div>
+<div><h4>Cortex</h4><a href="/">Home</a><a href="/privacy">Privacy</a><a href="/terms">Termini</a></div>
+</div><p style="text-align:center;color:var(--muted2);margin-top:36px;font-size:.8rem">© 2026 Cortex — cortexapp.it · Dati dal catalogo dell'Università di Messina.</p></footer>
+{gls.FX}
+</body>
+</html>"""
+
 def main():
     idx = json.loads((UNIME / "corsi.json").read_text(encoding="utf-8"))["corsi"]
-    by_cod = {c["cod"]: c for c in idx}
     used = set()
-    n = 0
-    generati = []
+    voci = []   # pass 1: slug + dati (serve per i link "altri corsi")
+    # Messina per prima: lo slug "{nome}-messina" spetta alla sede di Messina
+    idx = sorted(idx, key=lambda c: (c.get("sede", "MESSINA") or "MESSINA") != "MESSINA")
+    primario = {}  # (nome, gruppo) -> slug della sede di Messina
     for c in idx:
         cod = c["cod"]
         fp = UNIME / "corso" / f"{cod}.json"
@@ -189,18 +278,29 @@ def main():
         ins = d.get("insegnamenti", [])
         if not ins:  # dottorati/master senza insegnamenti: niente landing
             continue
-        sl = slug(c["nome"]) + "-messina"
+        sede = (c.get("sede") or "MESSINA").strip()
+        twin = primario.get((c["nome"], c.get("gruppo", ""))) if sede != "MESSINA" else None
+        sl = (slug(c["nome"]) + "-" + slug(sede)) if twin else (slug(c["nome"]) + "-messina")
         if sl in used:  # collisione nome (es. triennale+magistrale): distingui col gruppo
             g = slug(c.get("gruppo", "") or "corso")
             sl = slug(c["nome"]) + "-" + g + "-messina"
         used.add(sl)
         c["_slug"] = sl
-        (OUT / f"{sl}.html").write_text(build_page(c, ins), encoding="utf-8")
-        generati.append({"cod": cod, "slug": sl, "nome": c["nome"], "gruppo": c.get("gruppo", "")})
-        n += 1
+        if sede == "MESSINA":
+            primario.setdefault((c["nome"], c.get("gruppo", "")), sl)
+        voci.append({"c": c, "ins": ins, "slug": sl, "cod": cod, "nome": c["nome"], "twin": twin,
+                     "sede": sede.title(), "nome_h": _nome_h(c["nome"]), "gruppo": c.get("gruppo", ""), "area": c.get("area", "")})
+    voci.sort(key=lambda v: v["nome"])
+    generati = []
+    for v in voci:   # pass 2: pagine con i correlati dello stesso dipartimento
+        stessi = [x for x in voci if x["area"] == v["area"] and x["slug"] != v["slug"]]
+        stessi.sort(key=lambda x: (x["gruppo"] != v["gruppo"], x["nome_h"]))
+        (OUT / f"{v['slug']}.html").write_text(build_page(v["c"], v["ins"], stessi[:12], v["twin"]), encoding="utf-8")
+        generati.append({"cod": v["cod"], "slug": v["slug"], "nome": v["nome"], "gruppo": v["gruppo"], "canonical": v["twin"] or v["slug"]})
+    (OUT / f"{HUB_SLUG}.html").write_text(build_hub(voci), encoding="utf-8")
     # salva l'elenco slug (serve alla sitemap)
     (UNIME / "landing_index.json").write_text(json.dumps(generati, ensure_ascii=False), encoding="utf-8")
-    print(f"{n} landing corso generate in {OUT}")
+    print(f"{len(generati)} landing corso + pagina elenco /{HUB_SLUG} generate in {OUT}")
 
 if __name__ == "__main__":
     main()

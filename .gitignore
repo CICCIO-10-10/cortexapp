@@ -93,3 +93,6 @@ cookies.txt
 # backup pre-modifica
 *.bak_predash
 *.bak_predash_*
+
+# backup locali delle modifiche
+_backup_*/
