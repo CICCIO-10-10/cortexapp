@@ -434,7 +434,8 @@ export async function loadFromCloud() {
             try {
                 const _p = { createdAt: (_existing.activation && _existing.activation.firstSeen) || firebase.firestore.FieldValue.serverTimestamp() };
                 if (!_existing.email && window._cortexUserEmail) _p.email = window._cortexUserEmail;
-                if (!_existing.plan) _p.plan = 'free';
+                // NB: 'plan' NON si scrive in update: le regole Firestore lo proteggono
+                // (anti "premium gratis") e rifiuterebbero TUTTA la scrittura.
                 await _db.collection('users').doc(window._fbUserId).set(_p, { merge: true });
             } catch (e) { console.warn('[Firebase] completamento doc utente fallito:', e); }
         } else if (!doc.exists || !_existing.createdAt) {
@@ -453,7 +454,10 @@ export async function loadFromCloud() {
                     migratedToSubcollections: true
                 };
                 if (!_ex.email)      _init.email      = window._cortexUserEmail || null;
-                if (!_ex.plan)       _init.plan       = 'free';
+                // 'plan' solo se il doc NON esiste ancora (create): in update è un campo
+                // protetto dalle regole Firestore e farebbe fallire TUTTA la scrittura
+                // (causa vera dei doc senza createdAt/email dal 12/09).
+                if (!_ex.plan && !doc.exists) _init.plan = 'free';
                 if (!_ex.refCode)    _init.refCode    = uid.slice(0, 8);
                 if (!_ex.referredBy) _init.referredBy = (function(){try{return localStorage.getItem('cortex_ref')||null;}catch(e){return null;}})();
                 await _db.collection('users').doc(uid).set(_init, { merge: true });
