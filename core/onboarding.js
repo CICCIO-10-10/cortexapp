@@ -65,6 +65,7 @@ export function goObSlide(idx) {
 
     document.querySelectorAll('.ob-dot').forEach((d, i) => d.classList.toggle('active', i === idx));
     obCurrentSlide = idx;
+    try { track('onboarding_step_viewed', { step: idx }); } catch (_) {}
 
     // Side effects per slide specifica
     // Nota: il bottone ob-validate-api-btn ora ha data-fn="saveOnboardingApiKey"
@@ -107,6 +108,11 @@ export function closeOnboarding() {
     if (overlay) overlay.style.display = 'none';
     localStorage.setItem('cortex_onboarded', '1');
     track('onboarding_complete', { goal: localStorage.getItem('cortex_user_goal') || 'skipped' });
+    // v3 25/09: onboarding_complete scatta anche per chi salta → separiamo i due casi
+    try {
+        if (localStorage.getItem('cortex_user_goal')) track('onboarding_finished', { goal: localStorage.getItem('cortex_user_goal'), last_step: obCurrentSlide });
+        else track('onboarding_skipped', { last_step: obCurrentSlide });
+    } catch (_) {}
 
     const goal = localStorage.getItem('cortex_user_goal');
     if (goal === 'exam') {

@@ -362,7 +362,11 @@ async function _syncToCloudInner(deckId = null) {
             sessions:      legacyState?.sessions      || [],
             recordings:    legacyState?.recordings    || [],
             gamification:  window.gState              || null,
-            plan:          plan,
+            // FIX 25/09/2026 (GRAVE): 'plan' NON va piu' scritto dal client.
+            // Le regole Firestore proteggono i campi di abbonamento: se il doc
+            // utente non ha gia' plan identico (i doc nati da touchSeen non ce
+            // l'hanno), l'update veniva RIFIUTATO e con lui l'intero batch →
+            // nessun mazzo arrivava mai sul cloud (dashboard: "0 mazzi" per tutti).
             lastSync:      firebase.firestore.FieldValue.serverTimestamp(),
             migratedToSubcollections: true
         };
@@ -401,6 +405,8 @@ async function _syncToCloudInner(deckId = null) {
         console.log(`[Firebase] syncToCloud completed (deckId: ${deckId || 'none'})`);
     } catch (e) {
         console.error('[Firebase] syncToCloud failed:', e);
+        // 25/09/2026: rendiamo visibile il fallimento (prima era solo in console)
+        try { if (typeof window.clarity === 'function') window.clarity('event', 'cloud_sync_failed'); } catch (_) {}
     }
 }
 

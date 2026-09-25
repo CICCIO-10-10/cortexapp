@@ -176,8 +176,20 @@ function showLoading(show) {
     if (footer) footer.style.display = show ? 'none' : 'flex';
 }
 
+let _savedGenerated = false;   // v3 25/09: per distinguere "salvato" da "scartato"
+function _genFailReason(err) {
+    try {
+        if (err?.isGuestGate) return 'guest_gate';
+        if (err?.isPaywall) return 'paywall';
+        if (typeof navigator !== 'undefined' && !navigator.onLine) return 'offline';
+        if (err?.isDown) return 'ai_down';
+        if (/vuoto|leggibile|Nessuna flashcard/i.test(String(err?.message || ''))) return 'empty_input';
+    } catch (_) {}
+    return 'other';
+}
 function renderCards(cards, deckTitle) {
     _generatedCards = cards;
+    _savedGenerated = false;
     track('cards_generated', { count: cards.length, flow: 'pdf_photo_text', tracking_version: 2 });
     bumpActivation('cardsGenerated', cards.length);
     const list  = document.getElementById('pdfai-cards-list');
@@ -452,6 +464,7 @@ export async function openPdfAIFromFile(file) {
     showOverlay();
     showLoading(true);
     setStatus(`📄 Lettura "${file.name}"...`);
+    try { track('cards_generation_started', { flow: 'pdf_photo_file', kind: (file.type || '').split('/')[0] || 'file' }); } catch (_) {}
 
     try {
         // 1. Estrai testo
@@ -474,6 +487,7 @@ export async function openPdfAIFromFile(file) {
 
     } catch (err) {
         console.error('[PdfAI] Error:', err);
+        try { track('cards_generation_failed', { flow: 'pdf_photo_file', reason: _genFailReason(err) }); } catch (_) {}
         showLoading(false);
         // Messaggi AI centralizzati (paywall, offline, down, auth)
         if (window.handleAIError) window.handleAIError(err, 'generazione dal PDF');
@@ -511,6 +525,7 @@ export async function openPdfAIFromText(text, suggestedName = '') {
     showOverlay();
     showLoading(true);
     setStatus(`🧠 Generazione flashcard con AI... (${text.length.toLocaleString()} caratteri)`);
+    try { track('cards_generation_started', { flow: 'text' }); } catch (_) {}
 
     try {
         const result = await generateFlashcardsFromText(text, suggestedName);
@@ -519,6 +534,7 @@ export async function openPdfAIFromText(text, suggestedName = '') {
         renderCards(result.cards, result.title || suggestedName);
     } catch (err) {
         console.error('[PdfAI] Error:', err);
+        try { track('cards_generation_failed', { flow: 'text', reason: _genFailReason(err) }); } catch (_) {}
         showLoading(false);
         // FIX 10/07/2026: ospite/paywall → chiudi l'overlay e mostra il gate
         // giusto, non un errore criptico dentro l'anteprima vuota.
@@ -607,6 +623,7 @@ export function savePdfAIDeck() {
     // creato/aggiornato. No-op per tutti gli altri flussi (globale assente).
     try { if (typeof window !== 'undefined' && window.__cortexAttachLesson) window.__cortexAttachLesson(newDeck || _materia); } catch (_) {}
     saveState();
+    _savedGenerated = true;
     track('generated_cards_saved', { count: _newCards.length, flow: 'pdf_photo_text', tracking_version: 2 });
 
     // XP + Badge
@@ -634,6 +651,7 @@ export function savePdfAIDeck() {
  * Chiude l'overlay senza salvare.
  */
 export function closePdfAI() {
+    try { if (_generatedCards && _generatedCards.length && !_savedGenerated) track('generated_cards_discarded', { count: _generatedCards.length }); } catch (_) {}
     hideOverlay();
     _generatedCards = [];
 }

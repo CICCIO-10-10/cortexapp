@@ -1158,7 +1158,10 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
         if (!vid || vid.indexOf('TEST_') === 0) return;
         const x = doc.data() || {};
         const ts = (x.ts && x.ts.toMillis) ? x.ts.toMillis() : (x.t_client || 0);
-        (byVid[vid] = byVid[vid] || []).push({ type: x.type || '', page: x.page || '', ts, source: x.source || (x.meta && x.meta.source) || null });
+        // 25/09/2026 v3: teniamo solo i campi meta utili al funnel (niente contenuti utente)
+        const _m = x.meta || {};
+        const meta = { reason: _m.reason || null, stage: _m.stage || null, test: _m.test || _m.direct || null, step: (_m.step != null ? _m.step : (_m.last_step != null ? _m.last_step : null)), answered: (typeof _m.answered === 'number' ? _m.answered : null) };
+        (byVid[vid] = byVid[vid] || []).push({ type: x.type || '', page: x.page || '', ts, source: x.source || (x.meta && x.meta.source) || null, meta });
       });
       const STAGES = ['landing_view', 'app_open', 'onboarding_start', 'cards_generated', 'study_session_start', 'activated', 'tolc_sim_open', 'tolc_sim_complete'];
       const rows = [];

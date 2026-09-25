@@ -55,6 +55,7 @@ export function openTolcSim() {
     _remove();
   });
   track('tolc_sim_open');
+  track('tolc_selector_viewed');   // v3 25/09: selettore davvero mostrato
 }
 
 // Deep-link: apre DRITTO un TOLC specifico sulla prima domanda (salta selettore + intro).
@@ -129,6 +130,7 @@ function _intro(key) {
   }).join('');
   const ready = (t.banca && t.banca.length > 0);
   const ov = _el('tolc-sim-overlay'); if (!ov) return;
+  try { track('tolc_intro_viewed', { test: key }); } catch (e3) {}
   const warn = ready ? '' : '<br><b style="color:#fbbf24;">Banca domande in arrivo per questo TOLC</b> — al momento e provabile solo il TOLC-I.';
   const startStyle = ready ? 'linear-gradient(135deg,#a855f7,#6366f1)' : 'rgba(255,255,255,.08)';
   const startCur = ready ? 'pointer' : 'not-allowed';
@@ -505,7 +507,7 @@ document.addEventListener('click', function (e) {
     _renderQ(); return;
   }
   if (id === 'tolc-check') { if (_state && _state.answers[_state.i] !== null) { _state.checked[_state.i] = true; _renderQ(); } return; }
-  if (pick) return _intro(pick.getAttribute('data-key'));
+  if (pick) { try { track('tolc_type_picked', { test: pick.getAttribute('data-key') }); } catch (e3) {} return _intro(pick.getAttribute('data-key')); }
   if (id === 'tolc-close') {
     if (_state && _state._resultShown && _state._nWrong > 0 && !_state._exitAsked) {
       _state._exitAsked = true;
@@ -513,6 +515,11 @@ document.addEventListener('click', function (e) {
       _askBeforeExit(ov, _state._nWrong);
       return;
     }
+    // v3 25/09: distingue chi chiude prima di iniziare (selettore/intro) da chi abbandona la prova a meta'
+    try {
+      if (!_state) track('tolc_selector_closed', { stage: ov.querySelector('#tolc-start') ? 'intro' : 'selector' });
+      else if (_state.running && !_state.finished) track('tolc_test_quit', { test: _state.key, answered: (_state.answers || []).filter(function (a) { return a !== null; }).length, at: _state.i + 1, of: (_state.qs || []).length });
+    } catch (e3) {}
     return _remove();
   }
   if (id === 'tolc-exit-yes') { try { track('tolc_exit_prompt_leave'); } catch (e2) {} return _remove(); }
@@ -560,5 +567,18 @@ document.addEventListener('click', function (e) {
   if (id === 'tolc-next') return _next();
   if (opt && _state) { if (_state.checked[_state.i]) return; _state.answers[_state.i] = parseInt(opt.getAttribute('data-idx'), 10); if (!_state._firstAns) { _state._firstAns = true; track('tolc_first_answer', { test: _state.key }); } _renderQ(); }
 });
+
+// v3 25/09/2026: durante la prova NON c'e' un tasto per uscire → chi abbandona lo fa
+// chiudendo/cambiando scheda. Lo registriamo UNA volta per prova (tolc_test_quit, how:'leave').
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', function () {
+    try {
+      if (document.visibilityState !== 'hidden') return;
+      if (!_state || !_state.running || _state.finished || _state._quitLogged) return;
+      _state._quitLogged = true;
+      track('tolc_test_quit', { test: _state.key, answered: (_state.answers || []).filter(function (a) { return a !== null; }).length, at: _state.i + 1, of: (_state.qs || []).length, how: 'leave' });
+    } catch (e) {}
+  });
+}
 
 if (typeof window !== 'undefined') { window.openTolcSim = openTolcSim; window.startTolcDirect = startTolcDirect; }
