@@ -23,8 +23,8 @@ const auditScript = `<script>(function(){
 })();</script>`;
 
 export function validateRegistry(root = projectRoot) {
-  if (registry.mode !== 'selected' || registry.pages.length !== 19 || registry.expectedPilotCount !== 19)
-    throw new Error('SEO guard: exactly 19 explicitly selected pages required. Full rollout is disabled.');
+  if (registry.mode !== 'rollout' || !registry.pages.length || registry.pages.length !== registry.expectedPageCount)
+    throw new Error('SEO guard: rollout must match the explicitly reviewed page inventory.');
   const seen = new Set();
   for (const page of registry.pages) {
     if (!/^[a-z0-9-]+$/.test(page.slug) || !/^[a-z0-9-]+$/.test(page.family) || seen.has(page.slug) || registry.protected.includes(page.slug))
@@ -37,7 +37,7 @@ export function validateRegistry(root = projectRoot) {
 
 /** Add assets and a scope marker only. Never parse/reserialize the SEO document. */
 export function injectDesign(html, page) {
-  if (!registry.pages.some(p => p.slug === page.slug && p.family === page.family)) throw new Error('Page outside pilot');
+  if (!registry.pages.some(p => p.slug === page.slug && p.family === page.family)) throw new Error('Page outside design registry');
   if (html.includes('<!-- cortex-seo-pilot:start -->')) return html;
   if (!/<\/head>/i.test(html) || !/<body(?:\s[^>]*)?>/i.test(html)) throw new Error(`Invalid HTML: ${page.slug}`);
   return html.replace(/<\/head>/i, styleBlock + '</head>')
@@ -55,7 +55,7 @@ export default function seoDesignPlugin() {
   const middleware = (preview = false) => (req, res, next) => {
     if (!['GET', 'HEAD'].includes(req.method)) return next();
     const url = new URL(req.url, 'http://localhost');
-    const slug = url.pathname.replace(/^\//, '').replace(/\.html$/, '');
+    const slug = url.pathname === '/' ? 'index' : url.pathname.replace(/^\//, '').replace(/\.html$/, '');
     const page = registry.pages.find(p => p.slug === slug);
     if (!page) return next();
     // Local QA only. Production HTML has no query-controlled styling logic.

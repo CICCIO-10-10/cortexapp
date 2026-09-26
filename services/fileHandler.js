@@ -136,6 +136,10 @@ export async function extractTextFromFile(file) {
     }
 
     if (ext === 'pdf') {
+        // 26/09: pdf.js ora si carica dopo l'avvio → se serve prima, lo carico adesso
+        if (typeof pdfjsLib === 'undefined' && typeof window.__cxLib === 'function') {
+            try { await window.__cxLib('pdf'); } catch (_) {}
+        }
         if (typeof pdfjsLib === 'undefined') {
             throw new Error('PDF.js non caricato. Assicurati di avere connessione internet.');
         }

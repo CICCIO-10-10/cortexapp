@@ -47,8 +47,24 @@ function summarizeJourneys(events, coverage = {}) {
       }
     }
   }
+  // ── Errori da utenti reali (26/09/2026), ultimi 7 giorni: eventi, browser distinti, motivi ──
+  const ERR_TYPES = ['cloud_sync_failed', 'js_error', 'cards_generation_failed'];
+  const errSince = Date.now() - 7 * 24 * 3600 * 1000;
+  const errors = { since: errSince, events: {}, browsers: {}, reasons: {} };
+  ERR_TYPES.forEach(t => { errors.events[t] = 0; errors.browsers[t] = 0; errors.reasons[t] = {}; });
+  for (const visitorEvents of byVisitor.values()) {
+    const hit = new Set();
+    for (const e of visitorEvents) {
+      if (!ERR_TYPES.includes(e.type) || e.ts < errSince) continue;
+      errors.events[e.type]++;
+      hit.add(e.type);
+      const r = String(((e.meta || {}).reason) || 'n/d').slice(0, 80);
+      errors.reasons[e.type][r] = (errors.reasons[e.type][r] || 0) + 1;
+    }
+    hit.forEach(t => { errors.browsers[t]++; });
+  }
   const times = events.map(e => e.ts).filter(t => Number.isFinite(t) && t > 0);
-  return { ...counts, visitors: byVisitor.size, sequential, v3,
+  return { ...counts, visitors: byVisitor.size, sequential, v3, errors,
     coverage: { status: 'ok', unit: 'browser_id', ordered: true, ...coverage,
       eventCount: events.length, from: times.length ? Math.min(...times) : null,
       to: times.length ? Math.max(...times) : null, trackingVersion: 2 } };

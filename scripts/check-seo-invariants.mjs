@@ -79,7 +79,7 @@ if (process.argv.includes('--capture')) {
   }
   for (const f of htmlFiles) {
     const out = `dist/${path.basename(f)}`;
-    if (registry.pages.some(p => p.source === f) || !fs.existsSync(path.join(projectRoot, out))) continue;
+    if (registry.pages.some(p => `${p.slug}.html` === path.basename(f)) || !fs.existsSync(path.join(projectRoot, out))) continue;
     if (read(out).includes('data-cortex-seo=')) report.nonpilotMarkers.push(f);
     // Every static nonpilot must be copied without a single byte changing.
     if (f.startsWith('public/') && read(out) !== read(f)) report.sourceChanges.push(`output:${f}`);

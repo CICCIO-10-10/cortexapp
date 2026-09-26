@@ -42,6 +42,35 @@ export function initAnalytics() {
  * @param {string} eventName  Nome evento (snake_case, max 40 char)
  * @param {Object} [params]   Parametri aggiuntivi (max 25 per evento)
  */
+// 26/09/2026 — ERRORI VISIBILI: il build di produzione elimina i console.error, quindi un
+// errore vero degli utenti non lo vedeva nessuno. Ora un errore JS non gestito (del nostro
+// codice, non di estensioni/terze parti) diventa l'evento 'js_error' → dashboard.
+(function () {
+    try {
+        if (typeof window === 'undefined' || window.__cxErrHook) return;
+        window.__cxErrHook = true;
+        let sent = 0; const seen = new Set();
+        const send = (msg) => {
+            try {
+                const reason = String(msg || 'unknown').replace(/users\/[A-Za-z0-9_-]+/g, 'users/…').slice(0, 80);
+                if (sent >= 3 || seen.has(reason)) return;
+                seen.add(reason); sent++;
+                track('js_error', { reason });
+            } catch (_) {}
+        };
+        window.addEventListener('error', (ev) => {
+            const f = String((ev && ev.filename) || '');
+            if (f && f.indexOf(location.origin) !== 0) return;   // estensioni / CDN esterni: ignorati
+            if (!f && !(ev && ev.error)) return;                  // errori di caricamento risorse
+            send((ev && ev.message) || (ev && ev.error && ev.error.message));
+        });
+        window.addEventListener('unhandledrejection', (ev) => {
+            const r = ev && ev.reason;
+            send('promise: ' + ((r && (r.code || r.message)) || r));
+        });
+    } catch (_) {}
+})();
+
 export function track(eventName, params = {}) {
     try {
         if (localStorage.getItem('cortex_no_track') === '1') return;

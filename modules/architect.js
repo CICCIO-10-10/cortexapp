@@ -1075,6 +1075,11 @@ export function renderNetworkAndStats() {
 export function drawRadarChart(profile) {
     const canvas = document.getElementById('neural-radar-canvas');
     if (!canvas) return;
+    // 26/09: Chart.js ora si carica dopo l'avvio → se non c'è ancora lo carico e ridisegno
+    if (!window.Chart) {
+        if (typeof window.__cxLib === 'function') window.__cxLib('chart').then(() => { if (window.Chart) drawRadarChart(profile); }).catch(() => {});
+        return;
+    }
     const ctx = canvas.getContext('2d');
     
     try { const _ex = (window.Chart && Chart.getChart) ? Chart.getChart(canvas) : null; if (_ex) _ex.destroy(); } catch (_) {}

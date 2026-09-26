@@ -1,4 +1,30 @@
 /* Only visual properties: never override hidden screens, disclosure state or handlers. */
+/* Full landing rollout: cover directory, quiz, legal and entry templates. */
+[data-cortex-seo="entry-hub"]{--bg0:var(--cx-bg);--bg1:var(--cx-panel);--bg2:var(--cx-raised);--border:var(--cx-line);--t1:var(--cx-ink);--t2:var(--cx-muted);--t3:var(--cx-muted);--purple:var(--cx-accent);padding-top:48px}
+[data-cortex-seo="entry-hub"] :is(.bg-orb,.bg-particles){display:none}
+[data-cortex-seo="entry-hub"] :is(.name,.tt){font-family:var(--cx-heading);font-weight:600}
+[data-cortex-seo="entry-hub"] .logo{box-shadow:none;background:var(--cx-panel)}
+[data-cortex-seo="entry-hub"] .tile.wide{background:#1d1729;border-color:#685777}
+[data-cortex-seo="entry-hub"] .badge{background:var(--cx-accent);color:#171025}
+[data-cortex-seo="legal"]{max-width:880px;margin-inline:auto;padding:40px 20px}
+[data-cortex-seo="legal"] .container{background:var(--cx-panel);border:1px solid var(--cx-line);box-shadow:none;border-radius:var(--cx-radius);padding:32px}
+[data-cortex-seo="legal"] :is(.app-header span,a){color:var(--cx-accent)}
+[data-cortex-seo="legal"] h1{max-width:100%}
+[data-cortex-seo="quiz-guide"] .wrap{max-width:960px;margin-inline:auto;padding-inline:24px}
+[data-cortex-seo="quiz-guide"] .hero{padding-block:56px;border-bottom:1px solid var(--cx-line)}
+[data-cortex-seo="quiz-guide"] .hero h1{margin-inline:auto}
+[data-cortex-seo="quiz-guide"] .nav{flex-wrap:wrap;gap:12px}
+[data-cortex-seo="quiz-guide"] .q{background:var(--cx-panel);border:1px solid var(--cx-line);border-radius:14px;padding:24px;margin-block:20px}
+[data-cortex-seo="quiz-guide"] :is(.dom,.serie){font-family:var(--cx-heading)}
+[data-cortex-seo="quiz-guide"] .sol{border-color:var(--cx-line);line-height:1.8}
+[data-cortex-seo="unime-catalog"] h1{max-width:28ch}
+[data-cortex-seo] :is(.fgrid,.score,.cards,.cgrid)>*{min-width:0}
+@media(max-width:480px){
+  [data-cortex-seo="legal"]{padding:20px 12px}
+  [data-cortex-seo="legal"] .container{padding:20px}
+  [data-cortex-seo="quiz-guide"] header .wrap{flex-wrap:wrap;gap:12px}
+  [data-cortex-seo="quiz-guide"] .q{padding:18px}
+}
 /* Product-aligned editorial pages: same palette, fonts and controls as cortex-product.css. */
 [data-cortex-seo="tolc-type"] main.container,
 [data-cortex-seo="tolc-guide"] main.container{max-width:1040px;padding-bottom:32px}

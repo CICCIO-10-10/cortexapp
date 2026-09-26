@@ -1,0 +1,2112 @@
+{
+  "created": "2026-09-26T22:29:47.072Z",
+  "sourceChanges": [],
+  "pages": [
+    {
+      "slug": "archeologia-e-storia-dell-arte-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 55,
+      "headings": 9
+    },
+    {
+      "slug": "big-data-per-le-scienze-economiche-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 44,
+      "headings": 9
+    },
+    {
+      "slug": "bioingegneria-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 43,
+      "headings": 8
+    },
+    {
+      "slug": "biologia-della-salute-delle-tecnologie-applicate-e-della-nutrizione-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 41,
+      "headings": 8
+    },
+    {
+      "slug": "biologia-ed-ecologia-dell-ambiente-marino-costiero-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 41,
+      "headings": 8
+    },
+    {
+      "slug": "biotecnologie-mediche-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 40,
+      "headings": 8
+    },
+    {
+      "slug": "biotecnologie-veterinarie-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 35,
+      "headings": 8
+    },
+    {
+      "slug": "chimica-e-tecnologia-farmaceutiche-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 61,
+      "headings": 11
+    },
+    {
+      "slug": "chimica-magistrale-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 45,
+      "headings": 8
+    },
+    {
+      "slug": "chimica-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 65,
+      "headings": 9
+    },
+    {
+      "slug": "civilta-letteraria-dell-italia-medievale-e-moderna-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 59,
+      "headings": 8
+    },
+    {
+      "slug": "cognitive-science-and-theory-of-communication-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 49,
+      "headings": 8
+    },
+    {
+      "slug": "come-funziona-il-tolc",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 44,
+      "headings": 10
+    },
+    {
+      "slug": "comunicazione-digitale-e-linguaggi-del-giornalismo-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 46,
+      "headings": 8
+    },
+    {
+      "slug": "consulente-del-lavoro-e-scienze-dei-servizi-giuridici-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 46,
+      "headings": 9
+    },
+    {
+      "slug": "consulente-del-lavoro-e-scienze-dei-servizi-giuridici-siracusa",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 47,
+      "headings": 9
+    },
+    {
+      "slug": "consulenza-e-gestione-di-impresa-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 37,
+      "headings": 8
+    },
+    {
+      "slug": "corsi-unime-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 118,
+      "headings": 13
+    },
+    {
+      "slug": "cortex-vs-anki-vs-quizlet",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 5,
+      "headings": 15
+    },
+    {
+      "slug": "data-science-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 47,
+      "headings": 8
+    },
+    {
+      "slug": "demo",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 2,
+      "headings": 1
+    },
+    {
+      "slug": "digital-transformation-e-innovation-management-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 39,
+      "headings": 8
+    },
+    {
+      "slug": "diritto-dell-innovazione-e-della-sostenibilita-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 33,
+      "headings": 7
+    },
+    {
+      "slug": "discipline-delle-arti-della-musica-e-dello-spettacolo-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 58,
+      "headings": 9
+    },
+    {
+      "slug": "economia-aziendale-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 46,
+      "headings": 9
+    },
+    {
+      "slug": "economia-banca-e-finanza-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 48,
+      "headings": 9
+    },
+    {
+      "slug": "engineering-in-computer-science-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 45,
+      "headings": 8
+    },
+    {
+      "slug": "farmacia-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 62,
+      "headings": 11
+    },
+    {
+      "slug": "filosofia-contemporanea-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 46,
+      "headings": 8
+    },
+    {
+      "slug": "filosofia-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 67,
+      "headings": 9
+    },
+    {
+      "slug": "fisica-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 50,
+      "headings": 9
+    },
+    {
+      "slug": "fisioterapia-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 55,
+      "headings": 9
+    },
+    {
+      "slug": "geophysical-sciences-for-seismic-risk-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 40,
+      "headings": 8
+    },
+    {
+      "slug": "giurisprudenza-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 57,
+      "headings": 11
+    },
+    {
+      "slug": "giurisprudenza-siracusa",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 58,
+      "headings": 11
+    },
+    {
+      "slug": "global-security-studies-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 44,
+      "headings": 8
+    },
+    {
+      "slug": "heritage-innovation-engineering-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 48,
+      "headings": 9
+    },
+    {
+      "slug": "index",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 28,
+      "headings": 0
+    },
+    {
+      "slug": "infermieristica-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 48,
+      "headings": 9
+    },
+    {
+      "slug": "infermieristica-siracusa",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 49,
+      "headings": 9
+    },
+    {
+      "slug": "informatica-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 48,
+      "headings": 9
+    },
+    {
+      "slug": "ingegneria-biomedica-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 50,
+      "headings": 9
+    },
+    {
+      "slug": "ingegneria-civile-magistrale-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 41,
+      "headings": 8
+    },
+    {
+      "slug": "ingegneria-civile-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 49,
+      "headings": 9
+    },
+    {
+      "slug": "ingegneria-elettronica-e-informatica-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 49,
+      "headings": 9
+    },
+    {
+      "slug": "ingegneria-elettronica-per-l-industria-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 45,
+      "headings": 8
+    },
+    {
+      "slug": "ingegneria-gestionale-magistrale-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 41,
+      "headings": 8
+    },
+    {
+      "slug": "ingegneria-gestionale-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 50,
+      "headings": 9
+    },
+    {
+      "slug": "ingegneria-industriale-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 52,
+      "headings": 9
+    },
+    {
+      "slug": "ingegneria-meccanica-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 41,
+      "headings": 8
+    },
+    {
+      "slug": "iscrizione-tolc",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 33,
+      "headings": 5
+    },
+    {
+      "slug": "istituto-tecnico-economico",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 33,
+      "headings": 6
+    },
+    {
+      "slug": "istituto-tecnico-informatica",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 32,
+      "headings": 6
+    },
+    {
+      "slug": "lettere-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 55,
+      "headings": 9
+    },
+    {
+      "slug": "liceo-classico",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 34,
+      "headings": 6
+    },
+    {
+      "slug": "liceo-linguistico",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 34,
+      "headings": 6
+    },
+    {
+      "slug": "liceo-scientifico",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 33,
+      "headings": 6
+    },
+    {
+      "slug": "liceo-scienze-applicate",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 33,
+      "headings": 6
+    },
+    {
+      "slug": "liceo-scienze-umane",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 34,
+      "headings": 6
+    },
+    {
+      "slug": "lingue-letterature-straniere-e-tecniche-della-mediazione-linguistica-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 104,
+      "headings": 9
+    },
+    {
+      "slug": "management-d-impresa-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 46,
+      "headings": 9
+    },
+    {
+      "slug": "marine-biology-and-blue-biotechnologies-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 51,
+      "headings": 9
+    },
+    {
+      "slug": "matematica-magistrale-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 53,
+      "headings": 8
+    },
+    {
+      "slug": "matematica-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 49,
+      "headings": 9
+    },
+    {
+      "slug": "medicina-e-chirurgia-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 152,
+      "headings": 12
+    },
+    {
+      "slug": "medicina-veterinaria-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 73,
+      "headings": 11
+    },
+    {
+      "slug": "metodi-quantitativi-per-l-economia-e-la-finanza-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 37,
+      "headings": 8
+    },
+    {
+      "slug": "ortottica-ed-assistenza-oftalmologica-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 53,
+      "headings": 9
+    },
+    {
+      "slug": "ostetricia-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 48,
+      "headings": 9
+    },
+    {
+      "slug": "physics-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 47,
+      "headings": 8
+    },
+    {
+      "slug": "prepararsi-al-tolc-in-un-mese",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 31,
+      "headings": 6
+    },
+    {
+      "slug": "privacy",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 1,
+      "headings": 8
+    },
+    {
+      "slug": "professioni-legali-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 28,
+      "headings": 8
+    },
+    {
+      "slug": "progettazione-e-gestione-sostenibile-del-verde-urbano-ed-extraurbano-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 26,
+      "headings": 7
+    },
+    {
+      "slug": "psicologia-clinica-e-della-salute-nel-ciclo-di-vita-abilitante-alla-professione-di-psicologo-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 40,
+      "headings": 8
+    },
+    {
+      "slug": "psicologia-e-neuroscienze-cognitive-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 49,
+      "headings": 8
+    },
+    {
+      "slug": "punteggio-tolc",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 30,
+      "headings": 6
+    },
+    {
+      "slug": "quale-tolc-scegliere",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 39,
+      "headings": 5
+    },
+    {
+      "slug": "quiz-logica-tolc",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 10,
+      "headings": 1
+    },
+    {
+      "slug": "relazioni-internazionali-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 51,
+      "headings": 8
+    },
+    {
+      "slug": "ripetere-il-tolc",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 31,
+      "headings": 5
+    },
+    {
+      "slug": "scienze-ambientali-marine-e-terrestri-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 52,
+      "headings": 9
+    },
+    {
+      "slug": "scienze-biologiche-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 50,
+      "headings": 9
+    },
+    {
+      "slug": "scienze-del-turismo-della-cultura-e-dell-impresa-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 53,
+      "headings": 9
+    },
+    {
+      "slug": "scienze-dell-alimentazione-e-nutrizione-umana-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 43,
+      "headings": 8
+    },
+    {
+      "slug": "scienze-dell-amministrazione-e-dell-organizzazione-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 46,
+      "headings": 9
+    },
+    {
+      "slug": "scienze-dell-amministrazione-e-dell-organizzazione-siracusa",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 45,
+      "headings": 9
+    },
+    {
+      "slug": "scienze-dell-informazione-tecniche-giornalistiche-e-social-media-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 54,
+      "headings": 9
+    },
+    {
+      "slug": "scienze-della-formazione-e-della-comunicazione-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 70,
+      "headings": 9
+    },
+    {
+      "slug": "scienze-della-formazione-e-della-comunicazione-noto",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 63,
+      "headings": 9
+    },
+    {
+      "slug": "scienze-della-formazione-primaria-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 86,
+      "headings": 11
+    },
+    {
+      "slug": "scienze-delle-professioni-sanitarie-tecniche-diagnostiche-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 43,
+      "headings": 8
+    },
+    {
+      "slug": "scienze-delle-pubbliche-amministrazioni-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 60,
+      "headings": 8
+    },
+    {
+      "slug": "scienze-e-logistica-del-trasporto-marittimo-ed-aereo-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 40,
+      "headings": 8
+    },
+    {
+      "slug": "scienze-e-tecniche-delle-attivita-motorie-preventive-e-adattate-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 40,
+      "headings": 8
+    },
+    {
+      "slug": "scienze-e-tecniche-psicologiche-cliniche-e-preventive-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 53,
+      "headings": 9
+    },
+    {
+      "slug": "scienze-e-tecniche-psicologiche-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 62,
+      "headings": 9
+    },
+    {
+      "slug": "scienze-e-tecniche-psicologiche-noto",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 54,
+      "headings": 9
+    },
+    {
+      "slug": "scienze-e-tecnologie-agrarie-per-la-transizione-ecologica-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 46,
+      "headings": 9
+    },
+    {
+      "slug": "scienze-e-tecnologie-della-navigazione-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 50,
+      "headings": 9
+    },
+    {
+      "slug": "scienze-gastronomiche-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 57,
+      "headings": 9
+    },
+    {
+      "slug": "scienze-gastronomiche-noto",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 58,
+      "headings": 9
+    },
+    {
+      "slug": "scienze-motorie-sport-e-salute-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 52,
+      "headings": 9
+    },
+    {
+      "slug": "scienze-nutraceutiche-e-alimenti-funzionali-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 51,
+      "headings": 9
+    },
+    {
+      "slug": "scienze-pedagogiche-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 49,
+      "headings": 8
+    },
+    {
+      "slug": "scienze-storiche-societa-culture-e-istituzioni-d-europa-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 51,
+      "headings": 8
+    },
+    {
+      "slug": "scienze-tecnologie-e-sicurezza-delle-produzioni-animali-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 43,
+      "headings": 9
+    },
+    {
+      "slug": "scuola",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 1,
+      "headings": 5
+    },
+    {
+      "slug": "scuole-superiori-agrigento",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 53,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-alessandria",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 47,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-ancona",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 53,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-aosta",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 33,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-arezzo",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 54,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-ascoli-piceno",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 42,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-asti",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 38,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-avellino",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 52,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-bari",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 96,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-barletta-andria-trani",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 50,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-belluno",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 44,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-benevento",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 48,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-bergamo",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 82,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-biella",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 37,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-bologna",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 64,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-bolzano",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 60,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-brescia",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 75,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-brindisi",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 50,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-cagliari",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 60,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-caltanissetta",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 48,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-campobasso",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 46,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-caserta",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 79,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-catania",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 90,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-catanzaro",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 48,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-chieti",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 52,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-como",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 52,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-cosenza",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 76,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-cremona",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 50,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-crotone",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 45,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-cuneo",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 57,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-enna",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 42,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-fermo",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 37,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-ferrara",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 46,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-firenze",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 70,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-foggia",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 76,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-forli-cesena",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 51,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-frosinone",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 60,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-gallura-nord-est-sardegna",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 45,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-genova",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 59,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-gorizia",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 35,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-grosseto",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 45,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-imperia",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 39,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-isernia",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 30,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-l-aquila",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 45,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-la-spezia",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 37,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-latina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 58,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-lecce",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 69,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-lecco",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 49,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-livorno",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 46,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-lodi",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 45,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-lucca",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 47,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-macerata",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 49,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-mantova",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 50,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-massa-carrara",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 46,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-matera",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 38,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-medio-campidano",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 34,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 61,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-milano",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 141,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-modena",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 62,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-monza-e-della-brianza",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 65,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-napoli",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 188,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-novara",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 47,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-nuoro",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 42,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-ogliastra",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 36,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-oristano",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 40,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-padova",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 71,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-palermo",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 89,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-parma",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 53,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-pavia",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 54,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-perugia",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 69,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-pesaro-e-urbino",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 48,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-pescara",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 46,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-piacenza",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 42,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-pisa",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 51,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-pistoia",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 49,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-pordenone",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 40,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-potenza",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 54,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-prato",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 44,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-ragusa",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 49,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-ravenna",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 47,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-reggio-calabria",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 59,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-reggio-emilia",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 54,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-rieti",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 43,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-rimini",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 46,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-roma",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 197,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-rovigo",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 42,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-salerno",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 91,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-sassari",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 50,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-savona",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 39,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-siena",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 46,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-siracusa",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 51,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-sondrio",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 47,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-sulcis-iglesiente",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 39,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-taranto",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 57,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-teramo",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 42,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-terni",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 38,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-torino",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 112,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-trapani",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 56,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-trento",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 51,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-treviso",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 66,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-trieste",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 40,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-udine",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 54,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-varese",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 67,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-venezia",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 64,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-verbano-cusio-ossola",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 40,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-vercelli",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 40,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-verona",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 61,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-vibo-valentia",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 42,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-vicenza",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 69,
+      "headings": 6
+    },
+    {
+      "slug": "scuole-superiori-viterbo",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 45,
+      "headings": 6
+    },
+    {
+      "slug": "servizio-sociale-politiche-sociali-e-studi-sociologici-e-ricerca-sociale-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 59,
+      "headings": 8
+    },
+    {
+      "slug": "sicurezza-qualita-e-sostenibilita-delle-produzioni-animali-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 35,
+      "headings": 8
+    },
+    {
+      "slug": "simulazione-tolc",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 33,
+      "headings": 14
+    },
+    {
+      "slug": "simulazione-tolc-av",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 20,
+      "headings": 5
+    },
+    {
+      "slug": "simulazione-tolc-b",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 20,
+      "headings": 5
+    },
+    {
+      "slug": "simulazione-tolc-e",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 20,
+      "headings": 5
+    },
+    {
+      "slug": "simulazione-tolc-f",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 20,
+      "headings": 5
+    },
+    {
+      "slug": "simulazione-tolc-i",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 20,
+      "headings": 5
+    },
+    {
+      "slug": "simulazione-tolc-lp",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 20,
+      "headings": 5
+    },
+    {
+      "slug": "simulazione-tolc-psi",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 20,
+      "headings": 5
+    },
+    {
+      "slug": "simulazione-tolc-s",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 20,
+      "headings": 5
+    },
+    {
+      "slug": "simulazione-tolc-sps",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 20,
+      "headings": 5
+    },
+    {
+      "slug": "simulazione-tolc-su",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 20,
+      "headings": 5
+    },
+    {
+      "slug": "specializzazione-in-metodi-e-pratiche-di-rafforzamento-dei-percorsi-di-presa-in-carico-e-accompagnamento-sociale-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 35,
+      "headings": 7
+    },
+    {
+      "slug": "tecnica-della-riabilitazione-psichiatrica-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 53,
+      "headings": 9
+    },
+    {
+      "slug": "tecniche-audioprotesiche-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 45,
+      "headings": 9
+    },
+    {
+      "slug": "tecniche-della-prevenzione-nell-ambiente-e-nei-luoghi-di-lavoro-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 57,
+      "headings": 9
+    },
+    {
+      "slug": "tecniche-di-laboratorio-biomedico-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 59,
+      "headings": 9
+    },
+    {
+      "slug": "tecniche-di-neurofisiopatologia-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 58,
+      "headings": 9
+    },
+    {
+      "slug": "tecniche-di-radiologia-medica-per-immagini-e-radioterapia-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 59,
+      "headings": 9
+    },
+    {
+      "slug": "terapia-della-neuro-e-psicomotricita-dell-eta-evolutiva-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 49,
+      "headings": 9
+    },
+    {
+      "slug": "terapia-intensiva-e-subintensiva-pediatrica-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 42,
+      "headings": 7
+    },
+    {
+      "slug": "terms",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 3,
+      "headings": 13
+    },
+    {
+      "slug": "tolc-av",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 33,
+      "headings": 7
+    },
+    {
+      "slug": "tolc-b",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 33,
+      "headings": 7
+    },
+    {
+      "slug": "tolc-catania",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 37,
+      "headings": 7
+    },
+    {
+      "slug": "tolc-e",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 33,
+      "headings": 7
+    },
+    {
+      "slug": "tolc-enna",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 37,
+      "headings": 7
+    },
+    {
+      "slug": "tolc-f",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 33,
+      "headings": 7
+    },
+    {
+      "slug": "tolc-i",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 33,
+      "headings": 7
+    },
+    {
+      "slug": "tolc-lp",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 33,
+      "headings": 7
+    },
+    {
+      "slug": "tolc-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 49,
+      "headings": 7
+    },
+    {
+      "slug": "tolc-palermo",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 37,
+      "headings": 7
+    },
+    {
+      "slug": "tolc-psi",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 33,
+      "headings": 7
+    },
+    {
+      "slug": "tolc-s",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 33,
+      "headings": 7
+    },
+    {
+      "slug": "tolc-sps",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 33,
+      "headings": 7
+    },
+    {
+      "slug": "tolc-su",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 33,
+      "headings": 7
+    },
+    {
+      "slug": "total-quality-international-management-for-food-5-0-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 27,
+      "headings": 7
+    },
+    {
+      "slug": "tradizione-classica-e-archeologia-del-mediterraneo-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 54,
+      "headings": 8
+    },
+    {
+      "slug": "traduzione-didattica-e-relazioni-culturali-per-le-lingue-e-le-letterature-moderne-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 68,
+      "headings": 8
+    },
+    {
+      "slug": "transnational-and-european-legal-studies-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 46,
+      "headings": 9
+    },
+    {
+      "slug": "turismo-e-spettacolo-messina",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 62,
+      "headings": 8
+    },
+    {
+      "slug": "unime",
+      "changes": [],
+      "marker": true,
+      "exactPublicOutput": true,
+      "linkCount": 2,
+      "headings": 3
+    }
+  ],
+  "nonpilotMarkers": [],
+  "protectedUniMe": [
+    {
+      "slug": "admin-tiktok",
+      "unchanged": true
+    },
+    {
+      "slug": "oauth-callback",
+      "unchanged": true
+    },
+    {
+      "slug": "google92cdd6ad9a1c54f5",
+      "unchanged": true
+    }
+  ],
+  "presentationOnlyChanges": [],
+  "requestedAppChanges": [],
+  "pass": true
+}

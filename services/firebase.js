@@ -416,6 +416,11 @@ async function _syncToCloudInner(deckId = null) {
         console.error('[Firebase] syncToCloud failed:', e);
         // 25/09/2026: rendiamo visibile il fallimento (prima era solo in console)
         try { if (typeof window.clarity === 'function') window.clarity('event', 'cloud_sync_failed'); } catch (_) {}
+        // 26/09/2026: anche in dashboard (journeys) — il bug dei mazzi è rimasto invisibile 2 mesi
+        try {
+            const _reason = String((e && (e.code || e.message)) || 'unknown').replace(/users\/[A-Za-z0-9_-]+/g, 'users/…').slice(0, 80);
+            if (typeof window.__cxLogStep === 'function') window.__cxLogStep('cloud_sync_failed', { reason: _reason });
+        } catch (_) {}
     }
 }
 

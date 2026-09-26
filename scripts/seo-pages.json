@@ -1,30 +1,1577 @@
 {
-  "mode": "selected",
-  "expectedPilotCount": 19,
+  "mode": "rollout",
+  "expectedPageCount": 261,
   "protected": [
-    "chimica-triennale-messina", "ingegneria-civile-triennale-messina",
-    "ingegneria-gestionale-triennale-messina", "matematica-triennale-messina",
-    "scienze-politiche-e-delle-relazioni-internazionali-messina"
+    "admin-tiktok",
+    "oauth-callback",
+    "google92cdd6ad9a1c54f5"
   ],
   "pages": [
-    { "slug": "tolc-sps", "family": "tolc-type", "source": "public/tolc-sps.html", "reason": "Priorità traffico GA4 28 giorni: 81 sessioni nello snapshot 20 settembre" },
-    { "slug": "tolc-psi", "family": "tolc-type", "source": "public/tolc-psi.html", "reason": "Priorità traffico GA4 28 giorni: 51 sessioni" },
-    { "slug": "tolc-e", "family": "tolc-type", "source": "public/tolc-e.html", "reason": "Priorità traffico GA4 28 giorni: 42 sessioni" },
-    { "slug": "tolc-su", "family": "tolc-type", "source": "public/tolc-su.html", "reason": "Priorità traffico GA4 28 giorni: 42 sessioni" },
-    { "slug": "tolc-s", "family": "tolc-type", "source": "public/tolc-s.html", "reason": "Priorità traffico GA4 28 giorni: 35 sessioni" },
-    { "slug": "ripetere-il-tolc", "family": "tolc-guide", "source": "public/ripetere-il-tolc.html", "reason": "Priorità guida editoriale GA4 28 giorni: 19 sessioni" },
-    { "slug": "scuole-superiori-messina", "family": "province", "source": "public/scuole-superiori-messina.html", "reason": "Elenco scuole, schede e collegamenti territoriali" },
-    { "slug": "archeologia-e-storia-dell-arte-messina", "family": "unime-course", "source": "public/archeologia-e-storia-dell-arte-messina.html", "reason": "Corso indicizzato, programmi espandibili e titolo lungo" },
-    { "slug": "medicina-e-chirurgia-messina", "family": "unime-course", "source": "public/medicina-e-chirurgia-messina.html", "reason": "Secondo corso indicizzato, ciclo unico e catalogo esteso; sostituisce il campione storico protetto" },
-    { "slug": "liceo-scientifico", "family": "school-track", "source": "public/liceo-scientifico.html", "reason": "Materie e argomenti; CSS legacy condiviso con quattro UniMe protette" },
-    { "slug": "tolc-i", "family": "tolc-type", "source": "public/tolc-i.html", "reason": "Tabella struttura, punteggi e stati semantici" },
-    { "slug": "punteggio-tolc", "family": "tolc-guide", "source": "public/punteggio-tolc.html", "reason": "Guida editoriale e callout di avvertenza" },
-    { "slug": "tolc-messina", "family": "tolc-local", "source": "public/tolc-messina.html", "reason": "Tabella corsi e link locali lunghi" },
-    { "slug": "simulazione-tolc-i", "family": "simulation", "source": "public/simulazione-tolc-i.html", "reason": "Hero centrato, CTA primaria/secondaria, FAQ e correlati" },
-    { "slug": "cortex-vs-anki-vs-quizlet", "family": "comparison", "source": "public/cortex-vs-anki-vs-quizlet.html", "reason": "Confronto a quattro colonne e verdetto" },
-    { "slug": "scuola", "family": "school-hub", "source": "scuola.html", "reason": "Hub interattivo: selezione, ricerca, schede e stati nascosti" },
-    { "slug": "unime", "family": "unime-hub", "source": "unime.html", "reason": "Hub interattivo universitario, ricerca e programmi" },
-    { "slug": "simulazione-tolc", "family": "simulation-index", "source": "simulazione-tolc.html", "reason": "Indice lungo con dieci tabelle e CTA" },
-    { "slug": "demo", "family": "demo", "source": "public/demo.html", "reason": "Flashcard interattive, rotazione funzionale e feedback" }
+    {
+      "slug": "archeologia-e-storia-dell-arte-messina",
+      "family": "unime-course",
+      "source": "public/archeologia-e-storia-dell-arte-messina.html",
+      "reason": "Corso indicizzato, programmi espandibili e titolo lungo"
+    },
+    {
+      "slug": "big-data-per-le-scienze-economiche-messina",
+      "family": "unime-course",
+      "source": "public/big-data-per-le-scienze-economiche-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "bioingegneria-messina",
+      "family": "unime-course",
+      "source": "public/bioingegneria-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "biologia-della-salute-delle-tecnologie-applicate-e-della-nutrizione-messina",
+      "family": "unime-course",
+      "source": "public/biologia-della-salute-delle-tecnologie-applicate-e-della-nutrizione-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "biologia-ed-ecologia-dell-ambiente-marino-costiero-messina",
+      "family": "unime-course",
+      "source": "public/biologia-ed-ecologia-dell-ambiente-marino-costiero-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "biotecnologie-mediche-messina",
+      "family": "unime-course",
+      "source": "public/biotecnologie-mediche-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "biotecnologie-veterinarie-messina",
+      "family": "unime-course",
+      "source": "public/biotecnologie-veterinarie-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "chimica-e-tecnologia-farmaceutiche-messina",
+      "family": "unime-course",
+      "source": "public/chimica-e-tecnologia-farmaceutiche-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "chimica-magistrale-messina",
+      "family": "unime-course",
+      "source": "public/chimica-magistrale-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "chimica-messina",
+      "family": "unime-course",
+      "source": "public/chimica-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "civilta-letteraria-dell-italia-medievale-e-moderna-messina",
+      "family": "unime-course",
+      "source": "public/civilta-letteraria-dell-italia-medievale-e-moderna-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "cognitive-science-and-theory-of-communication-messina",
+      "family": "unime-course",
+      "source": "public/cognitive-science-and-theory-of-communication-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "come-funziona-il-tolc",
+      "family": "tolc-guide",
+      "source": "public/come-funziona-il-tolc.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "comunicazione-digitale-e-linguaggi-del-giornalismo-messina",
+      "family": "unime-course",
+      "source": "public/comunicazione-digitale-e-linguaggi-del-giornalismo-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "consulente-del-lavoro-e-scienze-dei-servizi-giuridici-messina",
+      "family": "unime-course",
+      "source": "public/consulente-del-lavoro-e-scienze-dei-servizi-giuridici-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "consulente-del-lavoro-e-scienze-dei-servizi-giuridici-siracusa",
+      "family": "unime-course",
+      "source": "public/consulente-del-lavoro-e-scienze-dei-servizi-giuridici-siracusa.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "consulenza-e-gestione-di-impresa-messina",
+      "family": "unime-course",
+      "source": "public/consulenza-e-gestione-di-impresa-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "corsi-unime-messina",
+      "family": "unime-catalog",
+      "source": "public/corsi-unime-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "cortex-vs-anki-vs-quizlet",
+      "family": "comparison",
+      "source": "public/cortex-vs-anki-vs-quizlet.html",
+      "reason": "Confronto a quattro colonne e verdetto"
+    },
+    {
+      "slug": "data-science-messina",
+      "family": "unime-course",
+      "source": "public/data-science-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "demo",
+      "family": "demo",
+      "source": "public/demo.html",
+      "reason": "Flashcard interattive, rotazione funzionale e feedback"
+    },
+    {
+      "slug": "digital-transformation-e-innovation-management-messina",
+      "family": "unime-course",
+      "source": "public/digital-transformation-e-innovation-management-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "diritto-dell-innovazione-e-della-sostenibilita-messina",
+      "family": "unime-course",
+      "source": "public/diritto-dell-innovazione-e-della-sostenibilita-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "discipline-delle-arti-della-musica-e-dello-spettacolo-messina",
+      "family": "unime-course",
+      "source": "public/discipline-delle-arti-della-musica-e-dello-spettacolo-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "economia-aziendale-messina",
+      "family": "unime-course",
+      "source": "public/economia-aziendale-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "economia-banca-e-finanza-messina",
+      "family": "unime-course",
+      "source": "public/economia-banca-e-finanza-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "engineering-in-computer-science-messina",
+      "family": "unime-course",
+      "source": "public/engineering-in-computer-science-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "farmacia-messina",
+      "family": "unime-course",
+      "source": "public/farmacia-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "filosofia-contemporanea-messina",
+      "family": "unime-course",
+      "source": "public/filosofia-contemporanea-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "filosofia-messina",
+      "family": "unime-course",
+      "source": "public/filosofia-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "fisica-messina",
+      "family": "unime-course",
+      "source": "public/fisica-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "fisioterapia-messina",
+      "family": "unime-course",
+      "source": "public/fisioterapia-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "geophysical-sciences-for-seismic-risk-messina",
+      "family": "unime-course",
+      "source": "public/geophysical-sciences-for-seismic-risk-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "giurisprudenza-messina",
+      "family": "unime-course",
+      "source": "public/giurisprudenza-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "giurisprudenza-siracusa",
+      "family": "unime-course",
+      "source": "public/giurisprudenza-siracusa.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "global-security-studies-messina",
+      "family": "unime-course",
+      "source": "public/global-security-studies-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "heritage-innovation-engineering-messina",
+      "family": "unime-course",
+      "source": "public/heritage-innovation-engineering-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "index",
+      "family": "entry-hub",
+      "source": "index.html",
+      "reason": "Ingresso Cortex coerente con app e landing"
+    },
+    {
+      "slug": "infermieristica-messina",
+      "family": "unime-course",
+      "source": "public/infermieristica-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "infermieristica-siracusa",
+      "family": "unime-course",
+      "source": "public/infermieristica-siracusa.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "informatica-messina",
+      "family": "unime-course",
+      "source": "public/informatica-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "ingegneria-biomedica-messina",
+      "family": "unime-course",
+      "source": "public/ingegneria-biomedica-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "ingegneria-civile-magistrale-messina",
+      "family": "unime-course",
+      "source": "public/ingegneria-civile-magistrale-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "ingegneria-civile-messina",
+      "family": "unime-course",
+      "source": "public/ingegneria-civile-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "ingegneria-elettronica-e-informatica-messina",
+      "family": "unime-course",
+      "source": "public/ingegneria-elettronica-e-informatica-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "ingegneria-elettronica-per-l-industria-messina",
+      "family": "unime-course",
+      "source": "public/ingegneria-elettronica-per-l-industria-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "ingegneria-gestionale-magistrale-messina",
+      "family": "unime-course",
+      "source": "public/ingegneria-gestionale-magistrale-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "ingegneria-gestionale-messina",
+      "family": "unime-course",
+      "source": "public/ingegneria-gestionale-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "ingegneria-industriale-messina",
+      "family": "unime-course",
+      "source": "public/ingegneria-industriale-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "ingegneria-meccanica-messina",
+      "family": "unime-course",
+      "source": "public/ingegneria-meccanica-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "iscrizione-tolc",
+      "family": "tolc-guide",
+      "source": "public/iscrizione-tolc.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "istituto-tecnico-economico",
+      "family": "school-track",
+      "source": "public/istituto-tecnico-economico.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "istituto-tecnico-informatica",
+      "family": "school-track",
+      "source": "public/istituto-tecnico-informatica.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "lettere-messina",
+      "family": "unime-course",
+      "source": "public/lettere-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "liceo-classico",
+      "family": "school-track",
+      "source": "public/liceo-classico.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "liceo-linguistico",
+      "family": "school-track",
+      "source": "public/liceo-linguistico.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "liceo-scientifico",
+      "family": "school-track",
+      "source": "public/liceo-scientifico.html",
+      "reason": "Materie e argomenti; CSS legacy condiviso con quattro UniMe protette"
+    },
+    {
+      "slug": "liceo-scienze-applicate",
+      "family": "school-track",
+      "source": "public/liceo-scienze-applicate.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "liceo-scienze-umane",
+      "family": "school-track",
+      "source": "public/liceo-scienze-umane.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "lingue-letterature-straniere-e-tecniche-della-mediazione-linguistica-messina",
+      "family": "unime-course",
+      "source": "public/lingue-letterature-straniere-e-tecniche-della-mediazione-linguistica-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "management-d-impresa-messina",
+      "family": "unime-course",
+      "source": "public/management-d-impresa-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "marine-biology-and-blue-biotechnologies-messina",
+      "family": "unime-course",
+      "source": "public/marine-biology-and-blue-biotechnologies-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "matematica-magistrale-messina",
+      "family": "unime-course",
+      "source": "public/matematica-magistrale-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "matematica-messina",
+      "family": "unime-course",
+      "source": "public/matematica-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "medicina-e-chirurgia-messina",
+      "family": "unime-course",
+      "source": "public/medicina-e-chirurgia-messina.html",
+      "reason": "Secondo corso indicizzato, ciclo unico e catalogo esteso; sostituisce il campione storico protetto"
+    },
+    {
+      "slug": "medicina-veterinaria-messina",
+      "family": "unime-course",
+      "source": "public/medicina-veterinaria-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "metodi-quantitativi-per-l-economia-e-la-finanza-messina",
+      "family": "unime-course",
+      "source": "public/metodi-quantitativi-per-l-economia-e-la-finanza-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "ortottica-ed-assistenza-oftalmologica-messina",
+      "family": "unime-course",
+      "source": "public/ortottica-ed-assistenza-oftalmologica-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "ostetricia-messina",
+      "family": "unime-course",
+      "source": "public/ostetricia-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "physics-messina",
+      "family": "unime-course",
+      "source": "public/physics-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "prepararsi-al-tolc-in-un-mese",
+      "family": "tolc-guide",
+      "source": "public/prepararsi-al-tolc-in-un-mese.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "privacy",
+      "family": "legal",
+      "source": "public/privacy.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "professioni-legali-messina",
+      "family": "unime-course",
+      "source": "public/professioni-legali-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "progettazione-e-gestione-sostenibile-del-verde-urbano-ed-extraurbano-messina",
+      "family": "unime-course",
+      "source": "public/progettazione-e-gestione-sostenibile-del-verde-urbano-ed-extraurbano-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "psicologia-clinica-e-della-salute-nel-ciclo-di-vita-abilitante-alla-professione-di-psicologo-messina",
+      "family": "unime-course",
+      "source": "public/psicologia-clinica-e-della-salute-nel-ciclo-di-vita-abilitante-alla-professione-di-psicologo-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "psicologia-e-neuroscienze-cognitive-messina",
+      "family": "unime-course",
+      "source": "public/psicologia-e-neuroscienze-cognitive-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "punteggio-tolc",
+      "family": "tolc-guide",
+      "source": "public/punteggio-tolc.html",
+      "reason": "Guida editoriale e callout di avvertenza"
+    },
+    {
+      "slug": "quale-tolc-scegliere",
+      "family": "tolc-guide",
+      "source": "public/quale-tolc-scegliere.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "quiz-logica-tolc",
+      "family": "quiz-guide",
+      "source": "public/quiz-logica-tolc.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "relazioni-internazionali-messina",
+      "family": "unime-course",
+      "source": "public/relazioni-internazionali-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "ripetere-il-tolc",
+      "family": "tolc-guide",
+      "source": "public/ripetere-il-tolc.html",
+      "reason": "Priorità guida editoriale GA4 28 giorni: 19 sessioni"
+    },
+    {
+      "slug": "scienze-ambientali-marine-e-terrestri-messina",
+      "family": "unime-course",
+      "source": "public/scienze-ambientali-marine-e-terrestri-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scienze-biologiche-messina",
+      "family": "unime-course",
+      "source": "public/scienze-biologiche-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scienze-del-turismo-della-cultura-e-dell-impresa-messina",
+      "family": "unime-course",
+      "source": "public/scienze-del-turismo-della-cultura-e-dell-impresa-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scienze-dell-alimentazione-e-nutrizione-umana-messina",
+      "family": "unime-course",
+      "source": "public/scienze-dell-alimentazione-e-nutrizione-umana-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scienze-dell-amministrazione-e-dell-organizzazione-messina",
+      "family": "unime-course",
+      "source": "public/scienze-dell-amministrazione-e-dell-organizzazione-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scienze-dell-amministrazione-e-dell-organizzazione-siracusa",
+      "family": "unime-course",
+      "source": "public/scienze-dell-amministrazione-e-dell-organizzazione-siracusa.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scienze-dell-informazione-tecniche-giornalistiche-e-social-media-messina",
+      "family": "unime-course",
+      "source": "public/scienze-dell-informazione-tecniche-giornalistiche-e-social-media-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scienze-della-formazione-e-della-comunicazione-messina",
+      "family": "unime-course",
+      "source": "public/scienze-della-formazione-e-della-comunicazione-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scienze-della-formazione-e-della-comunicazione-noto",
+      "family": "unime-course",
+      "source": "public/scienze-della-formazione-e-della-comunicazione-noto.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scienze-della-formazione-primaria-messina",
+      "family": "unime-course",
+      "source": "public/scienze-della-formazione-primaria-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scienze-delle-professioni-sanitarie-tecniche-diagnostiche-messina",
+      "family": "unime-course",
+      "source": "public/scienze-delle-professioni-sanitarie-tecniche-diagnostiche-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scienze-delle-pubbliche-amministrazioni-messina",
+      "family": "unime-course",
+      "source": "public/scienze-delle-pubbliche-amministrazioni-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scienze-e-logistica-del-trasporto-marittimo-ed-aereo-messina",
+      "family": "unime-course",
+      "source": "public/scienze-e-logistica-del-trasporto-marittimo-ed-aereo-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scienze-e-tecniche-delle-attivita-motorie-preventive-e-adattate-messina",
+      "family": "unime-course",
+      "source": "public/scienze-e-tecniche-delle-attivita-motorie-preventive-e-adattate-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scienze-e-tecniche-psicologiche-cliniche-e-preventive-messina",
+      "family": "unime-course",
+      "source": "public/scienze-e-tecniche-psicologiche-cliniche-e-preventive-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scienze-e-tecniche-psicologiche-messina",
+      "family": "unime-course",
+      "source": "public/scienze-e-tecniche-psicologiche-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scienze-e-tecniche-psicologiche-noto",
+      "family": "unime-course",
+      "source": "public/scienze-e-tecniche-psicologiche-noto.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scienze-e-tecnologie-agrarie-per-la-transizione-ecologica-messina",
+      "family": "unime-course",
+      "source": "public/scienze-e-tecnologie-agrarie-per-la-transizione-ecologica-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scienze-e-tecnologie-della-navigazione-messina",
+      "family": "unime-course",
+      "source": "public/scienze-e-tecnologie-della-navigazione-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scienze-gastronomiche-messina",
+      "family": "unime-course",
+      "source": "public/scienze-gastronomiche-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scienze-gastronomiche-noto",
+      "family": "unime-course",
+      "source": "public/scienze-gastronomiche-noto.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scienze-motorie-sport-e-salute-messina",
+      "family": "unime-course",
+      "source": "public/scienze-motorie-sport-e-salute-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scienze-nutraceutiche-e-alimenti-funzionali-messina",
+      "family": "unime-course",
+      "source": "public/scienze-nutraceutiche-e-alimenti-funzionali-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scienze-pedagogiche-messina",
+      "family": "unime-course",
+      "source": "public/scienze-pedagogiche-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scienze-storiche-societa-culture-e-istituzioni-d-europa-messina",
+      "family": "unime-course",
+      "source": "public/scienze-storiche-societa-culture-e-istituzioni-d-europa-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scienze-tecnologie-e-sicurezza-delle-produzioni-animali-messina",
+      "family": "unime-course",
+      "source": "public/scienze-tecnologie-e-sicurezza-delle-produzioni-animali-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuola",
+      "family": "school-hub",
+      "source": "scuola.html",
+      "reason": "Hub interattivo: selezione, ricerca, schede e stati nascosti"
+    },
+    {
+      "slug": "scuole-superiori-agrigento",
+      "family": "province",
+      "source": "public/scuole-superiori-agrigento.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-alessandria",
+      "family": "province",
+      "source": "public/scuole-superiori-alessandria.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-ancona",
+      "family": "province",
+      "source": "public/scuole-superiori-ancona.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-aosta",
+      "family": "province",
+      "source": "public/scuole-superiori-aosta.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-arezzo",
+      "family": "province",
+      "source": "public/scuole-superiori-arezzo.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-ascoli-piceno",
+      "family": "province",
+      "source": "public/scuole-superiori-ascoli-piceno.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-asti",
+      "family": "province",
+      "source": "public/scuole-superiori-asti.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-avellino",
+      "family": "province",
+      "source": "public/scuole-superiori-avellino.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-bari",
+      "family": "province",
+      "source": "public/scuole-superiori-bari.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-barletta-andria-trani",
+      "family": "province",
+      "source": "public/scuole-superiori-barletta-andria-trani.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-belluno",
+      "family": "province",
+      "source": "public/scuole-superiori-belluno.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-benevento",
+      "family": "province",
+      "source": "public/scuole-superiori-benevento.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-bergamo",
+      "family": "province",
+      "source": "public/scuole-superiori-bergamo.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-biella",
+      "family": "province",
+      "source": "public/scuole-superiori-biella.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-bologna",
+      "family": "province",
+      "source": "public/scuole-superiori-bologna.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-bolzano",
+      "family": "province",
+      "source": "public/scuole-superiori-bolzano.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-brescia",
+      "family": "province",
+      "source": "public/scuole-superiori-brescia.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-brindisi",
+      "family": "province",
+      "source": "public/scuole-superiori-brindisi.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-cagliari",
+      "family": "province",
+      "source": "public/scuole-superiori-cagliari.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-caltanissetta",
+      "family": "province",
+      "source": "public/scuole-superiori-caltanissetta.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-campobasso",
+      "family": "province",
+      "source": "public/scuole-superiori-campobasso.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-caserta",
+      "family": "province",
+      "source": "public/scuole-superiori-caserta.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-catania",
+      "family": "province",
+      "source": "public/scuole-superiori-catania.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-catanzaro",
+      "family": "province",
+      "source": "public/scuole-superiori-catanzaro.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-chieti",
+      "family": "province",
+      "source": "public/scuole-superiori-chieti.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-como",
+      "family": "province",
+      "source": "public/scuole-superiori-como.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-cosenza",
+      "family": "province",
+      "source": "public/scuole-superiori-cosenza.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-cremona",
+      "family": "province",
+      "source": "public/scuole-superiori-cremona.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-crotone",
+      "family": "province",
+      "source": "public/scuole-superiori-crotone.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-cuneo",
+      "family": "province",
+      "source": "public/scuole-superiori-cuneo.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-enna",
+      "family": "province",
+      "source": "public/scuole-superiori-enna.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-fermo",
+      "family": "province",
+      "source": "public/scuole-superiori-fermo.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-ferrara",
+      "family": "province",
+      "source": "public/scuole-superiori-ferrara.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-firenze",
+      "family": "province",
+      "source": "public/scuole-superiori-firenze.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-foggia",
+      "family": "province",
+      "source": "public/scuole-superiori-foggia.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-forli-cesena",
+      "family": "province",
+      "source": "public/scuole-superiori-forli-cesena.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-frosinone",
+      "family": "province",
+      "source": "public/scuole-superiori-frosinone.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-gallura-nord-est-sardegna",
+      "family": "province",
+      "source": "public/scuole-superiori-gallura-nord-est-sardegna.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-genova",
+      "family": "province",
+      "source": "public/scuole-superiori-genova.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-gorizia",
+      "family": "province",
+      "source": "public/scuole-superiori-gorizia.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-grosseto",
+      "family": "province",
+      "source": "public/scuole-superiori-grosseto.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-imperia",
+      "family": "province",
+      "source": "public/scuole-superiori-imperia.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-isernia",
+      "family": "province",
+      "source": "public/scuole-superiori-isernia.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-l-aquila",
+      "family": "province",
+      "source": "public/scuole-superiori-l-aquila.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-la-spezia",
+      "family": "province",
+      "source": "public/scuole-superiori-la-spezia.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-latina",
+      "family": "province",
+      "source": "public/scuole-superiori-latina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-lecce",
+      "family": "province",
+      "source": "public/scuole-superiori-lecce.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-lecco",
+      "family": "province",
+      "source": "public/scuole-superiori-lecco.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-livorno",
+      "family": "province",
+      "source": "public/scuole-superiori-livorno.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-lodi",
+      "family": "province",
+      "source": "public/scuole-superiori-lodi.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-lucca",
+      "family": "province",
+      "source": "public/scuole-superiori-lucca.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-macerata",
+      "family": "province",
+      "source": "public/scuole-superiori-macerata.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-mantova",
+      "family": "province",
+      "source": "public/scuole-superiori-mantova.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-massa-carrara",
+      "family": "province",
+      "source": "public/scuole-superiori-massa-carrara.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-matera",
+      "family": "province",
+      "source": "public/scuole-superiori-matera.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-medio-campidano",
+      "family": "province",
+      "source": "public/scuole-superiori-medio-campidano.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-messina",
+      "family": "province",
+      "source": "public/scuole-superiori-messina.html",
+      "reason": "Elenco scuole, schede e collegamenti territoriali"
+    },
+    {
+      "slug": "scuole-superiori-milano",
+      "family": "province",
+      "source": "public/scuole-superiori-milano.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-modena",
+      "family": "province",
+      "source": "public/scuole-superiori-modena.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-monza-e-della-brianza",
+      "family": "province",
+      "source": "public/scuole-superiori-monza-e-della-brianza.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-napoli",
+      "family": "province",
+      "source": "public/scuole-superiori-napoli.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-novara",
+      "family": "province",
+      "source": "public/scuole-superiori-novara.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-nuoro",
+      "family": "province",
+      "source": "public/scuole-superiori-nuoro.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-ogliastra",
+      "family": "province",
+      "source": "public/scuole-superiori-ogliastra.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-oristano",
+      "family": "province",
+      "source": "public/scuole-superiori-oristano.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-padova",
+      "family": "province",
+      "source": "public/scuole-superiori-padova.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-palermo",
+      "family": "province",
+      "source": "public/scuole-superiori-palermo.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-parma",
+      "family": "province",
+      "source": "public/scuole-superiori-parma.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-pavia",
+      "family": "province",
+      "source": "public/scuole-superiori-pavia.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-perugia",
+      "family": "province",
+      "source": "public/scuole-superiori-perugia.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-pesaro-e-urbino",
+      "family": "province",
+      "source": "public/scuole-superiori-pesaro-e-urbino.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-pescara",
+      "family": "province",
+      "source": "public/scuole-superiori-pescara.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-piacenza",
+      "family": "province",
+      "source": "public/scuole-superiori-piacenza.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-pisa",
+      "family": "province",
+      "source": "public/scuole-superiori-pisa.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-pistoia",
+      "family": "province",
+      "source": "public/scuole-superiori-pistoia.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-pordenone",
+      "family": "province",
+      "source": "public/scuole-superiori-pordenone.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-potenza",
+      "family": "province",
+      "source": "public/scuole-superiori-potenza.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-prato",
+      "family": "province",
+      "source": "public/scuole-superiori-prato.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-ragusa",
+      "family": "province",
+      "source": "public/scuole-superiori-ragusa.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-ravenna",
+      "family": "province",
+      "source": "public/scuole-superiori-ravenna.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-reggio-calabria",
+      "family": "province",
+      "source": "public/scuole-superiori-reggio-calabria.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-reggio-emilia",
+      "family": "province",
+      "source": "public/scuole-superiori-reggio-emilia.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-rieti",
+      "family": "province",
+      "source": "public/scuole-superiori-rieti.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-rimini",
+      "family": "province",
+      "source": "public/scuole-superiori-rimini.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-roma",
+      "family": "province",
+      "source": "public/scuole-superiori-roma.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-rovigo",
+      "family": "province",
+      "source": "public/scuole-superiori-rovigo.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-salerno",
+      "family": "province",
+      "source": "public/scuole-superiori-salerno.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-sassari",
+      "family": "province",
+      "source": "public/scuole-superiori-sassari.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-savona",
+      "family": "province",
+      "source": "public/scuole-superiori-savona.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-siena",
+      "family": "province",
+      "source": "public/scuole-superiori-siena.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-siracusa",
+      "family": "province",
+      "source": "public/scuole-superiori-siracusa.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-sondrio",
+      "family": "province",
+      "source": "public/scuole-superiori-sondrio.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-sulcis-iglesiente",
+      "family": "province",
+      "source": "public/scuole-superiori-sulcis-iglesiente.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-taranto",
+      "family": "province",
+      "source": "public/scuole-superiori-taranto.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-teramo",
+      "family": "province",
+      "source": "public/scuole-superiori-teramo.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-terni",
+      "family": "province",
+      "source": "public/scuole-superiori-terni.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-torino",
+      "family": "province",
+      "source": "public/scuole-superiori-torino.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-trapani",
+      "family": "province",
+      "source": "public/scuole-superiori-trapani.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-trento",
+      "family": "province",
+      "source": "public/scuole-superiori-trento.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-treviso",
+      "family": "province",
+      "source": "public/scuole-superiori-treviso.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-trieste",
+      "family": "province",
+      "source": "public/scuole-superiori-trieste.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-udine",
+      "family": "province",
+      "source": "public/scuole-superiori-udine.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-varese",
+      "family": "province",
+      "source": "public/scuole-superiori-varese.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-venezia",
+      "family": "province",
+      "source": "public/scuole-superiori-venezia.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-verbano-cusio-ossola",
+      "family": "province",
+      "source": "public/scuole-superiori-verbano-cusio-ossola.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-vercelli",
+      "family": "province",
+      "source": "public/scuole-superiori-vercelli.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-verona",
+      "family": "province",
+      "source": "public/scuole-superiori-verona.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-vibo-valentia",
+      "family": "province",
+      "source": "public/scuole-superiori-vibo-valentia.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-vicenza",
+      "family": "province",
+      "source": "public/scuole-superiori-vicenza.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "scuole-superiori-viterbo",
+      "family": "province",
+      "source": "public/scuole-superiori-viterbo.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "servizio-sociale-politiche-sociali-e-studi-sociologici-e-ricerca-sociale-messina",
+      "family": "unime-course",
+      "source": "public/servizio-sociale-politiche-sociali-e-studi-sociologici-e-ricerca-sociale-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "sicurezza-qualita-e-sostenibilita-delle-produzioni-animali-messina",
+      "family": "unime-course",
+      "source": "public/sicurezza-qualita-e-sostenibilita-delle-produzioni-animali-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "simulazione-tolc",
+      "family": "simulation-index",
+      "source": "simulazione-tolc.html",
+      "reason": "Indice lungo con dieci tabelle e CTA"
+    },
+    {
+      "slug": "simulazione-tolc-av",
+      "family": "simulation",
+      "source": "public/simulazione-tolc-av.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "simulazione-tolc-b",
+      "family": "simulation",
+      "source": "public/simulazione-tolc-b.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "simulazione-tolc-e",
+      "family": "simulation",
+      "source": "public/simulazione-tolc-e.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "simulazione-tolc-f",
+      "family": "simulation",
+      "source": "public/simulazione-tolc-f.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "simulazione-tolc-i",
+      "family": "simulation",
+      "source": "public/simulazione-tolc-i.html",
+      "reason": "Hero centrato, CTA primaria/secondaria, FAQ e correlati"
+    },
+    {
+      "slug": "simulazione-tolc-lp",
+      "family": "simulation",
+      "source": "public/simulazione-tolc-lp.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "simulazione-tolc-psi",
+      "family": "simulation",
+      "source": "public/simulazione-tolc-psi.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "simulazione-tolc-s",
+      "family": "simulation",
+      "source": "public/simulazione-tolc-s.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "simulazione-tolc-sps",
+      "family": "simulation",
+      "source": "public/simulazione-tolc-sps.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "simulazione-tolc-su",
+      "family": "simulation",
+      "source": "public/simulazione-tolc-su.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "specializzazione-in-metodi-e-pratiche-di-rafforzamento-dei-percorsi-di-presa-in-carico-e-accompagnamento-sociale-messina",
+      "family": "unime-course",
+      "source": "public/specializzazione-in-metodi-e-pratiche-di-rafforzamento-dei-percorsi-di-presa-in-carico-e-accompagnamento-sociale-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "tecnica-della-riabilitazione-psichiatrica-messina",
+      "family": "unime-course",
+      "source": "public/tecnica-della-riabilitazione-psichiatrica-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "tecniche-audioprotesiche-messina",
+      "family": "unime-course",
+      "source": "public/tecniche-audioprotesiche-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "tecniche-della-prevenzione-nell-ambiente-e-nei-luoghi-di-lavoro-messina",
+      "family": "unime-course",
+      "source": "public/tecniche-della-prevenzione-nell-ambiente-e-nei-luoghi-di-lavoro-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "tecniche-di-laboratorio-biomedico-messina",
+      "family": "unime-course",
+      "source": "public/tecniche-di-laboratorio-biomedico-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "tecniche-di-neurofisiopatologia-messina",
+      "family": "unime-course",
+      "source": "public/tecniche-di-neurofisiopatologia-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "tecniche-di-radiologia-medica-per-immagini-e-radioterapia-messina",
+      "family": "unime-course",
+      "source": "public/tecniche-di-radiologia-medica-per-immagini-e-radioterapia-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "terapia-della-neuro-e-psicomotricita-dell-eta-evolutiva-messina",
+      "family": "unime-course",
+      "source": "public/terapia-della-neuro-e-psicomotricita-dell-eta-evolutiva-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "terapia-intensiva-e-subintensiva-pediatrica-messina",
+      "family": "unime-course",
+      "source": "public/terapia-intensiva-e-subintensiva-pediatrica-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "terms",
+      "family": "legal",
+      "source": "public/terms.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "tolc-av",
+      "family": "tolc-type",
+      "source": "public/tolc-av.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "tolc-b",
+      "family": "tolc-type",
+      "source": "public/tolc-b.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "tolc-catania",
+      "family": "tolc-local",
+      "source": "public/tolc-catania.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "tolc-e",
+      "family": "tolc-type",
+      "source": "public/tolc-e.html",
+      "reason": "Priorità traffico GA4 28 giorni: 42 sessioni"
+    },
+    {
+      "slug": "tolc-enna",
+      "family": "tolc-local",
+      "source": "public/tolc-enna.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "tolc-f",
+      "family": "tolc-type",
+      "source": "public/tolc-f.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "tolc-i",
+      "family": "tolc-type",
+      "source": "public/tolc-i.html",
+      "reason": "Tabella struttura, punteggi e stati semantici"
+    },
+    {
+      "slug": "tolc-lp",
+      "family": "tolc-type",
+      "source": "public/tolc-lp.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "tolc-messina",
+      "family": "tolc-local",
+      "source": "public/tolc-messina.html",
+      "reason": "Tabella corsi e link locali lunghi"
+    },
+    {
+      "slug": "tolc-palermo",
+      "family": "tolc-local",
+      "source": "public/tolc-palermo.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "tolc-psi",
+      "family": "tolc-type",
+      "source": "public/tolc-psi.html",
+      "reason": "Priorità traffico GA4 28 giorni: 51 sessioni"
+    },
+    {
+      "slug": "tolc-s",
+      "family": "tolc-type",
+      "source": "public/tolc-s.html",
+      "reason": "Priorità traffico GA4 28 giorni: 35 sessioni"
+    },
+    {
+      "slug": "tolc-sps",
+      "family": "tolc-type",
+      "source": "public/tolc-sps.html",
+      "reason": "Priorità traffico GA4 28 giorni: 81 sessioni nello snapshot 20 settembre"
+    },
+    {
+      "slug": "tolc-su",
+      "family": "tolc-type",
+      "source": "public/tolc-su.html",
+      "reason": "Priorità traffico GA4 28 giorni: 42 sessioni"
+    },
+    {
+      "slug": "total-quality-international-management-for-food-5-0-messina",
+      "family": "unime-course",
+      "source": "public/total-quality-international-management-for-food-5-0-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "tradizione-classica-e-archeologia-del-mediterraneo-messina",
+      "family": "unime-course",
+      "source": "public/tradizione-classica-e-archeologia-del-mediterraneo-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "traduzione-didattica-e-relazioni-culturali-per-le-lingue-e-le-letterature-moderne-messina",
+      "family": "unime-course",
+      "source": "public/traduzione-didattica-e-relazioni-culturali-per-le-lingue-e-le-letterature-moderne-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "transnational-and-european-legal-studies-messina",
+      "family": "unime-course",
+      "source": "public/transnational-and-european-legal-studies-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "turismo-e-spettacolo-messina",
+      "family": "unime-course",
+      "source": "public/turismo-e-spettacolo-messina.html",
+      "reason": "Rebranding completo richiesto il 26/09/2026"
+    },
+    {
+      "slug": "unime",
+      "family": "unime-hub",
+      "source": "unime.html",
+      "reason": "Hub interattivo universitario, ricerca e programmi"
+    }
   ]
 }

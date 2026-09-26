@@ -78,8 +78,34 @@
     
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="theme.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js" defer></script>
+    <script>
+    /* 26/09/2026 — AVVIO PIU' LEGGERO: grafici (Chart.js), coriandoli e lettore PDF non servono
+       per aprire l'app. Prima venivano scaricati subito (e main.js aspettava i "defer").
+       Ora si caricano DOPO il load, quando il browser e' libero; i moduli li chiedono al volo
+       con window.__cxLib('chart'|'confetti'|'pdf') se servono prima. */
+    (function(){
+      var LIBS={
+        chart:{src:'https://cdn.jsdelivr.net/npm/chart.js',a:{integrity:'sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ',crossorigin:'anonymous'}},
+        confetti:{src:'https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js'},
+        pdf:{src:'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js'}
+      };
+      var P={};
+      window.__cxLib=function(n){
+        var l=LIBS[n]; if(!l) return Promise.reject(new Error('lib '+n));
+        if(P[n]) return P[n];
+        return P[n]=new Promise(function(res,rej){
+          var s=document.createElement('script'); s.src=l.src; s.async=true;
+          if(l.a) for(var k in l.a) s.setAttribute(k,l.a[k]);
+          s.onload=function(){res();}; s.onerror=function(e){delete P[n]; rej(e);};
+          document.head.appendChild(s);
+        });
+      };
+      window.addEventListener('load',function(){
+        var go=function(){ ['pdf','confetti','chart'].forEach(function(n){ window.__cxLib(n).catch(function(){}); }); };
+        if('requestIdleCallback' in window) requestIdleCallback(go,{timeout:5000}); else setTimeout(go,3000);
+      });
+    })();
+    </script>
 
     <link rel="manifest" href="./manifest.json" />
     <link rel="icon" href="./favicon.ico" sizes="any" />
@@ -219,9 +245,6 @@
         @keyframes slideUp { from{transform:translateY(100%);opacity:0} to{transform:translateY(0);opacity:1} }
     </style>
     <!-- Phase 6: rimosso il caricamento duplicato di pdf.js v3.11.174 (era sovrascritto da v3.4.120 in fondo alla pagina) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" integrity="sha384-GJqSu7vueQ9qN0E9yLPb3Wtpd7OrgK8KmYzC8T1IysG1bcvxvIO4qtYR/D3A991F" crossorigin="anonymous" defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js" integrity="sha384-xuasJXVcyv3hZq0eYpelEkBC8l4yufatZXDsKuyCU2rqfhDCb+ftuE/mSfZAteiK" crossorigin="anonymous" defer></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <!-- FIREBASE SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js" integrity="sha384-4gq9w/AGf72FXdNQ3Kn3EqWP7633NbCMjpYHt8YCZyXf23o2opcuAr4cif41tLrC" crossorigin="anonymous"></script>
@@ -304,7 +327,7 @@ document.body.prepend(b);setTimeout(function(){try{var e=document.getElementById
 
         <div style="position:relative;z-index:2;max-width:480px;width:100%;">
             <!-- Logo -->
-            <img src="LOGO_PREMIUM.png" alt="Cortex" style="width:72px;height:72px;border-radius:20px;margin-bottom:32px;box-shadow:0 0 40px rgba(139,92,246,0.4);">
+            <img src="LOGO_APP_144.png" alt="Cortex" style="width:72px;height:72px;border-radius:20px;margin-bottom:32px;box-shadow:0 0 40px rgba(139,92,246,0.4);">
 
             <!-- Titolo -->
             <h1 style="font-family:'Outfit',sans-serif;font-size:clamp(2.8rem,10vw,4.5rem);font-weight:900;line-height:1;letter-spacing:-0.04em;margin-bottom:12px;background:linear-gradient(135deg,#fff 0%,rgba(255,255,255,0.7) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
@@ -362,7 +385,7 @@ document.body.prepend(b);setTimeout(function(){try{var e=document.getElementById
     <!-- NAV -->
     <nav>
         <div class="nav-logo">
-            <img src="LOGO_PREMIUM.png" alt="Cortex Logo" class="logo-img">
+            <img src="LOGO_APP_144.png" alt="Cortex Logo" class="logo-img">
         </div>
         <div class="nav-tabs">
             <!-- Phase 6: onclick→data-fn (event delegation via core/eventBus.js) -->
@@ -1465,7 +1488,7 @@ document.body.prepend(b);setTimeout(function(){try{var e=document.getElementById
     <!-- SPLASH SCREEN -->
     <div id="splash-screen">
         <div class="splash-logo">
-            <img src="LOGO_PREMIUM.png" alt="Cortex Logo" class="logo-img">
+            <img src="LOGO_APP_144.png" alt="Cortex Logo" class="logo-img">
         </div>
         <div
             style="color:var(--text); font-family:'Outfit'; font-size:1.5rem; font-weight:800; letter-spacing:-0.03em;">
@@ -1898,7 +1921,7 @@ document.body.prepend(b);setTimeout(function(){try{var e=document.getElementById
 
 
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <!-- 26/09/2026: pdf.js ora caricato dopo il load (vedi window.__cxLib in <head>) -->
 
     <!-- Phase 5: main.js è ora un ES module.
          Importa direttamente APP_CONFIG e processAnswer dai moduli.
