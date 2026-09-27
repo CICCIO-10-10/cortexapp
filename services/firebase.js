@@ -320,10 +320,10 @@ let _syncPending = false;
 function _cleanForFs(v) { try { return v == null ? v : JSON.parse(JSON.stringify(v)); } catch (_) { return v; } }
 export async function syncToCloud(deckId = null) {
     if (!firebase?.apps?.length || !window._fbUserId) return;
+    const syncUid = window._fbUserId;
     await hydrateFromIDB();
-    // Hardening: se una sync e' gia' in corso non accodarne altre —
-    // con la persistence multi-tab le batch possono attendere il lease
-    // e accavallarle congela l'app per minuti.
+    if (window._fbUserId !== syncUid) return;
+    // Coalesce edits received in flight into one trailing sync.
     if (_syncInFlight) { _syncPending = true; return; }
     _syncInFlight = true;
     try {
@@ -438,9 +438,10 @@ async function _syncToCloudInner(deckId = null) {
 
 export async function loadFromCloud() {
     if (!firebase?.apps?.length || !window._fbUserId) return;
-    await hydrateFromIDB();
-    const _db = firebase.app().firestore();
     const uid = window._fbUserId;
+    await hydrateFromIDB();
+    if (window._fbUserId !== uid) return;
+    const _db = firebase.app().firestore();
     try {
         const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000));
         const doc = await Promise.race([

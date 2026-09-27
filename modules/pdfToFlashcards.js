@@ -203,7 +203,7 @@ function renderCards(cards, deckTitle) {
     // FIX: prima riusava il nome del mazzo PRECEDENTE se il campo era rimasto
     // valorizzato (es. card di Fisica salvate come "Analisi 2..."). Sempre nuovo.
     if (nameInput) nameInput.value = deckTitle || t('pdffc_ai_deck');
-    if (count)    count.textContent   = `${cards.length} carte`;
+    if (count)    count.textContent   = `${cards.length} ${_outputMode === 'flashcards' ? 'carte' : 'domande'}`;
     const saveButton = document.getElementById('pdfai-save-btn');
     if (saveButton) {
         saveButton.style.display = '';
@@ -530,7 +530,7 @@ export async function openPdfAIFromFile(file) {
 export async function openPdfAIFromText(text, suggestedName = '', mode = 'flashcards') {
     if (_generating) return;
     if (!text?.trim()) {
-        if (window.showToast) window.showToast(t('pdf_no_text'), 'info');
+        if (window.showToast) window.showToast('Incolla gli appunti oppure carica una foto o un file prima di continuare.', 'info');
         return;
     }
 

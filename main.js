@@ -785,9 +785,9 @@ console.log('[Boot] App bootstrapping complete.');
 
 // ── Idratazione asincrona da IndexedDB ────────────────────────────────────────
 window.addEventListener('cortex:decks-changed', () => {
+    refreshDueCounts();
     renderDecks();
     if (document.getElementById('home-root')) renderHome();
-    refreshDueCounts();
 });
 // Il boot sincrono usa localStorage come cache di avvio veloce.
 // Subito dopo, IDB (senza limiti di dimensione) sostituisce i dati in state
