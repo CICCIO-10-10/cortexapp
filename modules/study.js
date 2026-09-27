@@ -90,18 +90,23 @@ let sessionCorrect = 0, sessionWrong = 0, sessionHard = 0, sessionStreak = 0;
 let pct           = 0;  // calcolato in showCard, usato in endSession
 let sessionStartTime = 0;   // timestamp ms — per calcolo durata sessione
 let sessionDeckName  = '';  // nome mazzo — per la share card
+let activeDeckId = null;
+let studyRun = 0;
 
 // ── Funzioni esportate ───────────────────────────────────────────────────────
 
 export async function startStudy(deckIndex) {
+    const run = ++studyRun;
     const { state, showToast, setCurrentDeckIndex } = _deps;
     const deck = state.decks[deckIndex];
+    if (!deck) { showToast(t('study_deck_not_found'), 'error'); return; }
 
     // 🔄 Lazy Loading: se mancano le carte, scarichiamole dalla sub-collection
     if (!deck.cards || deck.cards.length === 0) {
         if (window.loadDeckFromSubcollection) {
             showToast(t('study_loading'), 'info');
             const fullDeck = await window.loadDeckFromSubcollection(deck.id);
+            if (run !== studyRun || !state.decks.includes(deck)) return;
             if (fullDeck && fullDeck.cards) {
                 deck.cards = fullDeck.cards;
                 // Aggiorniamo anche eventuali altri metadati pesanti
@@ -130,6 +135,7 @@ export async function startStudy(deckIndex) {
     if (fab) fab.style.display = 'none';
 
     setCurrentDeckIndex(deckIndex);
+    activeDeckId = deck.id;
     studyQueue    = dueCards.map(c => ({ card: c, origIndex: deck.cards.indexOf(c) }));
     studyIndex    = 0;
     studyFlipped  = false;
@@ -189,7 +195,7 @@ export function showCard() {
 }
 
 export function flipCard() {
-    if (studyFlipped) return;
+    if (studyFlipped || !studyQueue[studyIndex]) return;
     studyFlipped = true;
     const fiEl = document.getElementById('flip-inner');
     const rbEl = document.getElementById('rating-buttons');
@@ -201,11 +207,13 @@ export function flipCard() {
 
 export function rateCard(rating) {
     // Guard: se studyIndex è fuori bounds (es. doppio tap rapido) ignora silenziosamente
-    if (studyIndex >= studyQueue.length || !studyQueue[studyIndex]) return;
+    if (!studyFlipped || studyIndex >= studyQueue.length || !studyQueue[studyIndex]) return;
+    studyFlipped = false; // Ignore duplicate taps before the next card is revealed.
     const { state, saveState, awardXP, todayCardsKey, getCurrentDeckIndex } = _deps;
     const { card, origIndex } = studyQueue[studyIndex];
-    const deck     = state.decks[getCurrentDeckIndex()];
-    const origCard = deck.cards[origIndex];
+    const deck = state.decks.find(d => String(d.id) === String(activeDeckId));
+    const origCard = card.id ? deck?.cards?.find(c => c.id === card.id) : deck?.cards?.[origIndex];
+    if (!origCard) { closeStudy(); _deps.showToast(t('study_deck_not_found'), 'info'); return; }
 
     const updated = processAnswer(origCard, rating);
     Object.assign(origCard, updated);
@@ -253,16 +261,27 @@ export function rateCard(rating) {
 }
 
 export function closeStudy() {
-    document.getElementById('study-overlay').classList.remove('active');
+    studyRun++;
+    studyQueue = [];
+    studyIndex = 0;
+    studyFlipped = false;
+    activeDeckId = null;
+    const overlay = document.getElementById('study-overlay');
+    overlay?.classList.remove('active');
+    if (overlay) overlay.style.display = 'none';
+    const fab = document.getElementById('main-fab');
+    if (fab) fab.style.removeProperty('display');
     const { refreshDueCounts } = _deps;
     if (typeof refreshDueCounts === 'function') refreshDueCounts();
     renderDecks();
+    window.dispatchEvent(new Event('cortex:decks-changed'));
 }
 
 // ── Privata (chiamata da showCard) ───────────────────────────────────────────
 function endSession() {
     const { awardXP } = _deps;
     document.getElementById('study-session').style.display = 'none';
+    document.getElementById('session-done').style.display = 'block';
 
     // ── Calcola durata sessione ───────────────────────────────────────────────
     const elapsedMs  = Date.now() - sessionStartTime;
@@ -339,7 +358,7 @@ function endSession() {
     }
 
     // ── Memory Bank ───────────────────────────────────────────────────────────
-    const deck = _deps.state.decks[_deps.getCurrentDeckIndex()];
+    const deck = _deps.state.decks.find(d => String(d.id) === String(activeDeckId));
     if (deck && deck.id) {
         updateMemoryBank(deck.id, { sessionCorrect, sessionWrong, sessionHard, pct: finalPct });
     }
@@ -497,7 +516,7 @@ export function startStudyById(deckId) {
     const { state } = _deps;
     const idx = state.decks.findIndex(d => d.id === deckId || d.id === parseInt(deckId));
     if (idx !== -1) {
-        startStudy(idx);
+        return startStudy(idx);
     } else {
         _deps.showToast(t('study_deck_not_found'), 'error');
     }

@@ -347,12 +347,12 @@ export function renderHome() {
         </button>`;
 
     const _azioni = [
-        _tile('⚡', 'Quiz rapido', 'quiz lampo sui tuoi mazzi', 'openQuickMode', true),
+        _tile('📸', 'Crea dai tuoi appunti', 'foto, testo o PDF → flashcard e quiz', 'showView', true, '["CreateDeckView"]'),
+        _tile('⚡', 'Quiz rapido', 'quiz lampo sui tuoi mazzi', 'openQuickMode'),
         _tile('🎯', 'Simulazione TOLC', 'struttura e tempi ufficiali', 'openTolcSim'),
         _tile('🎤', 'Interrogazione', (window.getProfModeLabel ? window.getProfModeLabel().replace(/^[^A-Za-zÀ-ù]+/, '') : 'Prof: Normale'), 'openProfSelector'),
         // FIX 17/07/2026: apriva il test attitudinale (openArchitect) come la ghost-card di decks.js —
         // deve aprire la creazione materia. Il test attitudinale resta SOLO per sbloccare network/stats/community.
-        _tile('➕', 'Nuova materia', 'appunti → flashcard AI', 'showView', false, '["CreateDeckView"]'),
     ].join('');
 
     // LE TUE MATERIE (14/07/2026): il contenuto vero dell'utente in Home —
@@ -369,8 +369,8 @@ export function renderHome() {
     const _firstRun = `
         <section aria-label="Inizia da qui" style="position:relative; border-radius:26px; padding:34px 26px; margin-bottom:22px; text-align:center; background:radial-gradient(ellipse at 30% 20%, rgba(139,92,246,0.28), transparent 60%), rgba(16,14,26,0.92); border:1px solid rgba(139,92,246,0.35); box-shadow:0 20px 60px rgba(124,106,247,0.28);">
             <div style="font-size:0.62rem; font-weight:900; letter-spacing:0.28em; text-transform:uppercase; color:rgba(255,255,255,0.42); margin-bottom:10px;">Inizia da qui</div>
-            <h2 style="font-family:'Outfit',sans-serif; font-weight:900; font-size:clamp(1.5rem,4.2vw,2.1rem); line-height:1.12; margin:0 0 10px; color:var(--text);">I tuoi appunti diventano flashcard in un minuto</h2>
-            <p style="max-width:460px; margin:0 auto 22px; font-size:0.95rem; line-height:1.5; color:var(--text-muted);">Carica una <b style="color:var(--text);">foto</b> o un <b style="color:var(--text);">PDF</b> degli appunti: Cortex ti crea 5 flashcard pronte da studiare. Gratis, niente registrazione per provare.</p>
+            <h2 style="font-family:'Outfit',sans-serif; font-weight:900; font-size:clamp(1.5rem,4.2vw,2.1rem); line-height:1.12; margin:0 0 10px; color:var(--text);">Dai tuoi appunti al primo ripasso</h2>
+            <p style="max-width:460px; margin:0 auto 22px; font-size:0.95rem; line-height:1.5; color:var(--text-muted);">Incolla un testo oppure carica una <b style="color:var(--text);">foto o un PDF</b>. Scegli flashcard, quiz a scelta multipla o domande aperte.</p>
             <button data-fn="showView" data-params='["CreateDeckView"]' style="display:inline-flex; align-items:center; gap:10px; padding:16px 30px; border:none; border-radius:16px; cursor:pointer; font-family:inherit; font-size:1.05rem; font-weight:900; color:#fff; background:linear-gradient(135deg,#7c6af7,#a855f7); box-shadow:0 14px 40px rgba(124,106,247,0.5); transition:transform .15s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">📸 Crea le tue prime flashcard</button>
             <div style="margin-top:16px;">
                 <button data-fn="openTolcSim" style="background:none; border:none; color:var(--text-muted); font-size:0.85rem; font-weight:700; cursor:pointer; font-family:inherit; text-decoration:underline; text-underline-offset:3px;">o prova una simulazione TOLC &rarr;</button>

@@ -63,6 +63,7 @@ export function onAuthStateChangedHandler(user, firebaseDeps = {}) {
 
     if (user && !user.isAnonymous) {
         window._fbUserId        = user.uid;
+        localStorage.setItem('mm_user_id', user.uid);
         window._fbLoggedIn      = true;
         window._fbHasUser       = true;
         window._cortexUserEmail = user.email || '';   // usato da isAdmin()

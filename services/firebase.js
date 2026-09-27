@@ -7,6 +7,9 @@
 import { t } from '../core/i18n.js';
 import { APP_CONFIG } from '../js/config.js';
 import { onAuthStateChangedHandler } from '../core/appBoot.js';
+import { state, hydrateFromIDB } from '../core/state.js';
+import { saveDecks } from '../core/db.js';
+import { deletedDeckIds, rememberDeletedDecks, withoutDeletedDecks } from '../core/deckDeletion.js';
 
 const KEYS = APP_CONFIG.STORAGE_KEYS;
 
@@ -313,18 +316,21 @@ export async function testFirebaseConnection() {
  * i metadati nel documento radice e il payload completo nella sub-collection.
  */
 let _syncInFlight = false;
+let _syncPending = false;
 function _cleanForFs(v) { try { return v == null ? v : JSON.parse(JSON.stringify(v)); } catch (_) { return v; } }
 export async function syncToCloud(deckId = null) {
     if (!firebase?.apps?.length || !window._fbUserId) return;
+    await hydrateFromIDB();
     // Hardening: se una sync e' gia' in corso non accodarne altre —
     // con la persistence multi-tab le batch possono attendere il lease
     // e accavallarle congela l'app per minuti.
-    if (_syncInFlight) return;
+    if (_syncInFlight) { _syncPending = true; return; }
     _syncInFlight = true;
     try {
         return await _syncToCloudInner(deckId);
     } finally {
         _syncInFlight = false;
+        if (_syncPending) { _syncPending = false; void syncToCloud(); }
     }
 }
 
@@ -335,6 +341,8 @@ async function _syncToCloudInner(deckId = null) {
 
     try {
         const legacyState = window._legacyState?.(); // hook per leggere lo state di main.js
+        const deleted = deletedDeckIds(window._fbUserId);
+        if (legacyState) legacyState.decks = withoutDeletedDecks(legacyState.decks, window._fbUserId);
         const plan = localStorage.getItem('cortex_user_plan') || 'free';
         
         // Prepariamo i metadati (versione leggera dei mazzi per caricamento veloce)
@@ -378,6 +386,10 @@ async function _syncToCloudInner(deckId = null) {
         };
 
         batch.set(userRef, rootData, { merge: true });
+        if (deleted.length) {
+            batch.set(userRef, { deletedDeckIds: firebase.firestore.FieldValue.arrayUnion(...deleted) }, { merge: true });
+            for (const id of deleted) batch.delete(userRef.collection('decks').doc(id));
+        }
 
         // Se abbiamo un deckId specifico, aggiorniamo il suo documento nella sub-collection
         if (deckId) {
@@ -426,7 +438,9 @@ async function _syncToCloudInner(deckId = null) {
 
 export async function loadFromCloud() {
     if (!firebase?.apps?.length || !window._fbUserId) return;
+    await hydrateFromIDB();
     const _db = firebase.app().firestore();
+    const uid = window._fbUserId;
     try {
         const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000));
         const doc = await Promise.race([
@@ -498,6 +512,8 @@ export async function loadFromCloud() {
 
         if (doc.exists) {
             const data = doc.data();
+            if (window._fbUserId !== uid) return;
+            if (Array.isArray(data.deletedDeckIds)) rememberDeletedDecks(data.deletedDeckIds, uid);
 
             // 🔄 Migrazione Automatica: Legacy Array -> Sub-collections
             if (data.decks && !data.migratedToSubcollections) {
@@ -517,7 +533,7 @@ export async function loadFromCloud() {
                         .collection('users').doc(window._fbUserId)
                         .collection('decks').get();
                     const fullDecks = [];
-                    decksSnap.forEach(d => fullDecks.push(d.data()));
+                    decksSnap.forEach(d => fullDecks.push({ ...d.data(), id: d.data().id ?? d.id }));
 
                     // FIX 10/07/2026 — CONVERSIONE OSPITE→ACCOUNT ESISTENTE:
                     // prima il cloud SOVRASCRIVEVA i mazzi creati da ospite (persi per sempre).
@@ -529,7 +545,7 @@ export async function loadFromCloud() {
                                 || [];
                             const cloudIds = new Set(fullDecks.map(d => String(d.id)));
                             const userRef = _db.collection('users').doc(window._fbUserId);
-                            for (const ld of localDecks) {
+                            for (const ld of withoutDeletedDecks(localDecks, uid)) {
                                 if (!ld.id || cloudIds.has(String(ld.id))) continue;
                                 await userRef.collection('decks').doc(String(ld.id)).set({
                                     ...JSON.parse(JSON.stringify(ld)),
@@ -543,28 +559,29 @@ export async function loadFromCloud() {
                         window._guestConversion = false;
                     }
 
-                    if (fullDecks.length > 0) {
-                        localStorage.setItem(KEYS.DECKS_V1, JSON.stringify(fullDecks));
+                    if (window._fbUserId === uid) {
+                        state.decks = withoutDeletedDecks(fullDecks, uid);
+                        await saveDecks(state.decks);
+                        localStorage.removeItem(KEYS.DECKS_V1);
                         if (window.__cortexDispatch) {
-                            window.__cortexDispatch({ type: 'HYDRATE_STATE', payload: { decks: fullDecks } });
+                            window.__cortexDispatch({ type: 'HYDRATE_STATE', payload: { decks: state.decks } });
                         }
-
+                        window.dispatchEvent(new Event('cortex:decks-changed'));
+                        if (deletedDeckIds(uid).length) void syncToCloud();
                     }
                 } catch (subErr) {
                     console.error('[Firebase] loadFromCloud: errore lettura sub-collection decks:', subErr);
                     // Fallback ai metadati se la sub-collection non è leggibile
-                    if (data.decksMetadata) {
-                        localStorage.setItem(KEYS.DECKS_V1, JSON.stringify(data.decksMetadata));
-                        if (window.__cortexDispatch) {
-                            window.__cortexDispatch({ type: 'HYDRATE_STATE', payload: { decks: data.decksMetadata } });
-                        }
-                    }
+                    // Keep the complete local cards on read failure; metadata cannot replace them.
                 }
             } else if (data.decksMetadata || data.decks) {
                 // Utenti non ancora migrati: usa il campo legacy
-                const decks = data.decksMetadata || data.decks;
-                localStorage.setItem(KEYS.DECKS_V1, JSON.stringify(decks));
+                const decks = withoutDeletedDecks(data.decks || data.decksMetadata, uid);
+                state.decks = decks;
+                await saveDecks(decks);
+                localStorage.removeItem(KEYS.DECKS_V1);
                 if (window.__cortexDispatch) window.__cortexDispatch({ type: 'HYDRATE_STATE', payload: { decks } });
+                window.dispatchEvent(new Event('cortex:decks-changed'));
             }
 
             // Determina il piano effettivo: piano pagato > trial attivo > free
@@ -587,7 +604,6 @@ export async function loadFromCloud() {
             window._cortexPlanVerified = true;
 
             // Salva refCode se non è ancora presente nel doc (primo sync)
-            const uid = window._fbUserId;
             if (uid && !data.refCode) {
                 _db.collection('users').doc(uid).set(
                     { refCode: uid.slice(0, 8) },

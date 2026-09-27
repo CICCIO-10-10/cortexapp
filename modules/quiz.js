@@ -26,6 +26,7 @@ export function init(ctx) {
 }
 
 let quizState = { qs: [], idx: 0, score: 0, deckIdx: null, mode: 'classic', timer: null, timeLeft: 15 };
+let quizRun = 0, nextQuestionTimer = null, startTimerDelay = null, answerLocked = false;
 
 // Numero di domande scelto dall'utente nel selettore (default 10, cap alla dimensione del mazzo)
 let _quizCount = 10;
@@ -75,6 +76,7 @@ function _pickDistractors(correct, pool) {
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
 export function startQuiz(deckIdx) {
+    closeQuiz();
     const deck = _ctx.state.decks[deckIdx];
     if (!deck || !deck.cards || deck.cards.length < 4) {
         _ctx.showToast('❗ Servono almeno 4 flashcard per il quiz.', 'error');
@@ -183,6 +185,9 @@ function _buildModeSelector(deckIdx, deck) {
 // ─── Classico ─────────────────────────────────────────────────────────────────
 
 window.__quizStartClassic = function(deckIdx) {
+    _stopTimer();
+    clearTimeout(nextQuestionTimer);
+    clearTimeout(startTimerDelay);
     const deck = _ctx.state.decks[deckIdx];
     quizState = { qs: [], idx: 0, score: 0, deckIdx, mode: 'classic' };
 
@@ -193,7 +198,7 @@ window.__quizStartClassic = function(deckIdx) {
         // pool di distrattori da TUTTO il mazzo (più varietà), poi scelta "intelligente"
         const pool   = all.filter(x => x !== p).map(x => x.a);
         const wrongs = _pickDistractors(p.a, pool);
-        const opts   = fisherYatesShuffle([p.a, ...wrongs]);
+        const opts   = fisherYatesShuffle(Array.isArray(p.options) && p.options.length === 4 && p.options.includes(p.a) ? [...p.options] : [p.a, ...wrongs]);
         return { q: p.q, correct: p.a, opts, img: p.img || null };
     });
 
@@ -236,7 +241,9 @@ function _stopTimer() {
 // ─── AI Challenge ─────────────────────────────────────────────────────────────
 
 window.__quizStartAI = async function(deckIdx) {
+    const run = quizRun;
     const premium = await (window.isPremiumSafe?.() ?? Promise.resolve(window.isPremium?.()));
+    if (run !== quizRun) return;
     if (!premium) { if (window.showPaywall) window.showPaywall('ai'); return; }
     const deck = _ctx.state.decks[deckIdx];
     quizState = { qs: [], idx: 0, score: 0, deckIdx, mode: 'ai' };
@@ -247,9 +254,11 @@ window.__quizStartAI = async function(deckIdx) {
     try {
         const cards = fisherYatesShuffle([...deck.cards]).slice(0, _nAI);
         const aiQs  = await _generateAIDistractors(cards, deck.name);
+        if (run !== quizRun) return;
         quizState.qs = aiQs;
         _renderQ();
     } catch (err) {
+        if (run !== quizRun) return;
         console.error('[Quiz AI] Errore:', err);
         _ctx.showToast('⚠️ AI non disponibile, modalità classica attivata.', 'info');
         window.__quizStartClassic(deckIdx);
@@ -344,6 +353,7 @@ async function _callGemini(prompt) {
 // ─── Render domanda ──────────────────────────────────────────────────────────
 
 function _renderQ() {
+    answerLocked = false;
     const { qs, idx, mode } = quizState;
     if (idx >= qs.length) { _renderResult(); return; }
 
@@ -381,12 +391,15 @@ function _renderQ() {
                 </button>`).join('')}
         </div>`;
 
-    setTimeout(_startTimer, 100);
+    startTimerDelay = setTimeout(_startTimer, 100);
 }
 
 // ─── Risposta ─────────────────────────────────────────────────────────────────
 
 export function answerQuiz(i, ansEnc, correctEnc) {
+    if (answerLocked) return;
+    answerLocked = true;
+    clearTimeout(startTimerDelay);
     _stopTimer();
     // Guard: se idx è fuori bounds (es. timeout arrivato dopo la fine del quiz) ignora
     if (quizState.idx >= quizState.qs.length) return;
@@ -410,7 +423,8 @@ export function answerQuiz(i, ansEnc, correctEnc) {
     const xpBase = quizState.mode === 'ai' ? 15 : 10; // AI mode vale di più
     _ctx.gState.totalCards++;
     _ctx.awardXP(isCorrect ? xpBase : 3, isCorrect ? '✅' : '📚');
-    setTimeout(() => { quizState.idx++; _renderQ(); }, 1100);
+    const run = quizRun;
+    nextQuestionTimer = setTimeout(() => { if (run === quizRun) { quizState.idx++; _renderQ(); } }, 1100);
 }
 
 // ─── Risultato ────────────────────────────────────────────────────────────────
@@ -486,6 +500,11 @@ function _renderResult() {
 // ─── Close ────────────────────────────────────────────────────────────────────
 
 export function closeQuiz() {
+    quizRun++;
+    _stopTimer();
+    clearTimeout(nextQuestionTimer);
+    clearTimeout(startTimerDelay);
+    answerLocked = true;
     const overlay = document.getElementById('quiz-overlay');
     if (overlay) overlay.style.display = 'none';
 }

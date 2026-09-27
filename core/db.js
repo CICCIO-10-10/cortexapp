@@ -64,9 +64,10 @@ async function idbSet(store, key, value) {
     return new Promise((resolve, reject) => {
         const tx  = db.transaction(store, 'readwrite');
         const req = tx.objectStore(store).put(value, key);
-        req.onsuccess = () => resolve();
         req.onerror   = () => reject(req.error);
         tx.oncomplete = () => resolve();
+        tx.onabort = () => reject(tx.error || new Error('IDB transaction aborted'));
+        tx.onerror = () => reject(tx.error);
     });
 }
 

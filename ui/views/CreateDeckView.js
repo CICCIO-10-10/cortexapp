@@ -34,7 +34,7 @@ export class CreateDeckView extends Component {
     <button aria-label="Vai alla pagina materiale" class="tech-back" data-fn="showPage" data-params='["materiale"]'>← Le mie materie</button>
     <div class="section-header">
         <h2>➕ Nuova Materia</h2>
-        <p>Dai un nome, incolla o carica il materiale, genera. Tutto qui.</p>
+        <p>Incolla gli appunti o carica una foto. Poi scegli come studiare.</p>
     </div>
 
     <!-- 1. NOME (essenziale) -->
@@ -48,7 +48,10 @@ export class CreateDeckView extends Component {
         <div style="font-size:0.82rem;font-weight:700;color:var(--accent2);letter-spacing:0.05em;margin-bottom:14px;">
             📖 MATERIALE DI STUDIO</div>
         <div>
-            <label>📄 Carica il materiale o incolla il testo</label>
+            <label for="deck-text">Cosa vuoi studiare?</label>
+            <p id="material-input-hint" style="color:var(--text-muted);margin:8px 0;">Incolla qui gli appunti, un paragrafo del libro o il testo della lezione.</p>
+            <textarea id="deck-text" aria-describedby="material-input-hint" placeholder="Esempio: La fotosintesi è il processo con cui le piante…"
+                oninput="updateCharCount()" style="min-height:160px;border:2px solid var(--accent);margin-bottom:16px;"></textarea>
             <div class="upload-grid">
                 <div class="upload-card"
                     ondragover="event.preventDefault();this.style.borderColor='var(--accent)'"
@@ -57,16 +60,19 @@ export class CreateDeckView extends Component {
                     <input type="file" aria-label="Carica qualsiasi file di materiale" multiple
                         onchange="(async()=>{for(let i=0;i<this.files.length;i++) await handlePdfFile(this.files[i],i+1,this.files.length); this.value='';})()" />
                     <div class="icon">📁</div>
-                    <h4>Qualsiasi File</h4>
-                    <p>Estrae testo o audio</p>
+                    <h4>Carica PDF o file</h4>
+                    <p>Usa il tuo materiale</p>
                 </div>
                 <div class="upload-card">
                     <input type="file" aria-label="Carica foto appunti" multiple accept="image/*,.heic,.heif,.raw,.tiff,.webp"
                         onchange="(async()=>{for(let i=0;i<this.files.length;i++) await handleImageFile(this.files[i],i+1,this.files.length); this.value='';})()" />
                     <div class="icon">📸</div>
-                    <h4>Foto Appunti</h4>
-                    <p>Riconoscimento OCR</p>
+                    <h4>Carica foto</h4>
+                    <p>Fotografa libro o appunti</p>
                 </div>
+                </div>
+                <details style="margin:12px 0;"><summary style="cursor:pointer;">Altri modi: audio, YouTube e link</summary>
+                <div class="upload-grid">
                 <div class="upload-card">
                     <input type="file" aria-label="Carica file audio o video" multiple accept="audio/*,video/*,.m4a,.flac,.wav,.ogg,.mp3,.mp4,.webm"
                         onchange="(async()=>{for(let i=0;i<this.files.length;i++) await handleAudioFile(this.files[i],i+1,this.files.length); this.value='';})()" />
@@ -85,13 +91,12 @@ export class CreateDeckView extends Component {
                     <p>Articoli o Blog</p>
                 </div>
             </div>
+            </details>
             <div class="pdf-status" id="pdf-status">
                 <div class="spinner" id="pdf-spinner"></div>
                 <span id="pdf-status-text">Lettura PDF in corso...</span>
             </div>
             <div id="uploaded-files-list" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;"></div>
-            <textarea id="deck-text" aria-label="Incolla qui il testo del materiale" placeholder="...oppure incolla qui appunti, libri, slide."
-                oninput="updateCharCount()" style="min-height:200px;"></textarea>
 
             <div id="ai-summary-container"
                 style="display:none; margin-bottom:16px; padding:16px; background:var(--surface2); border-left:4px solid var(--accent); border-radius:12px;">
@@ -99,14 +104,16 @@ export class CreateDeckView extends Component {
                 <div id="ai-summary-text" style="font-size:0.95rem; line-height:1.6; color:var(--text);"></div>
             </div>
 
-            <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; flex-wrap:wrap; gap:12px; justify-content:space-between; align-items:center;">
                 <div class="char-count"><span id="char-count">0</span> / 60.000 caratteri max</div>
-                <div style="display:flex; gap:8px;">
+                <div role="group" aria-label="Scegli cosa creare" style="display:flex; flex-wrap:wrap; gap:8px;">
                     <button class="btn btn-outline" style="font-weight:700; border-radius:8px; cursor:pointer;"
                         data-fn="openMaterialSummary">📝 Riassumi</button>
                     <button class="btn" id="btn-generate-ai"
                         style="background:var(--accent); color:#fff; border:none; padding:8px 16px; font-weight:700; border-radius:8px; cursor:pointer;"
                         data-fn="openPdfAIFromText">✨ Genera Flashcard con IA</button>
+                    <button class="btn btn-outline" data-fn="openMaterialPractice" data-params='["multiple"]'>Quiz a scelta multipla</button>
+                    <button class="btn btn-outline" data-fn="openMaterialPractice" data-params='["open"]'>Domande aperte</button>
                 </div>
             </div>
         </div>

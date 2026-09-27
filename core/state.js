@@ -2,11 +2,12 @@ import { APP_CONFIG } from '../js/config.js';
 import { SecurityManager as fbSecurityManager } from '../services/firebase.js';
 import { todayStr } from '../js/utils.js';
 import { loadDecks, loadSessions, loadRecordings, migrateFromLocalStorage } from './db.js';
+import { withoutDeletedDecks } from './deckDeletion.js';
 
 const KEYS = APP_CONFIG.STORAGE_KEYS;
 
 export let state = {
-    decks: JSON.parse(localStorage.getItem(KEYS.DECKS_V1) || '[]'),
+    decks: withoutDeletedDecks(JSON.parse(localStorage.getItem(KEYS.DECKS_V1) || '[]')),
     sessions: JSON.parse(localStorage.getItem(KEYS.SESSIONS) || '[]'),
     todayCards: parseInt(localStorage.getItem(KEYS.TODAY_CARDS) || '0'),
     todayAiCalls: parseInt(localStorage.getItem(KEYS.TODAY_AI_CALLS) || '0'),
@@ -42,7 +43,12 @@ window._legacyState = () => state;
  * Da chiamare dopo il boot sincrono; quando risolve, la UI va re-renderata.
  * @returns {Promise<boolean>} true se i dati IDB erano presenti e più recenti
  */
-export async function hydrateFromIDB() {
+let hydrationPromise;
+export function hydrateFromIDB() {
+    return hydrationPromise ||= hydrateStoredState();
+}
+async function hydrateStoredState() {
+    const initialDecks = state.decks;
     try {
         // Prima esecuzione: migra i dati da localStorage → IDB
         await migrateFromLocalStorage(KEYS);
@@ -55,10 +61,10 @@ export async function hydrateFromIDB() {
 
         let updated = false;
 
-        if (Array.isArray(idbDecks) && idbDecks.length > 0) {
-            // Usa IDB solo se ha più mazzi o lo stesso numero (IDB è la fonte autorevole)
-            if (idbDecks.length >= state.decks.length) {
-                state.decks = idbDecks;
+        if (Array.isArray(idbDecks)) {
+            // An empty collection is valid. Do not overwrite a newer cloud/local update.
+            if (state.decks === initialDecks) {
+                state.decks = withoutDeletedDecks(idbDecks);
                 updated = true;
             }
         }

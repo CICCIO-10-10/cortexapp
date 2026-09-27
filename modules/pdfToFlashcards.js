@@ -158,6 +158,8 @@ function ensureOverlay() {
 // ─── Stato interno ─────────────────────────────────────────────────────────────
 
 let _generatedCards = [];
+let _outputMode = 'flashcards';
+let _generating = false;
 
 // ─── Helpers UI ───────────────────────────────────────────────────────────────
 
@@ -202,6 +204,11 @@ function renderCards(cards, deckTitle) {
     // valorizzato (es. card di Fisica salvate come "Analisi 2..."). Sempre nuovo.
     if (nameInput) nameInput.value = deckTitle || t('pdffc_ai_deck');
     if (count)    count.textContent   = `${cards.length} carte`;
+    const saveButton = document.getElementById('pdfai-save-btn');
+    if (saveButton) {
+        saveButton.style.display = '';
+        saveButton.textContent = _outputMode === 'flashcards' ? '💾 Salva Mazzo' : 'Salva e inizia le domande';
+    }
     if (!list)    return;
 
     list.innerHTML = '';
@@ -249,7 +256,7 @@ function escapeHtml(str) {
  * @param {string} fileName - Nome del file originale (per il titolo del mazzo)
  * @returns {Promise<{title: string, cards: Array<{front, back}>}>}
  */
-async function generateFlashcardsFromText(text, fileName = '') {
+async function generateFlashcardsFromText(text, fileName = '', mode = 'flashcards') {
     // FIX 10/07/2026: RIMOSSO il gate premium client-side. Bloccava la feature
     // core (testo → flashcard AI) per TUTTI i non-Student, col paywall pure
     // sbagliato ('studyplan'), mentre il server dà già 25 chiamate/giorno gratis
@@ -262,6 +269,8 @@ async function generateFlashcardsFromText(text, fileName = '') {
     const cardCount = Math.min(Math.max(Math.floor(text.length / 500), 8), 30);
 
     const prompt = `Sei un tutor universitario italiano esperto. Analizza il seguente testo e crea esattamente ${cardCount} flashcard di alta qualità per studiare i concetti chiave.
+${mode === 'multiple' ? 'Per ogni carta aggiungi "options": un array di esattamente 4 risposte distinte, una corretta identica a "back" e tre distrattori plausibili. Ogni domanda deve avere una sola risposta corretta.' : ''}
+${mode === 'open' ? 'Le domande sono a risposta aperta: chiedi di spiegare un concetto con parole proprie. La risposta back serve come risposta di riferimento per autovalutarsi.' : ''}
 
 REGOLA PIÙ IMPORTANTE — UNA DOMANDA, UN CONCETTO:
 - Ogni flashcard fa UNA sola domanda su UN solo fatto. La domanda ha UN SOLO punto interrogativo e NON unisce mai due richieste con "e", "oppure", "nonché", "quali... e quali", "dove... e come".
@@ -458,7 +467,10 @@ export async function openMaterialSummary() {
  * @param {File} file
  */
 export async function openPdfAIFromFile(file) {
-    if (!file) return;
+    if (_generating || !file) return;
+    _outputMode = 'flashcards';
+    _generatedCards = [];
+    _generating = true;
 
     ensureOverlay();
     showOverlay();
@@ -507,7 +519,7 @@ export async function openPdfAIFromFile(file) {
         document.getElementById('pdfai-footer').style.display = 'flex';
         document.getElementById('pdfai-save-btn').style.display = 'none';
         if (window.showToast) window.showToast('Errore: ' + err.message, 'error');
-    }
+    } finally { _generating = false; }
 }
 
 /**
@@ -515,21 +527,26 @@ export async function openPdfAIFromFile(file) {
  * @param {string} text - Testo da convertire
  * @param {string} suggestedName - Nome suggerito per il mazzo
  */
-export async function openPdfAIFromText(text, suggestedName = '') {
+export async function openPdfAIFromText(text, suggestedName = '', mode = 'flashcards') {
+    if (_generating) return;
     if (!text?.trim()) {
         if (window.showToast) window.showToast(t('pdf_no_text'), 'info');
         return;
     }
 
+    _generating = true;
+    _outputMode = mode;
+    _generatedCards = [];
     ensureOverlay();
     showOverlay();
     showLoading(true);
-    setStatus(`🧠 Generazione flashcard con AI... (${text.length.toLocaleString()} caratteri)`);
+    setStatus(`🧠 ${mode === 'flashcards' ? 'Generazione flashcard' : 'Generazione domande'}… (${text.length.toLocaleString()} caratteri)`);
     try { track('cards_generation_started', { flow: 'text' }); } catch (_) {}
 
     try {
-        const result = await generateFlashcardsFromText(text, suggestedName);
+        const result = await generateFlashcardsFromText(text, suggestedName, mode);
         if (!result?.cards?.length) throw new Error('Nessuna flashcard generata.');
+        result.cards = validateStudyCards(result.cards, mode);
         showLoading(false);
         renderCards(result.cards, result.title || suggestedName);
     } catch (err) {
@@ -551,7 +568,19 @@ export async function openPdfAIFromText(text, suggestedName = '') {
         document.getElementById('pdfai-form-area').style.display = 'block';
         document.getElementById('pdfai-footer').style.display = 'flex';
         if (window.showToast) window.showToast('Errore: ' + err.message, 'error');
-    }
+    } finally { _generating = false; }
+}
+
+export function validateStudyCards(cards, mode) {
+    const valid = (Array.isArray(cards) ? cards : []).filter(c => c && typeof c.front === 'string' && c.front.trim() && typeof c.back === 'string' && c.back.trim() &&
+        (mode !== 'multiple' || (Array.isArray(c.options) && c.options.length === 4 && c.options.every(o => typeof o === 'string' && o.trim()) && new Set(c.options).size === 4 && c.options.includes(c.back))));
+    if (!valid.length) throw new Error('Nessuna domanda valida. Riprova la generazione.');
+    return valid;
+}
+
+export function openMaterialPractice(mode) {
+    if (!['multiple', 'open'].includes(mode)) return;
+    return openPdfAIFromText(document.getElementById('deck-text')?.value || '', document.getElementById('deck-name')?.value || '', mode);
 }
 
 // ─── Salvataggio mazzo ─────────────────────────────────────────────────────────
@@ -583,6 +612,7 @@ export function savePdfAIDeck() {
         id:         'card_' + Math.random().toString(36).substr(2, 9),
         q:          c.front || c.q || '',
         a:          c.back  || c.a  || '',
+        ...(Array.isArray(c.options) ? { options: c.options } : {}),
         nextReview: _today,
         interval:   1,
         ease:       2.5,
@@ -642,9 +672,11 @@ export function savePdfAIDeck() {
     }
 
     // Naviga alla pagina Materiale per vedere il mazzo
-    setTimeout(() => {
-        if (typeof window.__cortexNav === 'function') window.__cortexNav('materiale');
-    }, 500);
+    if (typeof window.__cortexNav === 'function') window.__cortexNav('materiale');
+    if (_outputMode !== 'flashcards') {
+        const mode = _outputMode;
+        import('./materialPractice.js').then(({ startMaterialPractice }) => startMaterialPractice(_newCards, mode));
+    }
 }
 
 /**
@@ -659,7 +691,7 @@ export function closePdfAI() {
 // ─── Registrazione funzioni globali ───────────────────────────────────────────
 
 export function registerPdfAIGlobals(registry) {
-    const fns = { openPdfAIFromFile, openPdfAIFromText, openMaterialSummary, savePdfAIDeck, closePdfAI };
+    const fns = { openPdfAIFromFile, openPdfAIFromText, openMaterialSummary, openMaterialPractice, savePdfAIDeck, closePdfAI };
     for (const [name, fn] of Object.entries(fns)) {
         window[name] = fn;
         if (registry) registry(name, fn);
