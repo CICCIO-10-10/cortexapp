@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { guardTracking, stripTrackingGuard } from './tracking-guard.mjs';
+import { secureTracking } from './security-html-plugin.mjs';
 
 export const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const registry = JSON.parse(fs.readFileSync(path.join(projectRoot, 'scripts/seo-pages.json'), 'utf8'));
@@ -66,7 +67,7 @@ export default function seoDesignPlugin() {
     res.setHeader('Cache-Control', 'no-store');
     let response = baseline ? html : injectDesign(html, page);
     if (url.searchParams.get('cortex-audit') === '1') response = response.replace(/<head>/i, '<head>' + auditScript);
-    res.end(req.method === 'HEAD' ? undefined : guardTracking(response));
+    res.end(req.method === 'HEAD' ? undefined : secureTracking(guardTracking(response)));
   };
   return {
     name: 'cortex-seo-pilot',

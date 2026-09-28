@@ -74,66 +74,24 @@
 <body>
     <div class="container" id="container">
         <h1>Autorizzazione TikTok completata</h1>
-        <p>Copia il codice qui sotto e incollalo nel terminale dello script Cortex Video Factory.</p>
+        <p>Il collegamento avviato dalla pagina admin viene completato automaticamente.</p>
 
         <div id="content"></div>
     </div>
 
     <script>
-        const params = new URLSearchParams(window.location.search);
-        const code = params.get('code');
-        const state = params.get('state');
-        const error = params.get('error');
-        const errorDesc = params.get('error_description');
-        const content = document.getElementById('content');
-
-        if (error) {
-            content.innerHTML = `
-                <div class="error">
-                    <strong>Errore: ${error}</strong><br>
-                    ${errorDesc || ''}
-                </div>
-            `;
-        } else if (code && state === 'cortex_admin') {
-            // Flusso admin (/admin-tiktok.html): scambio automatico del code lato server.
-            const key = localStorage.getItem('cortex_admin_key') || '';
-            content.innerHTML = `<p>Completamento autorizzazione in corso...</p>`;
-            fetch('/api/tiktok/exchange', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
-                body: JSON.stringify({ code }),
-            })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.success) {
-                        content.innerHTML = `
-                            <div class="ok">✅ Account TikTok connesso!</div>
-                            <p><a href="/admin-tiktok.html">Torna alla pagina admin</a></p>
-                        `;
-                    } else {
-                        content.innerHTML = `<div class="error">Errore scambio token: ${data.error || 'sconosciuto'}</div><p><a href="/admin-tiktok.html">Torna alla pagina admin</a></p>`;
-                    }
-                })
-                .catch(err => {
-                    content.innerHTML = `<div class="error">Errore di rete: ${err.message}</div><p><a href="/admin-tiktok.html">Torna alla pagina admin</a></p>`;
-                });
-        } else if (code) {
-            content.innerHTML = `
-                <div class="label">Authorization code</div>
-                <div class="code-box" id="codeBox">${code}</div>
-                <div class="label">State</div>
-                <div class="code-box" id="stateBox">${state || '(nessuno)'}</div>
-                <button id="copyBtn">Copia codice</button>
-                <div class="ok" id="okMsg" style="display:none;">Copiato negli appunti!</div>
-            `;
-            document.getElementById('copyBtn').addEventListener('click', () => {
-                navigator.clipboard.writeText(code).then(() => {
-                    document.getElementById('okMsg').style.display = 'block';
-                });
-            });
-        } else {
-            content.innerHTML = `<div class="error">Nessun codice ricevuto. Riprova il flusso di autorizzazione.</div>`;
-        }
+      const params=new URLSearchParams(location.search),code=params.get('code'),state=params.get('state'),content=document.getElementById('content');
+      history.replaceState(null,'',location.pathname);
+      try { localStorage.removeItem('cortex_admin_key'); sessionStorage.removeItem('cortex_admin_key'); } catch (_) {}
+      const show=text=>{content.textContent=text;};
+      if(params.get('error'))show('Autorizzazione non riuscita: '+(params.get('error_description')||params.get('error')));
+      else if(code&&/^[a-f0-9]{64}$/.test(state||'')){
+        show('Completamento autorizzazione…');
+        fetch('/api/tiktok/exchange',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,state})})
+        .then(async r=>{const data=await r.json();if(!r.ok||!data.success)throw Error(data.error||'Scambio non riuscito');show('Account TikTok connesso.');})
+        .catch(e=>show(e.message)).finally(()=>{const a=document.createElement('a');a.href='/admin-tiktok.html';a.textContent=' Torna alla pagina admin';content.appendChild(a);});
+      }else if(code){show('Codice per il flusso esterno: '+code+' — State: '+(state||'(nessuno)'));}
+      else show('Nessun codice ricevuto. Ricomincia il collegamento dalla pagina admin.');
     </script>
 </body>
 </html>

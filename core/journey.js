@@ -9,7 +9,7 @@
   'use strict';
   var LS_VID = 'cx_vid', LS_SRC = 'cx_src0', SS_SESS = 'cx_sess';
   var queue = [], started = false, ticks = 0;
-  var diagnostics = { version: 2, delivered: 0, failed: 0, pending: 0 };
+  var diagnostics = { version: 3, delivered: 0, failed: 0, pending: 0 };
   window.__cxJourneyDiagnostics = diagnostics;
 
   function noTrack(){ try { return localStorage.getItem('cortex_no_track') === '1'; } catch (_) { return false; } }
@@ -33,43 +33,24 @@
       s = String(s).slice(0, 40); try { localStorage.setItem(LS_SRC, s); } catch (_) {} return s;
     } catch (_) { return 'n/d'; }
   }
-  function db(){ try { if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length) return firebase.app().firestore(); } catch (_) {} return null; }
-
   function flush(){
-    if (noTrack()) { queue = []; diagnostics.pending = 0; return; }
-    if (!queue.length) return; var d = db(); if (!d) return;
-    var FV = firebase.firestore.FieldValue, id = vid(), col = d.collection('journeys').doc(id).collection('events');
-    var batch = queue.splice(0, queue.length);
-    diagnostics.pending += batch.length;
-    batch.forEach(function (e) {
-      // Stable event id makes a retry idempotent even after an ambiguous network failure.
-      var eventId = e.id || (e.id = uuid());
-      Promise.resolve().then(function () {
-        return col.doc(eventId).set({ type: e.type, page: e.page, meta: e.meta || null, ts: FV.serverTimestamp(), t_client: e.t, tracking_version: 2 });
-      }).then(function () { diagnostics.delivered++; }, function () {
-        diagnostics.failed++;
-        e.attempts = (e.attempts || 0) + 1;
-        if (e.attempts < 3 && !noTrack()) queue.push(e);
-      }).finally(function () { diagnostics.pending--; });
+    if(noTrack()){queue=[];diagnostics.pending=0;return;}
+    if(!queue.length || typeof window.__cxSendTelemetry!=='function')return;
+    var batch=queue.splice(0,queue.length);diagnostics.pending+=batch.length;
+    batch.forEach(function(e){var eventId=e.id||(e.id=uuid());
+      Promise.resolve().then(function(){return window.__cxSendTelemetry({visitor:vid(),eventId:eventId,type:e.type,page:e.page,meta:e.meta});})
+      .then(function(){diagnostics.delivered++;},function(){diagnostics.failed++;e.attempts=(e.attempts||0)+1;if(e.attempts<3&&!noTrack())queue.push(e);})
+      .finally(function(){diagnostics.pending--;});
     });
-    try { d.collection('journeys').doc(id).set({ vid: id, last_seen: FV.serverTimestamp() }, { merge: true }).catch(function () {}); } catch (_) {}
   }
   function logStep(type, meta){
     if (noTrack() || !type) return;
     try { queue.push({ type: String(type).slice(0, 60), page: location.pathname, meta: (meta && typeof meta === 'object') ? meta : null, t: Date.now() }); flush(); } catch (_) {}
   }
   function start(){
-    if (started || noTrack()) return; var d = db(); if (!d) return; started = true;
-    try {
-      var FV = firebase.firestore.FieldValue, id = vid(), newSess = false;
-      try { newSess = !sessionStorage.getItem(SS_SESS); if (newSess) sessionStorage.setItem(SS_SESS, uuid()); } catch (_) {}
-      d.collection('journeys').doc(id).set({
-        vid: id, source: source(), referrer: (document.referrer || '').slice(0, 200),
-        entry: location.pathname, ua: (navigator.userAgent || '').slice(0, 200),
-        first_seen: FV.serverTimestamp(), last_seen: FV.serverTimestamp()
-      }, { merge: true }).catch(function () {});
-      logStep(newSess ? 'session_start' : 'session_resume', { entry: location.pathname, source: source() });
-    } catch (_) {}
+    if(started||noTrack()||typeof window.__cxSendTelemetry!=='function')return;started=true;
+    var newSess=false;try{newSess=!sessionStorage.getItem(SS_SESS);if(newSess)sessionStorage.setItem(SS_SESS,uuid());}catch(_){}
+    logStep(newSess?'session_start':'session_resume',{entry:location.pathname,source:source()});
   }
 
   try { window.__cxLogStep = logStep; } catch (_) {}
@@ -78,7 +59,7 @@
     ticks++;
     if (!started) start();
     flush();
-    try { if (started && !noTrack() && document.visibilityState === 'visible' && ticks % 7 === 0) { var d = db(); if (d) d.collection('journeys').doc(vid()).set({ last_seen: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch(function () {}); } } catch (_) {}
+    if(started&&!noTrack()&&document.visibilityState==='visible'&&ticks%7===0)logStep('heartbeat');
   }, 3000);
 
   try { document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') logStep('leave', { path: location.pathname }); }); } catch (_) {}

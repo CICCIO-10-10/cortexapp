@@ -8,6 +8,8 @@
 
 const functions = require("firebase-functions/v1");
 const admin = require("firebase-admin");
+const security = require("./security");
+const crypto = require("node:crypto");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 // googleapis è enorme: caricarlo al top-level rallenta ogni cold start e può far sforare
 // il timeout di analisi al deploy ("Cannot determine backend specification"). Lazy-load.
@@ -122,7 +124,7 @@ exports.callGeminiHttp = functions.https.onRequest(async (req, res) => {
     return;
   }
 
-  // ── Rate Limiting / Quota Firestore (non-fatal) ──────────────────────────────
+  // Quota must be checked successfully before calling the paid AI provider.
   // Admin bypass: nessun limite per l'account amministratore
   const isAdmin = uid === 'f8oLEt3LDpT7VN9zFOa10mVE2Cf2';
 
@@ -158,7 +160,9 @@ exports.callGeminiHttp = functions.https.onRequest(async (req, res) => {
     });
   } catch (err) {
     if (err.message === 'PAYWALL_SENT') return;
-    console.error("Quota check error (non-fatal):", err.message || err);
+    console.error("Quota check unavailable:", err.code || "unknown");
+    res.status(503).json({ error: "Quota temporaneamente non verificabile. Riprova." });
+    return;
   }
 
   // ── Gemini API Call (direct REST, no SDK) ───────────────────────────────────
@@ -574,144 +578,27 @@ exports.createPortalSession = functions.https.onCall(async (data, context) => {
  *   GOOGLE_PLAY_SERVICE_ACCOUNT_JSON={"type":"service_account","project_id":...}
  */
 exports.verifyGooglePlayPurchase = functions.https.onCall(async (data, context) => {
-  if (!context.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'Accesso richiesto.');
-  }
-
-  const { purchaseToken, sku, plan } = data;
-  const uid = context.auth.uid;
-
-  if (!purchaseToken || !sku || !plan) {
-    throw new functions.https.HttpsError('invalid-argument', 'purchaseToken, sku e plan sono obbligatori.');
-  }
-
+  if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Accesso richiesto.');
+  const {purchaseToken, sku} = data || {};
+  const product = Object.hasOwn(security.PRODUCTS, sku || '') ? security.PRODUCTS[sku] : null;
+  if (!product || typeof purchaseToken !== 'string' || !purchaseToken || purchaseToken.length > 4096) throw new functions.https.HttpsError('invalid-argument', 'Prodotto o ricevuta non validi.');
   const packageName = process.env.GOOGLE_PLAY_PACKAGE_NAME || 'app.web.cortex_app.twa';
-  const serviceAccountJson = process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON;
-
-  if (!serviceAccountJson) {
-    console.error('[GooglePlay] GOOGLE_PLAY_SERVICE_ACCOUNT_JSON non configurato in .env');
-    throw new functions.https.HttpsError('internal', 'Configurazione Google Play mancante.');
-  }
-
-  let serviceAccount;
   try {
-    serviceAccount = JSON.parse(serviceAccountJson);
-  } catch {
-    throw new functions.https.HttpsError('internal', 'Service account JSON non valido.');
-  }
-
-  // Auth con Google Play Developer API
-  const google = getGoogle();
-  const auth = new google.auth.GoogleAuth({
-    credentials: serviceAccount,
-    scopes: ['https://www.googleapis.com/auth/androidpublisher'],
-  });
-
-  const androidPublisher = google.androidpublisher({ version: 'v3', auth });
-
-  // Map SKU → piano interno
-  const skuPlanMap = {
-    'cortex_student_monthly': 'student',
-    'cortex_pro_monthly':     'pro',
-  };
-  const activePlan = skuPlanMap[sku] || plan;
-
-  // Controlla se è un abbonamento o un acquisto one-time (Sparks)
-  const isSubscription = sku.includes('monthly');
-
-  try {
-    if (isSubscription) {
-      // Verifica abbonamento
-      const response = await androidPublisher.purchases.subscriptions.get({
-        packageName,
-        subscriptionId: sku,
-        token: purchaseToken,
-      });
-
-      const purchase = response.data;
-
-      // paymentState 1 = pagato, 2 = trial gratuito, 3 = pending upgrade
-      if (purchase.paymentState !== 1 && purchase.paymentState !== 2) {
-        throw new functions.https.HttpsError('failed-precondition', 'Abbonamento non attivo.');
-      }
-
-      // Acknowledge (obbligatorio entro 3 giorni o Google rimborsa)
-      if (!purchase.acknowledgementState) {
-        await androidPublisher.purchases.subscriptions.acknowledge({
-          packageName,
-          subscriptionId: sku,
-          token: purchaseToken,
-        });
-      }
-
-      const expiryMs = parseInt(purchase.expiryTimeMillis, 10);
-
-      // Aggiorna Firestore
-      await db.collection('users').doc(uid).set({
-        plan: activePlan,
-        googlePlaySubscription: {
-          sku,
-          purchaseToken,
-          expiresAt: admin.firestore.Timestamp.fromMillis(expiryMs),
-          orderId: purchase.orderId,
-          autoRenewing: purchase.autoRenewing,
-          activatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        },
-        planSource: 'google_play',
-        planExpiresAt: admin.firestore.Timestamp.fromMillis(expiryMs),
-      }, { merge: true });
-
-    } else {
-      // Acquisto one-time (Sparks)
-      const response = await androidPublisher.purchases.products.get({
-        packageName,
-        productId: sku,
-        token: purchaseToken,
-      });
-
-      const purchase = response.data;
-
-      // purchaseState 0 = completato
-      if (purchase.purchaseState !== 0) {
-        throw new functions.https.HttpsError('failed-precondition', 'Acquisto non completato.');
-      }
-
-      if (!purchase.acknowledgementState) {
-        await androidPublisher.purchases.products.acknowledge({
-          packageName,
-          productId: sku,
-          token: purchaseToken,
-        });
-      }
-
-      // Mappa SKU → quantità Sparks
-      const sparksMap = {
-        'cortex_sparks_50':  50,
-        'cortex_sparks_150': 150,
-        'cortex_sparks_500': 500,
-      };
-      const sparksAmount = sparksMap[sku] || 50;
-
-      // Aggiunge Sparks al saldo utente atomicamente (campo sparksBalance = fonte di verità)
-      await db.collection('users').doc(uid).set({
-        sparksBalance: admin.firestore.FieldValue.increment(sparksAmount),
-        googlePlayPurchases: admin.firestore.FieldValue.arrayUnion({
-          sku,
-          purchaseToken,
-          orderId: purchase.orderId,
-          purchasedAt: new Date().toISOString(),
-        }),
-        planSource: 'google_play',
-      }, { merge: true });
-    }
-
-    console.log(`[GooglePlay] Acquisto verificato e attivato per uid=${uid}, sku=${sku}`);
-    return { success: true, plan: activePlan };
-
+    if (!process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON) throw new Error('Missing Play configuration');
+    const google = getGoogle();
+    const auth = new google.auth.GoogleAuth({credentials:JSON.parse(process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON), scopes:['https://www.googleapis.com/auth/androidpublisher']});
+    const api = google.androidpublisher({version:'v3', auth});
+    const endpoint = product.plan ? api.purchases.subscriptions : api.purchases.products;
+    const request = {packageName, token:purchaseToken, [product.plan ? 'subscriptionId' : 'productId']:sku};
+    const purchase = (await endpoint.get(request)).data;
+    // Claim receipt and credit in one transaction before acknowledge; retry is safe.
+    const result = await security.applyPurchase({db, admin, uid:context.auth.uid, sku, purchaseToken, purchase, HttpsError:functions.https.HttpsError});
+    if (!purchase.acknowledgementState) await endpoint.acknowledge(request);
+    return result;
   } catch (err) {
     if (err instanceof functions.https.HttpsError) throw err;
-    console.error('[GooglePlay] Verifica fallita:', err.message);
-    throw new functions.https.HttpsError('internal', 'Verifica Google Play fallita: ' + err.message);
+    console.error('[GooglePlay] verification failed:', err.code || 'internal');
+    throw new functions.https.HttpsError('internal', 'Verifica acquisto temporaneamente non disponibile.');
   }
 });
 
@@ -739,6 +626,8 @@ exports.deleteUserAccount = functions.https.onCall(async (data, context) => {
     await deleteCollection(`users/${uid}/decks`);
     await deleteCollection(`users/${uid}/memory`);
 
+    // Preserve consumed legacy receipts before removing the only old purchase record.
+    await security.retainLegacyReceipts(db, uid);
     // 2. Cancella document principale utente
     await db.collection('users').doc(uid).delete();
 
@@ -1312,22 +1201,29 @@ const TIKTOK_PUBLISH_STATUS_URL = "https://open.tiktokapis.com/v2/post/publish/s
 const TIKTOK_SCOPES = "user.info.basic,video.publish,video.upload";
 
 function tiktokAdminCors(req, res) {
-  res.set('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin;
+  if (security.ORIGINS.has(origin)) { res.set('Access-Control-Allow-Origin', origin); res.set('Access-Control-Allow-Credentials', 'true'); }
+  res.set('Vary', 'Origin');
+  res.set('Cache-Control', 'no-store');
   res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.set('Access-Control-Allow-Headers', 'Authorization, Content-Type');
 }
-
 function tiktokCheckSecret(req, res) {
-  const secret = process.env.DASHBOARD_SECRET;
-  const authHeader = req.headers.authorization || '';
-  const queryKey = req.query.key || '';
-  const ok = secret && (authHeader === `Bearer ${secret}` || queryKey === secret);
-  if (!ok) {
-    res.status(401).json({ error: 'Unauthorized' });
-    return false;
-  }
+  const credential = security.adminCredential(req, process.env.DASHBOARD_SECRET);
+  if (!credential) { res.status(401).json({error:'Unauthorized'}); return false; }
+  req.adminCredentialHash = security.hash(credential);
   return true;
 }
+exports.tiktokAdminSession = functions.https.onRequest(async (req, res) => {
+  tiktokAdminCors(req, res);
+  if(req.method === 'OPTIONS') {res.status(204).send('');return;}
+  if(req.method !== 'POST') {res.status(405).json({error:'Method not allowed'});return;}
+  if(!ipRateLimit(getClientIp(req),{maxRequests:10,windowMs:60000})) {res.status(429).json({error:'Too many requests'});return;}
+  const secret = process.env.DASHBOARD_SECRET;
+  if(!secret || !security.equal(req.headers.authorization || '', 'Bearer '+secret)) {res.status(401).json({error:'Unauthorized'});return;}
+  res.set('Set-Cookie', security.SESSION_COOKIE+'='+security.signSession(secret)+'; HttpOnly; Secure; SameSite=Lax; Path=/api/tiktok; Max-Age=1800');
+  res.json({success:true});
+});
 
 const tiktokTokensRef = () => db.collection('_system').doc('tiktok_tokens');
 
@@ -1362,7 +1258,7 @@ async function tiktokGetValidAccessToken() {
   return data.access_token;
 }
 
-// GET /api/tiktok/auth?key=DASHBOARD_SECRET → redirect a TikTok per autorizzare l'app
+// GET /api/tiktok/auth with admin session or Bearer → one-use authorization URL.
 exports.tiktokAuthUrl = functions.https.onRequest(async (req, res) => {
   tiktokAdminCors(req, res);
   if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
@@ -1372,14 +1268,16 @@ exports.tiktokAuthUrl = functions.https.onRequest(async (req, res) => {
   const redirectUri = process.env.TIKTOK_REDIRECT_URI || 'https://cortexapp.it/oauth/callback';
   if (!clientKey) { res.status(500).json({ error: 'TIKTOK_CLIENT_KEY non configurata' }); return; }
 
+  const oauthState = crypto.randomBytes(32).toString('hex');
+  await db.collection('_oauthStates').doc(security.hash(oauthState)).set({credentialHash:req.adminCredentialHash, expiresAt:Date.now()+10*60e3});
   const params = new URLSearchParams({
     client_key: clientKey,
     scope: TIKTOK_SCOPES,
     response_type: 'code',
     redirect_uri: redirectUri,
-    state: 'cortex_admin',
+    state: oauthState,
   });
-  res.redirect(`${TIKTOK_AUTH_URL}?${params.toString()}`);
+  res.json({url: `${TIKTOK_AUTH_URL}?${params.toString()}`});
 });
 
 // POST /api/tiktok/exchange { code } → scambia il code OAuth con un access token
@@ -1389,9 +1287,13 @@ exports.tiktokExchangeToken = functions.https.onRequest(async (req, res) => {
   if (!tiktokCheckSecret(req, res)) return;
   if (req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return; }
 
-  const { code } = req.body || {};
+  const { code, state: oauthState } = req.body || {};
   if (!code || typeof code !== 'string') { res.status(400).json({ error: 'Parametro code obbligatorio' }); return; }
 
+  if(typeof oauthState !== 'string' || !/^[a-f0-9]{64}$/.test(oauthState)){res.status(400).json({error:'OAuth state non valido'});return;}
+  try {
+    await security.consumeOAuthState(db, oauthState, req.adminCredentialHash);
+  } catch (_) {res.status(403).json({error:'Autorizzazione scaduta o già utilizzata. Ricomincia il collegamento.'});return;}
   try {
     const resp = await fetch(TIKTOK_TOKEN_URL, {
       method: 'POST',
@@ -1748,3 +1650,6 @@ exports.reengageEmails = functions.pubsub.schedule('0 10 * * *')
     }
     return null;
   });
+
+// Anonymous telemetry: bounded ingress, no direct client database writes.
+exports.telemetry = functions.runWith({maxInstances:5}).https.onRequest(require("./telemetry").handler({db,admin,ipRateLimit,secret:()=>process.env.DASHBOARD_SECRET}));

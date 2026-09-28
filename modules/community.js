@@ -165,7 +165,7 @@ export async function loadCommunityDecks(search = '') {
             card.innerHTML = `
                 <div class="deck-info">
                     <h4>${sanitize(d.name)}</h4>
-                    <p style="font-size:0.8rem; opacity:0.7;">${sanitize(d.subject)} • ${d.cardsCount || 0} carte</p>
+                    <p style="font-size:0.8rem; opacity:0.7;">${sanitize(d.subject)} • ${Number.isInteger(d.cardsCount) && d.cardsCount >= 0 ? Math.min(d.cardsCount, 200) : 0} carte</p>
                     <p style="font-size:0.75rem; color:var(--accent);">by ${sanitize(d.authorName || t('community_anon'))}</p>
                 </div>
                 <div style="display:flex; gap:6px; margin-top:12px; flex-wrap:wrap;">

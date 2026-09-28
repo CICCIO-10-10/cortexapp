@@ -8,7 +8,7 @@ it('retries rejected writes with the same event id and respects tracking opt-out
  const documentRef={collection:()=>events,set:async()=>{}};
  const db={collection:()=>({doc:()=>documentRef})};
  const firebase={apps:[{}],app:()=>({firestore:()=>db}),firestore:{FieldValue:{serverTimestamp:()=>123}}};
- const window={crypto:{randomUUID:()=>`id-${++id}`}};
+ const window={crypto:{randomUUID:()=>`id-${++id}`},__cxSendTelemetry:async data=>{writes.push({key:data.eventId,data});if(fail)throw Error('offline');}};
  const context={window,crypto:window.crypto,firebase,localStorage:{getItem:k=>values.get(k),setItem:(k,v)=>values.set(k,v)},
  sessionStorage:{getItem:()=>null,setItem:()=>{}},document:{readyState:'loading',addEventListener:()=>{},visibilityState:'hidden'},
  location:{pathname:'/app',search:''},navigator:{userAgent:'test'},setInterval:fn=>{tick=fn},setTimeout:()=>{},URLSearchParams};
@@ -17,7 +17,8 @@ it('retries rejected writes with the same event id and respects tracking opt-out
  await new Promise(resolve=>setImmediate(resolve));
  expect(window.__cxJourneyDiagnostics.failed).toBe(1);
  fail=false;tick();await new Promise(resolve=>setImmediate(resolve));
- expect(writes.filter(x=>x.data.type==='cards_generated').map(x=>x.key)).toEqual(['id-2','id-2']);
+ const attempts=writes.filter(x=>x.data.type==='cards_generated').map(x=>x.key);
+ expect(attempts).toHaveLength(2);expect(attempts[0]).toMatch(/^id-/);expect(attempts[1]).toBe(attempts[0]);
  const count=writes.length;values.set('cortex_no_track','1');window.__cxLogStep('cards_generated');tick();
  await new Promise(resolve=>setImmediate(resolve));expect(writes.length).toBe(count);
 });

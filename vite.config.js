@@ -1,11 +1,12 @@
 import { defineConfig } from 'vite';
 import fs from 'fs';
 import seoDesignPlugin from './scripts/seo-design-plugin.mjs';
+import securityHtmlPlugin from './scripts/security-html-plugin.mjs';
 
 const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
 
 export default defineConfig({
-  plugins: [seoDesignPlugin()],
+  plugins: [seoDesignPlugin(), securityHtmlPlugin()],
   define: {
     __CORTEX_VERSION__: JSON.stringify(pkg.version),
     CURRENT_VERSION: JSON.stringify(pkg.version)

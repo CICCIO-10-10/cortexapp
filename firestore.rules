@@ -7,7 +7,7 @@ service cloud.firestore {
     // Il UID è il metodo principale — i Custom Claims richiedono l'Admin SDK.
     function isAdmin() {
       return request.auth != null && (
-        request.auth.token.admin == true ||
+        request.auth.token.get('admin', false) == true ||
         request.auth.uid == 'f8oLEt3LDpT7VN9zFOa10mVE2Cf2'
       );
     }
@@ -33,10 +33,14 @@ service cloud.firestore {
       allow create: if request.auth != null
         && request.resource.data.ownerId == request.auth.uid
         && isValidString(request.resource.data.name, 200)
-        && isValidString(request.resource.data.description, 1000)
+        && (!('description' in request.resource.data) || isValidString(request.resource.data.description, 1000))
+        && (!('cardsCount' in request.resource.data) || (request.resource.data.cardsCount is int && request.resource.data.cardsCount >= 0 && request.resource.data.cardsCount <= 200))
         && (!('cards' in request.resource.data) || request.resource.data.cards.size() <= 200);
       allow update: if request.auth != null
         && (resource.data.ownerId == request.auth.uid || isAdmin())
+        && request.resource.data.ownerId == resource.data.ownerId
+        && isValidString(request.resource.data.name, 200)
+        && (!('cardsCount' in request.resource.data) || (request.resource.data.cardsCount is int && request.resource.data.cardsCount >= 0 && request.resource.data.cardsCount <= 200))
         && (!('cards' in request.resource.data) || request.resource.data.cards.size() <= 200);
       allow delete: if request.auth != null && (resource.data.ownerId == request.auth.uid || isAdmin());
     }
@@ -58,7 +62,7 @@ service cloud.firestore {
       allow write: if request.auth != null && request.auth.uid == request.resource.data.uid && (
         isAdmin() || (
           request.resource.data.uid == request.auth.uid &&
-          (!resource.exists || resource.data.uid == request.auth.uid) &&
+          (!exists(/databases/$(database)/documents/userProfiles/$(username)) || resource.data.uid == request.auth.uid) &&
           (!('xp' in request.resource.data) || (request.resource.data.xp is int && request.resource.data.xp >= 0 && request.resource.data.xp <= 100000000)) &&
           (!('totalXP' in request.resource.data) || (request.resource.data.totalXP is int && request.resource.data.totalXP >= 0 && request.resource.data.totalXP <= 100000000)) &&
           (!('weeklyXP' in request.resource.data) || (request.resource.data.weeklyXP is int && request.resource.data.weeklyXP >= 0 && request.resource.data.weeklyXP <= 10000000))
@@ -80,7 +84,7 @@ service cloud.firestore {
         return [
           'plan','planCycle','planSource','planUpdatedAt','planExpiresAt',
           'sparksBalance','trialPlan','trialExpiresAt','stripeCustomerId',
-          'googlePlaySubscription'
+          'googlePlaySubscription','googlePlayPurchases'
         ];
       }
       allow create: if request.auth != null && request.auth.uid == userId
@@ -88,10 +92,11 @@ service cloud.firestore {
         && (!('sparksBalance' in request.resource.data) || request.resource.data.sparksBalance == 0)
         && !request.resource.data.keys().hasAny([
              'planCycle','planSource','planUpdatedAt','planExpiresAt',
-             'trialPlan','trialExpiresAt','stripeCustomerId','googlePlaySubscription']);
+             'trialPlan','trialExpiresAt','stripeCustomerId','googlePlaySubscription','googlePlayPurchases']);
       allow update: if request.auth != null && request.auth.uid == userId
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(_billingProtetti());
-      allow delete: if request.auth != null && request.auth.uid == userId;
+      // Account deletion must preserve server receipt tombstones before removing user data.
+      allow delete: if false; // deleteUserAccount (Admin SDK)
 
       // 📚 Sub-collection per i mazzi
       match /decks/{deckId} {
@@ -111,6 +116,9 @@ service cloud.firestore {
     match /feedbacks/{docId} {
       allow read: if true;
       allow create: if request.auth != null &&
+        request.resource.data.keys().hasOnly(['userId','alias','text','timestamp']) &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.timestamp == request.time &&
         isValidString(request.resource.data.text, 2048) &&
         isValidString(request.resource.data.alias, 100);
       allow update, delete: if isAdmin();
@@ -221,29 +229,26 @@ service cloud.firestore {
       }
     }
 
-    // 📈 Analytics: presenza e page views scritti dai client (anche NON loggati).
-    // IMPORTANTE: la landing traccia le visite da utenti anonimi (nessun login),
-    // quindi la scrittura DEVE restare aperta, altrimenti "VISITE OGGI" resta a 0.
-    // (Il tentativo di richiedere l'auth — audit 02/07/2026 — è stato annullato
-    //  perché bloccava il tracciamento della landing.)
+    // 📈 Analytics: anche gli ospiti passano dall'endpoint telemetry, che valida
+    // gli eventi e applica limiti. Nessuna scrittura diretta dal browser.
     // La lettura è riservata all'admin via Cloud Function (adminDashboard).
     match /analytics/{docId} {
       allow read: if false;
-      allow write: if true;
+      allow write: if false; // Solo endpoint telemetry con validazione e limiti.
       match /sessions/{sessionId} {
         allow read: if false;
-        allow write: if true;
+        allow write: if false; // Solo endpoint telemetry con validazione e limiti.
       }
     }
 
     // 🧭 Journeys: percorso per-visitatore (guest inclusi), stesso principio di /analytics.
-    // Scrittura aperta anche ai NON loggati (funnel dalla landing); lettura solo admin.
+    // Scrittura solo via backend; lettura solo admin via Cloud Function.
     match /journeys/{vid} {
       allow read: if false;
-      allow write: if true;
+      allow write: if false; // Solo endpoint telemetry con validazione e limiti.
       match /events/{eventId} {
         allow read: if false;
-        allow write: if true;
+        allow write: if false; // Solo endpoint telemetry con validazione e limiti.
       }
     }
   }

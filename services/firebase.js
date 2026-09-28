@@ -46,35 +46,9 @@ let _trackerStarted       = false; // guard: avvia il tracker una sola volta
 
 // ── Cortex App Analytics Tracker ─────────────────────────────────────────────
 // Traccia presenza (online ora) e visite giornaliere per la dashboard admin.
-function _startAppTracker(firestoreDb) {
-    if (_trackerStarted || !firestoreDb) return;
+function _startAppTracker() {
+    // Presence and pageviews are now derived server-side from core/journey events.
     _trackerStarted = true;
-    // Escludi il traffico dell'ADMIN dalle statistiche: gonfiava visite,
-    // presence e faceva crollare la % di conversione con i test interni.
-    if (localStorage.getItem('cortex_no_track') === '1') return;
-    try {
-        const params = new URLSearchParams(window.location.search);
-        const source   = params.get('utm_source') || params.get('ref') || 'direct';
-        const campaign = params.get('utm_campaign') || '';
-        const sid      = 'app_' + Math.random().toString(36).slice(2) + '_' + Date.now();
-        // Data odierna in timezone Europe/Rome (non UTC), per allinearsi alla dashboard
-        const _romeNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Rome' }));
-        const today    = `${_romeNow.getFullYear()}-${String(_romeNow.getMonth() + 1).padStart(2, '0')}-${String(_romeNow.getDate()).padStart(2, '0')}`;
-        const FieldValue = firebase.firestore.FieldValue;
-
-        function heartbeat() {
-            firestoreDb.collection('analytics').doc('presence')
-                .collection('sessions').doc(sid)
-                .set({ page: 'app', source, campaign, lastSeen: FieldValue.serverTimestamp() }, { merge: true });
-        }
-        heartbeat();
-        setInterval(heartbeat, 120000);
-
-        firestoreDb.collection('analytics').doc('pageviews_' + today).set({
-            app: FieldValue.increment(1),
-            ['src_' + source]: FieldValue.increment(1)
-        }, { merge: true });
-    } catch (_) {}
 }
 
 /**

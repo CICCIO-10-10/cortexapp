@@ -115,21 +115,20 @@
             logEl.scrollTop = logEl.scrollHeight;
         }
 
-        function getKey() {
-            return localStorage.getItem('cortex_admin_key') || '';
-        }
+        // Never retain the dashboard master secret in browser storage.
+        try { localStorage.removeItem('cortex_admin_key'); sessionStorage.removeItem('cortex_admin_key'); } catch (_) {}
 
         async function api(path, opts = {}) {
-            const key = getKey();
             const resp = await fetch(path, {
                 ...opts,
+                credentials: 'same-origin',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + key,
                     ...(opts.headers || {}),
                 },
             });
             const data = await resp.json();
+            if (resp.status === 401) { gate.style.display='block'; app.style.display='none'; }
             if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
             return data;
         }
@@ -137,7 +136,8 @@
         function renderPreview() {
             const urls = document.getElementById('imagesInput').value.split('\n').map(s => s.trim()).filter(Boolean);
             const preview = document.getElementById('preview');
-            preview.innerHTML = urls.map(u => `<img src="${u}" loading="lazy">`).join('');
+            preview.replaceChildren();
+            urls.forEach(u=>{try{const url=new URL(u);if(url.protocol!=='https:')return;const img=document.createElement('img');img.src=url.href;img.loading='lazy';preview.appendChild(img);}catch(_){}});
         }
 
         async function refreshStatus() {
@@ -161,24 +161,19 @@
             }
         }
 
-        function unlock() {
-            const key = document.getElementById('keyInput').value.trim();
-            if (!key) return;
-            localStorage.setItem('cortex_admin_key', key);
-            gate.style.display = 'none';
-            app.style.display = 'block';
-            document.getElementById('imagesInput').value = DEFAULT_IMAGES.join('\n');
-            renderPreview();
-            refreshStatus();
+        async function unlock() {
+            const field=document.getElementById('keyInput');const key=field.value.trim();field.value='';
+            if(!key)return;
+            try{await api('/api/tiktok/session',{method:'POST',headers:{Authorization:'Bearer '+key}});
+              gate.style.display='none';app.style.display='block';document.getElementById('imagesInput').value=DEFAULT_IMAGES.join('\n');renderPreview();await refreshStatus();
+            }catch(e){log('Accesso non riuscito: '+e.message);gate.style.display='block';app.style.display='none';field.placeholder='Accesso non riuscito: riprova';}
         }
 
         document.getElementById('unlockBtn').addEventListener('click', unlock);
         document.getElementById('keyInput').addEventListener('keydown', e => { if (e.key === 'Enter') unlock(); });
 
-        document.getElementById('connectBtn').addEventListener('click', () => {
-            const key = getKey();
-            log('Reindirizzamento a TikTok per autorizzazione...');
-            window.location.href = '/api/tiktok/auth?key=' + encodeURIComponent(key);
+        document.getElementById('connectBtn').addEventListener('click', async () => {
+            try{const data=await api('/api/tiktok/auth');window.location.href=data.url;}catch(e){log('Collegamento non riuscito: '+e.message);}
         });
 
         document.getElementById('refreshBtn').addEventListener('click', refreshStatus);
@@ -216,14 +211,8 @@
             }
         });
 
-        // Se la dashboard secret è già salvata, sblocca subito.
-        if (getKey()) {
-            gate.style.display = 'none';
-            app.style.display = 'block';
-            document.getElementById('imagesInput').value = DEFAULT_IMAGES.join('\n');
-            renderPreview();
-            refreshStatus();
-        }
+        // Resume only an unexpired HttpOnly session; never load a saved master key.
+        api('/api/tiktok/status').then(()=>{gate.style.display='none';app.style.display='block';document.getElementById('imagesInput').value=DEFAULT_IMAGES.join('\n');renderPreview();refreshStatus();}).catch(()=>{});
     </script>
 </body>
 </html>
