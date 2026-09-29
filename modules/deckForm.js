@@ -261,6 +261,14 @@ export async function saveDeck() {
         if (currentDeckIndex === null && deck.cards.length > 0) {
             try { track('cards_saved', { count: deck.cards.length }); } catch (_) {}
             try { if (window.clarity) window.clarity('set', 'cards_saved', 'si'); } catch (_) {}
+            try {
+                const _tolcSave = JSON.parse(localStorage.getItem('cortex_tolc_error_save_pending') || 'null');
+                if (_tolcSave && _tolcSave.ts && Date.now() - _tolcSave.ts <= 30 * 60 * 1000) {
+                    track('tolc_error_cards_saved', { count: deck.cards.length });
+                    localStorage.setItem('cortex_tolc_error_study_pending', JSON.stringify({ ts: Date.now(), deckId: deck.id }));
+                }
+                if (_tolcSave) localStorage.removeItem('cortex_tolc_error_save_pending');
+            } catch (_) {}
         }
         renderDecks(); 
         try { if (window.triggerSmartInstallPrompt) window.triggerSmartInstallPrompt(); } catch(_) {}

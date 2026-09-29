@@ -23,13 +23,14 @@ function summarizeJourneys(events, coverage = {}) {
   // ── Tracking v3 (25/09/2026) — funnel separati, browser distinti per passo ──
   const V3 = {
     tolc: ['tolc_selector_viewed', 'tolc_type_picked', 'tolc_intro_viewed', 'tolc_test_start', 'tolc_first_answer', 'tolc_sim_complete', 'tolc_errors_generate_click'],
+    tolcErrorCards: ['tolc_errors_generate_click', 'tolc_errors_login_completed', 'tolc_error_cards_generation_started', 'tolc_error_cards_generated', 'tolc_error_cards_saved', 'tolc_error_first_study'],
     tolcLoss: ['tolc_selector_closed', 'tolc_test_quit'],
     onboarding: ['onboarding_shown', 'onboarding_finished', 'onboarding_skipped'],
     generation: ['cards_generation_started', 'cards_generated', 'cards_generation_failed', 'generated_cards_saved', 'generated_cards_discarded', 'study_session_start', 'study_session_completed', 'activated'],
   };
   const v3 = { steps: {}, breakdown: { gen_fail_reason: {}, tolc_closed_stage: {}, onboarding_skip_step: {}, tolc_quit_answered: [] }, since: null };
   Object.values(V3).flat().forEach(k => { v3.steps[k] = 0; });
-  const v3Names = new Set(['tolc_selector_viewed', 'tolc_type_picked', 'tolc_intro_viewed', 'tolc_selector_closed', 'tolc_test_quit', 'onboarding_step_viewed', 'onboarding_finished', 'onboarding_skipped', 'cards_generation_started', 'cards_generation_failed', 'generated_cards_discarded']);
+  const v3Names = new Set(['tolc_selector_viewed', 'tolc_type_picked', 'tolc_intro_viewed', 'tolc_selector_closed', 'tolc_test_quit', 'tolc_errors_generate_click', 'tolc_errors_login_completed', 'tolc_error_cards_generation_started', 'tolc_error_cards_generated', 'tolc_error_cards_saved', 'tolc_error_first_study', 'onboarding_step_viewed', 'onboarding_finished', 'onboarding_skipped', 'cards_generation_started', 'cards_generation_failed', 'generated_cards_discarded']);
   const v3Start = events.filter(e => v3Names.has(e.type)).reduce((m, e) => Math.min(m, e.ts), Infinity);
   if (Number.isFinite(v3Start)) {
     v3.since = v3Start;

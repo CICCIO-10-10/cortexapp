@@ -17,10 +17,12 @@ const CLARITY_STEPS = new Set(['app_open', 'onboarding_start', 'onboarding_shown
     'lezione_aperta', 'lezione_foto_ocr', 'lezione_strutturata', 'lezione_riassunto', 'lezione_genera', 'lezione_mazzo_salvato',
     // 25/09/2026: ponte TOLC -> studio, per vederlo negli imbuti Clarity
     'tolc_errors_generate_click', 'tolc_sim_enter_cortex', 'tolc_share_click',
+    'tolc_errors_login_completed', 'tolc_error_cards_generation_started', 'tolc_error_cards_generated',
+    'tolc_error_cards_generation_failed', 'tolc_error_cards_saved', 'tolc_error_first_study',
     'tolc_exit_prompt_shown', 'tolc_exit_prompt_leave',
     // 25/09/2026 tracking v3 (tracking plan: docs/TRACKING_PLAN.md)
     'tolc_selector_viewed', 'tolc_type_picked', 'tolc_intro_viewed', 'tolc_selector_closed', 'tolc_test_quit',
-    'onboarding_step_viewed', 'onboarding_finished', 'onboarding_skipped',
+    'onboarding_step_viewed', 'onboarding_finished', 'onboarding_skipped', 'onboarding_goal_selected',
     'cards_generation_started', 'cards_generation_failed', 'generated_cards_discarded', 'cloud_sync_failed',
     'material_first_answer', 'material_practice_completed']);
 

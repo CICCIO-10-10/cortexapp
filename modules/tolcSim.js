@@ -362,8 +362,10 @@ function _renderResult() {
   var genLabel = nWrong > 0
     ? '🎯 Trasforma i tuoi ' + nWrong + ' errori in flashcard'
     : '🎯 Genera flashcard sui tuoi errori';
-  var genBtn = '<button id="tolc-gen-errors" style="width:100%;padding:15px;border-radius:12px;border:none;font-weight:800;font-size:1rem;color:#fff;background:linear-gradient(135deg,#16a34a,#22c55e);cursor:pointer;box-shadow:0 10px 30px rgba(34,197,94,.25);">' + genLabel + '</button>' +
-    (nWrong > 0 ? '<div style="text-align:center;font-size:.76rem;color:rgba(255,255,255,.55);margin:6px 0 12px;">Ripassa proprio le domande che hai sbagliato, spiegate bene. Gratis.</div>' : '');
+  var genBtn = nWrong > 0
+    ? '<button id="tolc-gen-errors" style="width:100%;padding:15px;border-radius:12px;border:none;font-weight:800;font-size:1rem;color:#fff;background:linear-gradient(135deg,#16a34a,#22c55e);cursor:pointer;box-shadow:0 10px 30px rgba(34,197,94,.25);">' + genLabel + '</button>' +
+      '<div style="text-align:center;font-size:.76rem;color:rgba(255,255,255,.55);margin:6px 0 12px;">Ripassa proprio le domande che hai sbagliato, spiegate bene. Gratis.</div>'
+    : '<div role="status" style="text-align:center;padding:12px;margin:8px 0 12px;border-radius:12px;background:rgba(34,197,94,.1);color:#86efac;font-weight:700;">Nessun errore da trasformare in flashcard — ottimo risultato!</div>';
   var enterBtn = '<button id="tolc-enter" style="width:100%;padding:14px;margin-top:9px;border-radius:12px;border:1px solid rgba(168,85,247,.55);background:rgba(168,85,247,.14);color:#e9d5ff;font-weight:800;font-size:.98rem;cursor:pointer;">Salva i progressi su Cortex →</button>';
   var emoji = pct >= 60 ? '🎉' : '💪';
   var th = 'padding:8px 6px;font-size:.62rem;text-transform:uppercase;letter-spacing:.4px;color:#c084fc;font-weight:800;';
@@ -395,6 +397,9 @@ function _renderResult() {
       '<h2 style="font-family:Outfit,sans-serif;font-weight:900;margin:6px 0 2px;font-size:1.5rem;">Esito ' + st.test.nome + '</h2>' +
       '<p style="color:rgba(255,255,255,.6);margin:0;font-size:.86rem;">Punteggio totale test: <b style="color:#fff;">' + _fmtScore(totScore) + '</b> / ' + totQ + (eng ? '  ·  Inglese: <b style="color:#fff;">' + _fmtScore(_secScore(eng, mode)) + '</b> / ' + eng.n : '') + '</p>' +
     '</div>' +
+    // Porta il passaggio verso le flashcard subito sotto al punteggio: su mobile
+    // la tabella dei risultati non deve nascondere l'azione principale in fondo.
+    genBtn +
     '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">' +
       '<span style="font-size:.66rem;color:rgba(255,255,255,.45);font-weight:800;">MODALITA’</span>' + mbtn('cisia', 'CISIA standard (-0,25)') + mbtn('nopen', 'Senza penalita’') +
     '</div>' +
@@ -427,7 +432,6 @@ function _renderResult() {
     '<p style="font-size:.66rem;color:rgba(255,255,255,.4);line-height:1.55;margin:8px 0 14px;">' + note +
       ' Le regole di ammissione (soglie, OFA, uso dell’inglese, penalita’ in graduatoria) <b>variano per ateneo</b>: fa fede il bando. Fonte: CISIA.' +
     '</p>' +
-    genBtn +
     '<div style="text-align:center;font-size:.82rem;color:#cbc6e8;margin:10px 0 0;line-height:1.5;">📈 <b style="color:#fff;">Crea un account gratis</b> per salvare i progressi, sbloccare tutti i 10 TOLC e vedere se <b style="color:#fff;">migliori</b> nel tempo.</div>' +
     enterBtn +
     '<button id="tolc-share" style="width:100%;padding:14px;margin-top:9px;border-radius:12px;border:1px solid rgba(56,189,248,.5);background:rgba(56,189,248,.14);color:#38bdf8;font-weight:800;font-size:.98rem;cursor:pointer;">📤 Condividi il punteggio</button>' +
@@ -560,7 +564,7 @@ document.addEventListener('click', function (e) {
     try { track('tolc_errors_generate_click', { n: lines.length }); } catch (e) {}
     if (!lines.length) { if (window.showToast) window.showToast('Nessun errore da ripassare — ottimo! \uD83C\uDF89', 'success'); return; }
     var notes = 'Argomenti che ho SBAGLIATO nella simulazione ' + ((st2.test && st2.test.nome) ? st2.test.nome : 'TOLC') + '. Crea flashcard di ripasso mirate su questi concetti:\n\n' + lines.join('\n\n');
-    try { localStorage.setItem('cortex_pending_ai', JSON.stringify({ text: notes, instructions: 'Flashcard di ripasso sugli errori della simulazione TOLC: spiega il concetto corretto, non solo la lettera della risposta.', ts: Date.now() })); } catch (e) {}
+    try { localStorage.setItem('cortex_pending_ai', JSON.stringify({ text: notes, instructions: 'Flashcard di ripasso sugli errori della simulazione TOLC: spiega il concetto corretto, non solo la lettera della risposta.', ts: Date.now(), source: 'tolc_errors', authRequired: !window._fbLoggedIn })); } catch (e) {}
     _remove();
     if (window._fbLoggedIn) {
       if (window.__resumePendingAI) { window.__resumePendingAI(); return; }

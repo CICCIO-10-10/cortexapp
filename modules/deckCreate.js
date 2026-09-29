@@ -140,6 +140,7 @@ export async function autoGenerateFlashcards() {
     // STEP 1: Privacy Check
     const proceed = await PrivacyFirewall.confirmCloudProcessing();
     if (!proceed) {
+        try { localStorage.removeItem('cortex_tolc_error_generation_pending'); } catch (_) {}
         _deps.showToast("Operazione annullata per la privacy.", "info");
         return;
     }
@@ -154,7 +155,16 @@ export async function autoGenerateFlashcards() {
 
     // AUTO-RESUME: salva l'input PRIMA di chiamare l'AI, cosi' sopravvive al
     // reload del login (il gate ospite promette "il tuo materiale resta").
-    try { localStorage.setItem('cortex_pending_ai', JSON.stringify({ text: rawText, instructions: instructions, ts: Date.now() })); } catch (_) {}
+    let _tolcErrorFlow = false;
+    try {
+        const _pending = JSON.parse(localStorage.getItem('cortex_pending_ai') || 'null');
+        const _flow = JSON.parse(localStorage.getItem('cortex_tolc_error_generation_pending') || 'null');
+        _tolcErrorFlow = !!((_pending && _pending.source === 'tolc_errors' && _pending.ts && Date.now() - _pending.ts <= 30 * 60 * 1000) || (_flow && _flow.ts && Date.now() - _flow.ts <= 30 * 60 * 1000));
+        localStorage.setItem('cortex_pending_ai', JSON.stringify({ text: rawText, instructions: instructions, ts: Date.now(), source: _tolcErrorFlow ? 'tolc_errors' : undefined }));
+    } catch (_) {}
+    if (_tolcErrorFlow) {
+        try { track('tolc_error_cards_generation_started'); } catch (_) {}
+    }
 
     try {
         const result = await generateAIContent(text, instructions);
@@ -183,9 +193,16 @@ export async function autoGenerateFlashcards() {
                 result.flashcards.forEach(fc => _deps.addPair(fc.q, fc.a));
                 toggleFlashcards(true);
                 track('cards_generated', { count: result.flashcards.length, flow: 'deck_ai', tracking_version: 2 });
+                if (_tolcErrorFlow) {
+                    try {
+                        track('tolc_error_cards_generated', { count: result.flashcards.length });
+                        localStorage.setItem('cortex_tolc_error_save_pending', JSON.stringify({ ts: Date.now() }));
+                    } catch (_) {}
+                }
                 bumpActivation('cardsGenerated', result.flashcards.length);
                 _deps.showToast(`✅ Generate ${result.flashcards.length} flashcard e un riassunto!`, "success");
             } else {
+                if (_tolcErrorFlow) { try { track('tolc_error_cards_generation_failed'); } catch (_) {} }
                 _deps.showToast("L'IA non è riuscita a generare flashcard valide, ma ha creato il riassunto.", "warning");
             }
 
@@ -193,11 +210,15 @@ export async function autoGenerateFlashcards() {
             try { localStorage.removeItem('cortex_pending_ai'); } catch (_) {}
         }
     } catch (e) {
+        if (_tolcErrorFlow) {
+            try { track('tolc_error_cards_generation_failed'); } catch (_) {}
+        }
         if (!(e && (e.isGuestGate || e.message === 'GUEST_LOGIN_REQUIRED'))) {
             try { localStorage.removeItem('cortex_pending_ai'); } catch (_) {}
         }
         handleAIError(e, 'generazione flashcard', _deps.showToast);
     } finally {
+        if (_tolcErrorFlow) { try { localStorage.removeItem('cortex_tolc_error_generation_pending'); } catch (_) {} }
         btn.innerHTML = originalBtnText;
         btn.disabled  = false;
     }
@@ -211,6 +232,12 @@ export async function resumePendingAI() {
     try { pend = JSON.parse(localStorage.getItem('cortex_pending_ai') || 'null'); } catch (_) {}
     if (!pend || !pend.text) return;
     if (!window._fbLoggedIn) return;                 // solo se ora e' loggato
+    if (pend.source === 'tolc_errors') {
+        try { localStorage.setItem('cortex_tolc_error_generation_pending', JSON.stringify({ ts: Date.now() })); } catch (_) {}
+    }
+    if (pend.source === 'tolc_errors' && pend.authRequired) {
+        try { track('tolc_errors_login_completed'); } catch (_) {}
+    }
     try { localStorage.removeItem('cortex_pending_ai'); } catch (_) {}  // evita loop
     if (pend.ts && (Date.now() - pend.ts) > 30 * 60 * 1000) return;     // scaduto (>30min)
     try {

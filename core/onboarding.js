@@ -21,7 +21,8 @@ let _deps = {
     showToast:          null,
 };
 
-let obCurrentSlide = 0;
+let obCurrentSlide = 2; // 29/09/2026: si parte (e si resta) sulla slide 2 "Cosa devi preparare?"
+let _goalChosenNow = false; // true solo se l'utente ha toccato un obiettivo in questa schermata
 
 // Goal → messaggio personalizzato in slide 3
 const GOAL_MESSAGES = {
@@ -78,6 +79,7 @@ export function setObGoal(goal) {
     localStorage.setItem('cortex_user_goal', goal);
     setUserProperty('study_goal', goal);
     track('onboarding_goal_selected', { goal });
+    _goalChosenNow = true;
 
     // Personalizza il sottotitolo della slide 3 in base all'obiettivo
     const sub = document.getElementById('ob-ready-sub');
@@ -85,7 +87,9 @@ export function setObGoal(goal) {
         sub.textContent = GOAL_MESSAGES[goal];
     }
 
-    goObSlide(3);
+    // 29/09/2026: onboarding a una schermata -> scelto l'obiettivo si entra subito
+    // (prima: goObSlide(3) -> "Come hai scoperto Cortex?" -> "Tutto pronto").
+    closeOnboarding();
 }
 
 // ── API KEY ONBOARDING ────────────────────────────────────────────────────────
@@ -110,7 +114,8 @@ export function closeOnboarding() {
     track('onboarding_complete', { goal: localStorage.getItem('cortex_user_goal') || 'skipped' });
     // v3 25/09: onboarding_complete scatta anche per chi salta → separiamo i due casi
     try {
-        if (localStorage.getItem('cortex_user_goal')) track('onboarding_finished', { goal: localStorage.getItem('cortex_user_goal'), last_step: obCurrentSlide });
+        // 29/09/2026: "finito" = obiettivo toccato ORA (Instagram pre-imposta il goal: non conta come finito)
+        if (_goalChosenNow) track('onboarding_finished', { goal: localStorage.getItem('cortex_user_goal'), last_step: obCurrentSlide });
         else track('onboarding_skipped', { last_step: obCurrentSlide });
     } catch (_) {}
 
@@ -225,6 +230,8 @@ export function triggerOnboardingOverlay() {
                 // Evento REALE: l'overlay è ora davvero mostrato. onboarding_start parte 1.2s prima
                 // e anche sui deep-link ?sim=tolc → sovrastima. Usare questo per il funnel onboarding.
                 track('onboarding_shown', { is_instagram: isInstagram, after_sim: _simArrival });
+                // La variante corrente espone direttamente la schermata dell'obiettivo (slide 2).
+                track('onboarding_step_viewed', { step: 2, variant: 'single_screen' });
             }
         }
     };

@@ -1570,20 +1570,20 @@ function emailLayout(titolo, corpoHtml, ctaTesto, ctaUrl) {
 
 const EMAILS = {
   welcome: {
-    subject: 'Benvenuto in Cortex 🎓',
-    html: emailLayout('Benvenuto in Cortex 🎓',
+    subject: 'Benvenuto in Cortex',
+    html: emailLayout('Benvenuto in Cortex',
       'Hai appena creato il tuo account. Ora la parte bella: <b>carichi i tuoi appunti</b> (anche una foto o un PDF) e Cortex li trasforma in flashcard, poi ti interroga. Bastano 2 minuti per il primo mazzo.',
       'Crea il primo mazzo →', 'https://cortexapp.it/app?utm_source=email&utm_campaign=welcome'),
   },
   d1: {
-    subject: 'Hai flashcard da ripassare 🔁',
-    html: emailLayout('Il ripasso funziona se è costante 🔁',
+    subject: 'Hai flashcard da ripassare',
+    html: emailLayout('Il ripasso funziona se è costante',
       'Torna su Cortex e fai un giro veloce: <b>5 minuti</b> bastano per fissare quello che hai studiato. Il momento migliore per ripassare è proprio ora.',
       'Ripassa ora →', 'https://cortexapp.it/app?utm_source=email&utm_campaign=d1'),
   },
   d3: {
-    subject: 'Non perdere il ritmo 💪',
-    html: emailLayout('Non perdere il ritmo 💪',
+    subject: 'Non perdere il ritmo',
+    html: emailLayout('Non perdere il ritmo',
       'Chi ripassa <b>poco e spesso</b> ricorda molto di più di chi studia tutto all’ultimo. Riprendi da dove eri: il tuo materiale è ancora lì che ti aspetta.',
       'Riprendi a studiare →', 'https://cortexapp.it/app?utm_source=email&utm_campaign=d3'),
   },

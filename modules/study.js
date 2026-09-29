@@ -158,6 +158,15 @@ export async function startStudy(deckIndex) {
         deck_name: sessionDeckName,
         card_count: dueCards.length,
     });
+    try {
+        const _tolcFlow = JSON.parse(localStorage.getItem('cortex_tolc_error_study_pending') || 'null');
+        if (_tolcFlow && _tolcFlow.deckId === deck.id && _tolcFlow.ts && Date.now() - _tolcFlow.ts <= 30 * 24 * 60 * 60 * 1000) {
+            track('tolc_error_first_study');
+            localStorage.removeItem('cortex_tolc_error_study_pending');
+        } else if (_tolcFlow && _tolcFlow.ts && Date.now() - _tolcFlow.ts > 30 * 24 * 60 * 60 * 1000) {
+            localStorage.removeItem('cortex_tolc_error_study_pending');
+        }
+    } catch (_) {}
 
     showCard();
 }

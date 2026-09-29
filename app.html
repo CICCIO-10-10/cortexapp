@@ -1527,7 +1527,8 @@ document.body.prepend(b);setTimeout(function(){try{var e=document.getElementById
             
             <div style="position:relative; z-index:1;">
                 <!-- DOTS -->
-                <div style="display:flex; gap:8px; justify-content:center; margin-bottom:40px;" id="ob-dots">
+                <!-- 29/09/2026: onboarding a UNA schermata (dati v3: 19 mostrati, 0 completati) -> puntini nascosti -->
+                <div style="display:none; gap:8px; justify-content:center; margin-bottom:40px;" id="ob-dots">
                     <div class="ob-dot active" data-fn="goObSlide" data-params='[0]' aria-label="Vai alla slide 1"></div>
                     <div class="ob-dot" data-fn="goObSlide" data-params='[1]' aria-label="Vai alla slide 2"></div>
                     <div class="ob-dot" data-fn="goObSlide" data-params='[2]' aria-label="Vai alla slide 3"></div>
@@ -1536,7 +1537,7 @@ document.body.prepend(b);setTimeout(function(){try{var e=document.getElementById
                 </div>
 
                 <!-- SLIDE 0: WELCOME -->
-                <div id="ob-slide-0" style="animation:slideUp 0.5s ease forwards;">
+                <div id="ob-slide-0" style="display:none; animation:slideUp 0.5s ease forwards;">
                     <div style="width:80px; height:80px; background:linear-gradient(135deg, var(--accent), var(--accent2)); border-radius:24px; display:flex; align-items:center; justify-content:center; font-size:3rem; margin:0 auto 20px; box-shadow:0 15px 35px var(--accent-glow);">🧠</div>
                     <h2 style="font-family:'Outfit'; font-size:2.2rem; font-weight:800; margin-bottom:8px; background:linear-gradient(135deg, #fff 20%, rgba(255,255,255,0.5) 100%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; letter-spacing:-0.5px;">Benvenuto in Cortex.</h2>
                     <p style="color:var(--text-muted); font-size:0.95rem; line-height:1.65; margin-bottom:22px; padding:0 4px;">
@@ -1602,11 +1603,11 @@ document.body.prepend(b);setTimeout(function(){try{var e=document.getElementById
                 </div>
 
                 <!-- SLIDE 2: COGNITIVE PROFILE -->
-                <div id="ob-slide-2" style="display:none; animation:slideUp 0.5s ease forwards;">
+                <div id="ob-slide-2" style="animation:slideUp 0.5s ease forwards;">
                     <div style="font-size:3rem; margin-bottom:12px;">🎯</div>
-                    <h2 style="font-family:'Outfit'; font-size:1.8rem; font-weight:800; margin-bottom:8px;">Cosa stai studiando?</h2>
+                    <h2 style="font-family:'Outfit'; font-size:1.8rem; font-weight:800; margin-bottom:8px;">Cosa devi preparare?</h2>
                     <p style="color:var(--text-muted); font-size:0.88rem; margin-bottom:20px; line-height:1.5;">
-                        Personalizziamo Cortex in base al tuo percorso.
+                        Un tocco e sei dentro: poi crei le flashcard dai tuoi appunti.
                     </p>
 
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px;">
@@ -1635,10 +1636,7 @@ document.body.prepend(b);setTimeout(function(){try{var e=document.getElementById
                             🛠️ Skill tecniche
                         </button>
                     </div>
-                    <div style="display:flex; gap:8px; margin-top:4px;">
-                        <button class="btn btn-outline" style="flex:1; border-radius:12px; padding:12px; font-size:0.85rem; opacity:0.7;" data-fn="goObSlide" data-params='[0]'>← Indietro</button>
-                        <button style="flex:1; background:none; border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:12px; color:var(--text-muted); font-size:0.85rem; cursor:pointer; font-family:inherit; transition:all 0.2s;" onmouseover="this.style.opacity='1';this.style.borderColor='rgba(255,255,255,0.25)'" onmouseout="this.style.opacity='0.65';this.style.borderColor='rgba(255,255,255,0.1)'" data-fn="closeOnboarding" style="opacity:0.65;">Salta →</button>
-                    </div>
+                    <!-- 29/09/2026: tolti "Indietro" (slide nascoste) e il doppio "Salta" -->
                 </div>
 
                 <!-- SLIDE 3: COME HAI CONOSCIUTO CORTEX? -->
@@ -1706,7 +1704,7 @@ document.body.prepend(b);setTimeout(function(){try{var e=document.getElementById
 
                 <button data-fn="closeOnboarding" aria-label="Salta l'introduzione"
                     style="margin-top:32px; background:none; border:none; color:var(--text-muted); font-size:0.85rem; cursor:pointer; text-decoration:none; opacity:0.6; transition:opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">
-                    Salta Configurazione Guidata</button>
+                    Salta</button>
             </div>
         </div>
     </div>

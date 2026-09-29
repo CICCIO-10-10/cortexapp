@@ -18,4 +18,24 @@ describe('journey sample and ordered cohort', () => {
   it('reports an empty measured sample without inventing dates', () => {
     expect(summarizeJourneys([])).toMatchObject({ visitors:0, coverage:{ from:null, to:null, status:'ok' } });
   });
+  it('counts the TOLC errors to flashcards to first study path per visitor', () => {
+    const events = [
+      { vid:'tolc-user', type:'tolc_errors_generate_click', ts:1 },
+      { vid:'tolc-user', type:'tolc_errors_login_completed', ts:2 },
+      { vid:'tolc-user', type:'tolc_error_cards_generation_started', ts:3 },
+      { vid:'tolc-user', type:'tolc_error_cards_generated', ts:4 },
+      { vid:'tolc-user', type:'tolc_error_cards_saved', ts:5 },
+      { vid:'tolc-user', type:'tolc_error_first_study', ts:6 },
+      { vid:'other-user', type:'tolc_errors_generate_click', ts:1 },
+    ];
+    const { steps } = summarizeJourneys(events).v3;
+    expect(steps).toMatchObject({
+      tolc_errors_generate_click:2,
+      tolc_errors_login_completed:1,
+      tolc_error_cards_generation_started:1,
+      tolc_error_cards_generated:1,
+      tolc_error_cards_saved:1,
+      tolc_error_first_study:1,
+    });
+  });
 });

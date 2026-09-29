@@ -16,6 +16,12 @@
 | `tolc_first_answer` | prima risposta data | test | tolcSim.js |
 | `tolc_sim_complete` | consegna | test, correct, pct | tolcSim.js `_finish` |
 | `tolc_errors_generate_click` | "Trasforma i tuoi errori in flashcard" | n | tolcSim.js |
+| `tolc_errors_login_completed` | login riuscito necessario per riprendere la generazione richiesta dal TOLC | — | deckCreate.js |
+| `tolc_error_cards_generation_started` | avvio della generazione avviata dagli errori TOLC | — | deckCreate.js |
+| `tolc_error_cards_generated` | flashcard TOLC effettivamente generate | count | deckCreate.js |
+| `tolc_error_cards_generation_failed` | generazione TOLC non riuscita | — | deckCreate.js |
+| `tolc_error_cards_saved` | carte TOLC salvate in un nuovo mazzo | count | deckForm.js |
+| `tolc_error_first_study` | primo avvio studio dopo aver generato le carte TOLC (entro 30 giorni) | — | study.js |
 | `tolc_selector_closed` **v3** | chiuso PRIMA di iniziare | stage: selector / intro | tolcSim.js `tolc-close` |
 | `tolc_test_quit` **v3** | abbandono A METÀ prova: durante la prova non c'è un tasto di uscita, quindi scatta quando la scheda viene chiusa/nascosta (una volta per prova) | test, answered, at, of, how:'leave' | tolcSim.js `visibilitychange` |
 
@@ -23,7 +29,7 @@
 | Evento | Quando | Meta |
 |---|---|---|
 | `onboarding_shown` | overlay davvero visibile (non `onboarding_start`, che sovrastima) | is_instagram |
-| `onboarding_step_viewed` **v3** | cambio slide | step |
+| `onboarding_step_viewed` **v3** | schermata iniziale mostrata e cambi slide | step, variant (per la schermata unica: `single_screen`) |
 | `onboarding_finished` **v3** | chiuso con obiettivo scelto | goal, last_step |
 | `onboarding_skipped` **v3** | chiuso senza obiettivo | last_step |
 
