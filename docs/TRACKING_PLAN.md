@@ -3,7 +3,7 @@
 > Metodo: eventi **oggetto_azione** (snake_case), pochi e stabili; un funnel per percorso; gli eventi vecchi NON si toccano (storico intatto).
 > Dove finiscono: `track()` in `core/analytics.js` → GA4 (gtag) + Clarity (solo nomi in `CLARITY_STEPS`) + Firestore `journeys/{vid}/events` (via `core/journey.js`).
 > Mai contenuti utente negli eventi: solo nomi, codici TOLC, conteggi, motivi.
-> Dashboard: `AUTOMAZIONI/cortex_dashboard_local` → sezione "Funnel v3" (dati da Cloud Function `adminDashboard` → `functions/journey-summary.cjs`).
+> Dashboard: `AUTOMAZIONI/cortex_dashboard_local` → funnel ordinati per percorso e ambiente (dati da Cloud Function `adminDashboard` → `functions/journey-summary.cjs`). Le sessioni Clarity descrivono il comportamento/replay; i conteggi d’acquisizione Store arrivano da Play Console e restano separati.
 
 ## Funnel 1 — TOLC
 | Evento | Quando scatta | Meta | File |
@@ -52,3 +52,10 @@ Ipotesi B: ha completato un TOLC e poi generato/studiato le carte dei propri err
 
 ## Verifica 25/09/2026 (sera)
 Test automatico su produzione (visitatore `TEST_…`, escluso dalla dashboard): arrivano a Clarity e a Firestore `tolc_selector_viewed → tolc_type_picked → tolc_intro_viewed → tolc_test_start → tolc_first_answer`. Nota emersa: con `?sim=tolc` scatta anche `onboarding_shown` (l'onboarding si apre sotto il simulatore) → da valutare in Fase 3.
+
+## Aggiornamento post Play Store — 30/09/2026
+- **Acquisizione separata:** importare in Cortex HQ il CSV aggregato di rendimento/conversione della scheda Play Console. Mostrare visitatori scheda, clic Installa/Apri, acquisizioni e tasso solo per la data del report; non sommare visitatori unici giornalieri su più giorni.
+- **Percorsi ordinati:** ogni passaggio del funnel conta browser che hanno completato in ordine i passaggi precedenti. Errori, salti onboarding e abbandoni TOLC sono rami laterali, non tappe di successo.
+- **Segmenti:** annotare `android_twa`, `android_web`, `mobile_web`, `tablet_web`, `desktop_web` sugli eventi da ora in avanti. Il referrer del TWA identifica l’ambiente app, non la campagna che ha portato all’installazione: l’acquisizione Store resta attribuita solo ai report Play Console. I dati storici senza piattaforma restano non classificati.
+- **Clarity:** mantenere i custom event storici e aggiungere gli eventi Android TWA con suffisso `_android_twa`; impostare in Clarity funnel per eventi, non un passaggio basato sulla sola URL della landing. Confrontare screenshot/replay Clarity con il funnel ordinato Firestore; non usare Clarity come conteggio delle installazioni Play.
+- **Baseline:** i numeri del funnel v3 dal 25/09 precedono il rilascio di produzione del 30/09. Separare il confronto pre/post lancio e annotare date e denominatore.

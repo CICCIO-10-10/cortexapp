@@ -15,6 +15,7 @@ import { t } from '../core/i18n.js';
  *   awardXP  ← modules/gamification.js
  */
 import { awardXP } from './gamification.js';
+import { escapeHTML } from '../js/utils.js';
 
 // ── Dependency injection ──────────────────────────────────────────────────────
 
@@ -82,7 +83,7 @@ function renderExamUI() {
             <div id="exam-timer" style="font-family: monospace; font-weight: bold; color: var(--accent); letter-spacing: 2px; text-align: right; margin-bottom: 30px;">
                 ${currentExam.isChallenge ? `TEMPO RIMASTO: ${timeLeft}s` : t('challenge_standard')}
             </div>
-            <h2 style="font-size: 1.5rem; line-height: 1.4; margin-bottom: 30px; color: var(--text-main);">${q.q}</h2>
+            <h2 style="font-size: 1.5rem; line-height: 1.4; margin-bottom: 30px; color: var(--text-main);">${escapeHTML(q.q)}</h2>
             <textarea id="user-answer" placeholder="Digita la tua analisi qui..."
                       style="width: 100%; height: 150px; background: transparent; border: 1px solid var(--border-color); color: var(--text-main); padding: 20px; border-radius: 12px; font-size: 1rem; outline: none; resize: none;"></textarea>
             <button aria-label="Invia la tua risposta" class="btn-architect" data-fn="submitExamAnswer" style="margin-top: 30px; width: 100%; padding: 15px; background: var(--text-main); color: var(--bg-color); border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">
@@ -192,8 +193,8 @@ function renderFinalReport() {
                             <strong style="color: var(--accent);">DOMANDA ${i + 1}</strong>
                             <span style="opacity: 0.5; color: var(--text-main);">Score: ${(ans.score || 0)}/100</span>
                         </div>
-                        <p style="margin-bottom: 10px; font-weight: 500; color: var(--text-main);">"${currentExam.questions[i]?.q || ''}"</p>
-                        <p style="font-size: 0.9rem; color: var(--text-sub); line-height: 1.6;"><span style="color: #10b981;">●</span> ${ans.feedback || ''}</p>
+                        <p style="margin-bottom: 10px; font-weight: 500; color: var(--text-main);">"${escapeHTML(currentExam.questions[i]?.q || '')}"</p>
+                        <p style="font-size: 0.9rem; color: var(--text-sub); line-height: 1.6;"><span style="color: #10b981;">●</span> ${escapeHTML(ans.feedback || '')}</p>
                     </div>
                 `).join('')}
             </div>

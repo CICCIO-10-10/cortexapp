@@ -126,70 +126,103 @@ service cloud.firestore {
     
     // NOTA: La collezione legacy 'feedback' (singolare) è stata rimossa per sicurezza.
 
-    // ⚔️ Neural Duels: partite 1v1 in tempo reale.
-    // Lettura: utenti autenticati (per onSnapshot).
-    // Scrittura: solo i partecipanti della partita (player1.id o player2.id).
-    // Creazione: qualsiasi utente autenticato può creare una lobby.
+    // ⚔️ Neural Duels: il matchmaking e ogni cambio di stato passano dal backend.
+    // I partecipanti possono solo leggere la propria partita in tempo reale.
     match /duels/{duelId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null
-        && request.resource.data.player1.id == request.auth.uid;
-      allow update: if request.auth != null && (
-        resource.data.player1.id == request.auth.uid ||
-        (resource.data.player2 == null && request.resource.data.player2.id == request.auth.uid) ||
-        resource.data.player2.id == request.auth.uid
+      allow read: if request.auth != null && (
+        resource.data.player1.id == request.auth.uid || resource.data.player2.id == request.auth.uid
       );
-      allow delete: if request.auth != null
-        && resource.data.player1.id == request.auth.uid;
+      allow create, update, delete: if false;
     }
 
-    // 👤 Social Profiles: profilo pubblico per sistema amici/follow.
-    // Lettura: chiunque (classifica, ricerca utenti).
-    // Scrittura: solo il proprietario (uid nel documento = uid autenticato).
-    // I contatori (followersCount, friendsCount) vengono aggiornati da batch atomici
-    // scritti dall'utente stesso o dall'utente che esegue follow/unfollow.
+    // 👤 Social Profiles: i profili non pubblici sono leggibili solo dal proprietario.
+    // I contatori social vengono mantenuti dai trigger server, mai dai client.
     match /profiles/{profileId} {
-      allow read: if true;
+      function validProfile() {
+        return request.resource.data.keys().hasOnly([
+          'uid','displayName','photoURL','bio','university','corso','annoCorso',
+          'materiaPreferita','studyStyle','isPublic','totalCards','streak',
+          'badgeCount','publicDecks','followersCount','followingCount','friendsCount',
+          'createdAt','updatedAt'
+        ])
+        && request.resource.data.uid == profileId
+        && request.resource.data.isPublic is bool
+        && (!('displayName' in request.resource.data) || isValidString(request.resource.data.displayName, 50))
+        && (!('photoURL' in request.resource.data) || (isValidString(request.resource.data.photoURL, 2048) && request.resource.data.photoURL.matches('https://.*')))
+        && (!('bio' in request.resource.data) || isValidString(request.resource.data.bio, 150))
+        && (!('university' in request.resource.data) || isValidString(request.resource.data.university, 80))
+        && (!('corso' in request.resource.data) || isValidString(request.resource.data.corso, 80))
+        && (!('annoCorso' in request.resource.data) || isValidString(request.resource.data.annoCorso, 20))
+        && (!('materiaPreferita' in request.resource.data) || isValidString(request.resource.data.materiaPreferita, 60))
+        && (!('studyStyle' in request.resource.data) || isValidString(request.resource.data.studyStyle, 200))
+        && (!('totalCards' in request.resource.data) || (request.resource.data.totalCards is int && request.resource.data.totalCards >= 0 && request.resource.data.totalCards <= 1000000))
+        && (!('streak' in request.resource.data) || (request.resource.data.streak is int && request.resource.data.streak >= 0 && request.resource.data.streak <= 100000))
+        && (!('badgeCount' in request.resource.data) || (request.resource.data.badgeCount is int && request.resource.data.badgeCount >= 0 && request.resource.data.badgeCount <= 100000))
+        && (!('publicDecks' in request.resource.data) || (request.resource.data.publicDecks is int && request.resource.data.publicDecks >= 0 && request.resource.data.publicDecks <= 100000))
+        && (!('followersCount' in request.resource.data) || (request.resource.data.followersCount is int && request.resource.data.followersCount >= 0 && request.resource.data.followersCount <= 100000000))
+        && (!('followingCount' in request.resource.data) || (request.resource.data.followingCount is int && request.resource.data.followingCount >= 0 && request.resource.data.followingCount <= 100000000))
+        && (!('friendsCount' in request.resource.data) || (request.resource.data.friendsCount is int && request.resource.data.friendsCount >= 0 && request.resource.data.friendsCount <= 100000000));
+      }
+
+      allow read: if (request.auth != null && request.auth.uid == profileId) || resource.data.isPublic == true;
       allow create: if request.auth != null
-        && request.resource.data.uid == request.auth.uid;
-      allow update: if request.auth != null && (
-        // L'utente aggiorna il proprio profilo
-        resource.data.uid == request.auth.uid
-        // Oppure un altro utente aggiorna i contatori follow sul profilo altrui
-        // (batch atomico in followUser/unfollowUser): SOLO i campi contatore, e devono
-        // essere interi >= 0 entro un massimo (blocca type-confusion e valori assurdi).
-        || (request.auth != null
-            && request.resource.data.diff(resource.data).affectedKeys()
-               .hasOnly(['followersCount', 'followingCount', 'friendsCount'])
-            && (!('followersCount' in request.resource.data) || (request.resource.data.followersCount is int && request.resource.data.followersCount >= 0 && request.resource.data.followersCount <= 100000000))
-            && (!('followingCount' in request.resource.data) || (request.resource.data.followingCount is int && request.resource.data.followingCount >= 0 && request.resource.data.followingCount <= 100000000))
-            && (!('friendsCount' in request.resource.data) || (request.resource.data.friendsCount is int && request.resource.data.friendsCount >= 0 && request.resource.data.friendsCount <= 100000000)))
-      );
+        && request.auth.uid == profileId
+        && request.resource.data.uid == request.auth.uid
+        && validProfile();
+      allow update: if request.auth != null
+        && request.auth.uid == profileId
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'displayName','photoURL','bio','university','corso','annoCorso',
+          'materiaPreferita','studyStyle','isPublic','totalCards','streak',
+          'badgeCount','publicDecks','createdAt','updatedAt'
+        ])
+        && validProfile();
       allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
     }
 
     // ➕ Follow: relazione "uid_targetUid" → chi segue chi.
     // Scrittura: solo chi crea/elimina il proprio follow (uid estratto dall'id doc).
     match /follows/{followId} {
-      allow read: if request.auth != null;
+      allow read: if request.auth != null && (
+        resource.data.followerUid == request.auth.uid || resource.data.followingUid == request.auth.uid
+      );
       allow create: if request.auth != null
-        && request.resource.data.followerUid == request.auth.uid;
+        && request.resource.data.keys().hasOnly(['followerUid','followingUid','createdAt'])
+        && request.resource.data.followerUid == request.auth.uid
+        && request.resource.data.followingUid is string
+        && request.resource.data.followingUid != request.auth.uid
+        && followId == request.auth.uid + '_' + request.resource.data.followingUid
+        && request.resource.data.createdAt == request.time
+        && exists(/databases/$(database)/documents/profiles/$(request.resource.data.followingUid));
       allow delete: if request.auth != null
-        && resource.data.followerUid == request.auth.uid;
+        && resource.data.followerUid == request.auth.uid
+        && followId == resource.data.followerUid + '_' + resource.data.followingUid;
       allow update: if false; // i follow non si modificano, si cancellano e ricrean
     }
 
     // 🤝 Amicizie: relazione bidirezionale "uid_targetUid".
     // Creata solo da acceptFriendRequest (batch atomico): chi accetta è l'utente autenticato.
     match /friends/{friendshipId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && (
-        request.resource.data.uid == request.auth.uid
-        || request.resource.data.friendUid == request.auth.uid
+      allow read: if request.auth != null && (
+        resource.data.uid1 == request.auth.uid || resource.data.uid2 == request.auth.uid
       );
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['uid1','uid2','requestId','createdAt'])
+        && request.resource.data.uid1 is string
+        && request.resource.data.uid2 is string
+        && request.resource.data.uid1 != request.resource.data.uid2
+        && friendshipId == request.resource.data.uid1 + '_' + request.resource.data.uid2
+        && (request.resource.data.uid1 == request.auth.uid || request.resource.data.uid2 == request.auth.uid)
+        && request.resource.data.requestId is string
+        && exists(/databases/$(database)/documents/friendRequests/$(request.resource.data.requestId))
+        && get(/databases/$(database)/documents/friendRequests/$(request.resource.data.requestId)).data.status == 'pending'
+        && getAfter(/databases/$(database)/documents/friendRequests/$(request.resource.data.requestId)).data.status == 'accepted'
+        && getAfter(/databases/$(database)/documents/friendRequests/$(request.resource.data.requestId)).data.toUid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/friendRequests/$(request.resource.data.requestId)).data.fromUid in [request.resource.data.uid1, request.resource.data.uid2];
       allow delete: if request.auth != null && (
-        resource.data.uid == request.auth.uid
-        || resource.data.friendUid == request.auth.uid
+        resource.data.uid1 == request.auth.uid || resource.data.uid2 == request.auth.uid
       );
       allow update: if false;
     }
@@ -201,13 +234,19 @@ service cloud.firestore {
         || resource.data.toUid == request.auth.uid
       );
       allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['fromUid','toUid','status','createdAt'])
         && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.toUid != request.auth.uid
         && isValidString(request.resource.data.fromUid, 128)
-        && isValidString(request.resource.data.toUid, 128);
+        && isValidString(request.resource.data.toUid, 128)
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt == request.time
+        && exists(/databases/$(database)/documents/profiles/$(request.resource.data.toUid));
       allow update: if request.auth != null
         && resource.data.toUid == request.auth.uid
-        // Può solo cambiare il campo status ('accepted' | 'rejected')
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+        && resource.data.status == 'pending'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status in ['accepted', 'rejected'];
       allow delete: if request.auth != null && (
         resource.data.fromUid == request.auth.uid
         || resource.data.toUid == request.auth.uid

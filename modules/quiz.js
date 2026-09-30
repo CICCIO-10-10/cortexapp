@@ -131,7 +131,7 @@ function _buildModeSelector(deckIdx, deck) {
     <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 20px;text-align:center;gap:24px;">
         <div style="font-size:2.8rem;">🧠</div>
         <h2 style="font-size:1.6rem;font-weight:900;margin:0;">${t('quiz_choose_mode')}</h2>
-        <p style="color:var(--text-muted);font-size:0.9rem;margin:0;">${deck.name} · ${deck.cards.length} carte</p>
+        <p style="color:var(--text-muted);font-size:0.9rem;margin:0;">${escapeHTML(deck.name)} · ${deck.cards.length} carte</p>
 
         ${countRow}
 

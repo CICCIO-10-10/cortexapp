@@ -3,7 +3,7 @@
  * Real-time multiplayer flashcard battles using Firestore onSnapshot.
  */
 
-import { getFirestoreDB } from '../services/firebase.js';
+import { getFirestoreDB, getFunctions } from '../services/firebase.js';
 import { TRANSLATIONS } from '../data/translations.js';
 import { t } from '../core/i18n.js';
 const _t = () => (TRANSLATIONS[localStorage.getItem('mm_lang')||'it'] || TRANSLATIONS.it);
@@ -62,15 +62,7 @@ function _botCleanup() {
 async function _attivaBot(duelId) {
     _botWaitTimer = null;
     try {
-        const db = getFirestoreDB();
-        const ref = db.collection('duels').doc(duelId);
-        const snap = await ref.get();
-        if (!snap.exists || snap.data().status !== 'waiting') return; // è arrivato un umano
-        await ref.update({
-            player2: { id: 'neurobot', name: '🤖 NeuroBot', score: 0, bot: true },
-            status: 'playing',
-            startedAt: Date.now()
-        });
+        await getFunctions().httpsCallable('startNeuralDuelBot')({ duelId });
     } catch (e) {
         console.error('[NeuroBot] attivazione fallita:', e);
     }
@@ -91,28 +83,10 @@ function _gestisciBot(state) {
     if (idx === _botScheduledIdx) return;           // già programmata per questa domanda
     if (_botAnswerTimer) clearTimeout(_botAnswerTimer);
     _botScheduledIdx = idx;
-    const delay = 3000 + Math.random() * 4000;      // 3-7s: tempi umani
+    const delay = Math.max(250, Number(state.botNextAt || Date.now()) - Date.now() + 250);
     _botAnswerTimer = setTimeout(async () => {
         try {
-            const db = getFirestoreDB();
-            const ref = db.collection('duels').doc(state.id);
-            const corretto = Math.random() < 0.62;  // precisione del bot
-            if (!corretto) return;                  // sbaglia: non succede nulla, come per gli umani
-            await db.runTransaction(async (tx) => {
-                const doc = await tx.get(ref);
-                if (!doc.exists) return;
-                const data = doc.data();
-                if (data.status !== 'playing') return;
-                if ((data.questionIndex || 0) !== idx) return;   // l'umano ha già risposto
-                const newScore = (data.player2.score || 0) + 1;
-                const nextIdx = (idx + 1) % SHARED_QUESTIONS.length;
-                tx.update(ref, {
-                    'player2.score': newScore,
-                    currentQuestion: getSharedQuestion(nextIdx),
-                    questionIndex: nextIdx
-                });
-                if (newScore >= 5) tx.update(ref, { status: 'finished', winner: 'player2' });
-            });
+            await getFunctions().httpsCallable('submitNeuralDuelAnswer')({ duelId: state.id, questionIndex: idx, botTurn: true });
         } catch (e) {
             console.error('[NeuroBot] risposta fallita:', e);
         }
@@ -132,39 +106,10 @@ export async function startMatchmaking() {
     try {
         const userId = window._fbUserId;
         const userName = localStorage.getItem('mm_user_name') || 'Guest';
-
-        // Semplice Matchmaking: cerca una lobby in stato 'waiting'
         const duelsRef = db.collection('duels');
-        const waitingDuels = await duelsRef.where('status', '==', 'waiting').limit(1).get();
-
-        // FieldValue server timestamp — safe getter senza dipendere da window.firebase
-        const _fv = (() => {
-            try { return firebase.firestore.FieldValue; } catch(_) { return null; }
-        })();
-        const serverTs = () => _fv ? _fv.serverTimestamp() : Date.now();
-
-        let duelId;
-        if (!waitingDuels.empty) {
-            // Join existing duel
-            const doc = waitingDuels.docs[0];
-            duelId = doc.id;
-            await duelsRef.doc(duelId).update({
-                player2: { id: userId, name: userName, score: 0 },
-                status: 'playing',
-                startedAt: serverTs()
-            });
-        } else {
-            // Create new duel — usa pool condiviso hardcoded per garantire
-            // che entrambi i giocatori vedano la stessa domanda
-            const newDoc = await duelsRef.add({
-                player1: { id: userId, name: userName, score: 0 },
-                player2: null,
-                status: 'waiting',
-                createdAt: serverTs(),
-                currentQuestion: getSharedQuestion(0),
-                questionIndex: 0
-            });
-            duelId = newDoc.id;
+        const match = await getFunctions().httpsCallable('createOrJoinNeuralDuel')({ name: userName });
+        const duelId = match.data.duelId;
+        if (!match.data.joined) {
             // Nessuno in coda: se entro 12s non arriva un umano, entra NeuroBot
             _botWaitTimer = setTimeout(() => _attivaBot(duelId), 12000);
         }
@@ -218,7 +163,7 @@ function renderDuelState(state) {
             const btn = document.createElement('button');
             btn.className = 'btn btn-outline';
             btn.innerText = opt;
-            btn.onclick = () => submitDuelAnswer(state.id, isP1 ? 'player1' : 'player2', opt === state.currentQuestion.a);
+            btn.onclick = () => submitDuelAnswer(state.id, state.questionIndex || 0, opt);
             opts.appendChild(btn);
         });
     } else if (state.status === 'finished') {
@@ -251,36 +196,13 @@ function renderDuelState(state) {
     }
 }
 
-async function submitDuelAnswer(duelId, playerField, isCorrect) {
-    if (!isCorrect) {
-        if (window.showToast) window.showToast('Sbagliato! ❌', 'error');
-        return;
-    }
-
-    const db = getFirestoreDB();
-    const docRef = db.collection('duels').doc(duelId);
-    
-    // Aggiorniamo il punteggio. Nota: usiamo transaction per evitare sovrascritture concorrenti.
+async function submitDuelAnswer(duelId, questionIndex, answer) {
     try {
-        await db.runTransaction(async (transaction) => {
-            const doc = await transaction.get(docRef);
-            if (!doc.exists) return;
-            const data = doc.data();
-            
-            const newScore = data[playerField].score + 1;
-            const nextIdx = ((data.questionIndex || 0) + 1) % SHARED_QUESTIONS.length;
-            transaction.update(docRef, {
-                [`${playerField}.score`]: newScore,
-                currentQuestion: getSharedQuestion(nextIdx),
-                questionIndex: nextIdx
-            });
-
-            if (newScore >= 5) {
-                transaction.update(docRef, { status: 'finished', winner: playerField });
-            }
-        });
+        const response = await getFunctions().httpsCallable('submitNeuralDuelAnswer')({ duelId, questionIndex, answer });
+        if (response.data.accepted && !response.data.correct && window.showToast) window.showToast('Sbagliato! ❌', 'error');
     } catch(e) {
-        console.error(e);
+        console.error('[NeuralDuels] invio risposta:', e);
+        if (window.showToast) window.showToast('Non è stato possibile inviare la risposta.', 'error');
     }
 }
 
@@ -290,7 +212,7 @@ export function closeNeuralDuels() {
     currentDuelUnsubscribe = null;
     
     if (duelState && duelState.status === 'waiting' && duelState.player1.id === window._fbUserId) {
-        getFirestoreDB().collection('duels').doc(duelState.id).update({status: 'cancelled'}).catch(()=> { /* ignore */ });
+        getFunctions().httpsCallable('cancelNeuralDuelLobby')({ duelId: duelState.id }).catch(()=> { /* ignore */ });
     }
     
     duelState = null;
@@ -317,7 +239,8 @@ const SHARED_QUESTIONS = [
 ];
 
 function getSharedQuestion(index) {
-    return SHARED_QUESTIONS[index % SHARED_QUESTIONS.length];
+    const { q, options } = SHARED_QUESTIONS[index % SHARED_QUESTIONS.length];
+    return { q, options };
 }
 
 function injectDuelUI() {

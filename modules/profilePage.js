@@ -9,6 +9,22 @@ import { t } from '../core/i18n.js';
 import { TRANSLATIONS } from '../data/translations.js';
 const _t = () => TRANSLATIONS[localStorage.getItem('mm_lang')||'it'] || TRANSLATIONS.it;
 
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[char]);
+}
+
+function safeProfilePhoto(value) {
+    if (typeof value !== 'string' || value.length > 2048) return '';
+    try {
+        const url = new URL(value);
+        return url.protocol === 'https:' ? url.href : '';
+    } catch (_) {
+        return '';
+    }
+}
+
 import {
     getProfile, saveProfile,
     followUser, unfollowUser, isFollowing,
@@ -49,9 +65,11 @@ export async function renderProfilePage(targetUid = null) {
 }
 
 function _renderProfile(p, { isOwnProfile, following, friend, sharedDecks }) {
-    const avatar = p.photoURL
-        ? `<img src="${p.photoURL}" style="width:88px;height:88px;border-radius:50%;object-fit:cover;border:3px solid #7c3aed">`
-        : `<div style="width:88px;height:88px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#4f46e5);display:flex;align-items:center;justify-content:center;font-size:2.2rem;font-weight:700;color:#fff;border:3px solid #7c3aed">${(p.displayName||'?')[0].toUpperCase()}</div>`;
+    const displayName = escapeHtml(p.displayName || t('profile_unnamed'));
+    const photoURL = safeProfilePhoto(p.photoURL);
+    const avatar = photoURL
+        ? `<img src="${escapeHtml(photoURL)}" referrerpolicy="no-referrer" alt="" style="width:88px;height:88px;border-radius:50%;object-fit:cover;border:3px solid #7c3aed">`
+        : `<div style="width:88px;height:88px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#4f46e5);display:flex;align-items:center;justify-content:center;font-size:2.2rem;font-weight:700;color:#fff;border:3px solid #7c3aed">${escapeHtml((p.displayName||'?')[0].toUpperCase())}</div>`;
 
     return `
     <div style="max-width:480px;margin:0 auto;padding:20px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
@@ -59,9 +77,9 @@ function _renderProfile(p, { isOwnProfile, following, friend, sharedDecks }) {
         <!-- Header profilo -->
         <div style="text-align:center;margin-bottom:24px">
             <div style="display:inline-block;margin-bottom:12px">${avatar}</div>
-            <h2 style="color:var(--text);font-size:1.3rem;font-weight:700;margin:0 0 4px">${p.displayName || t('profile_unnamed')}</h2>
-            ${p.university ? `<div style="color:#8b5cf6;font-size:0.85rem;font-weight:500">${p.university}${p.corso ? ` · ${p.corso}` : ''}</div>` : ''}
-            ${p.bio ? `<p style="color:#9ca3af;font-size:0.88rem;margin:10px 0 0;line-height:1.5">${p.bio}</p>` : ''}
+            <h2 style="color:var(--text);font-size:1.3rem;font-weight:700;margin:0 0 4px">${displayName}</h2>
+            ${p.university ? `<div style="color:#8b5cf6;font-size:0.85rem;font-weight:500">${escapeHtml(p.university)}${p.corso ? ` · ${escapeHtml(p.corso)}` : ''}</div>` : ''}
+            ${p.bio ? `<p style="color:#9ca3af;font-size:0.88rem;margin:10px 0 0;line-height:1.5">${escapeHtml(p.bio)}</p>` : ''}
         </div>
 
         <!-- Stats -->
@@ -74,15 +92,15 @@ function _renderProfile(p, { isOwnProfile, following, friend, sharedDecks }) {
         <!-- Follower/Following/Amici -->
         <div style="display:flex;justify-content:center;gap:24px;margin-bottom:20px">
             <div style="text-align:center">
-                <div style="color:var(--text);font-weight:700;font-size:1.1rem">${p.followersCount || 0}</div>
+                <div style="color:var(--text);font-weight:700;font-size:1.1rem">${escapeHtml(p.followersCount || 0)}</div>
                 <div style="color:#9ca3af;font-size:0.75rem">Follower</div>
             </div>
             <div style="text-align:center">
-                <div style="color:var(--text);font-weight:700;font-size:1.1rem">${p.followingCount || 0}</div>
+                <div style="color:var(--text);font-weight:700;font-size:1.1rem">${escapeHtml(p.followingCount || 0)}</div>
                 <div style="color:#9ca3af;font-size:0.75rem">Seguiti</div>
             </div>
             <div style="text-align:center">
-                <div style="color:var(--text);font-weight:700;font-size:1.1rem">${p.friendsCount || 0}</div>
+                <div style="color:var(--text);font-weight:700;font-size:1.1rem">${escapeHtml(p.friendsCount || 0)}</div>
                 <div style="color:#9ca3af;font-size:0.75rem">Amici</div>
             </div>
         </div>
@@ -91,11 +109,11 @@ function _renderProfile(p, { isOwnProfile, following, friend, sharedDecks }) {
         ${(p.materiaPreferita || p.annoCorso || p.studyStyle) ? `
         <div style="background:#1a1030;border:1px solid #2d2050;border-radius:16px;padding:16px;margin-bottom:20px">
             ${p.materiaPreferita || p.annoCorso ? `
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:${p.studyStyle ? '10px' : '0'}">
-                ${p.annoCorso ? `<span style="background:#2d1f5e;color:#8b5cf6;padding:4px 12px;border-radius:99px;font-size:0.8rem">${p.annoCorso} anno</span>` : ''}
-                ${p.materiaPreferita ? `<span style="background:#2d1f5e;color:#8b5cf6;padding:4px 12px;border-radius:99px;font-size:0.8rem">❤️ ${p.materiaPreferita}</span>` : ''}
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:${p.studyStyle ? '10px' : '0'}">
+                ${p.annoCorso ? `<span style="background:#2d1f5e;color:#8b5cf6;padding:4px 12px;border-radius:99px;font-size:0.8rem">${escapeHtml(p.annoCorso)} anno</span>` : ''}
+                ${p.materiaPreferita ? `<span style="background:#2d1f5e;color:#8b5cf6;padding:4px 12px;border-radius:99px;font-size:0.8rem">❤️ ${escapeHtml(p.materiaPreferita)}</span>` : ''}
             </div>` : ''}
-            ${p.studyStyle ? `<div style="color:#9ca3af;font-size:0.85rem;line-height:1.5;font-style:italic">"${p.studyStyle}"</div>` : ''}
+            ${p.studyStyle ? `<div style="color:#9ca3af;font-size:0.85rem;line-height:1.5;font-style:italic">"${escapeHtml(p.studyStyle)}"</div>` : ''}
         </div>
         ` : ''}
 
@@ -119,7 +137,7 @@ function _renderProfile(p, { isOwnProfile, following, friend, sharedDecks }) {
             <div style="margin-top:16px;background:#1a1030;border-radius:12px;padding:12px">
                 <div style="color:#9ca3af;font-size:0.78rem;margin-bottom:8px">📚 Mazzi in comune</div>
                 <div style="display:flex;flex-wrap:wrap;gap:6px">
-                    ${sharedDecks.map(d => `<span style="background:#2d1f5e;color:#8b5cf6;padding:4px 10px;border-radius:99px;font-size:0.78rem">${d}</span>`).join('')}
+                    ${sharedDecks.map(d => `<span style="background:#2d1f5e;color:#8b5cf6;padding:4px 10px;border-radius:99px;font-size:0.78rem">${escapeHtml(d)}</span>`).join('')}
                 </div>
             </div>
             ` : ''}
@@ -257,7 +275,7 @@ async function _loadDiscovery(container, profile) {
         </div>
         <div style="display:flex;flex-direction:column;gap:8px">
             ${peers.map(p => `
-                <div data-uid="${p.uid}" class="peer-card" style="
+                <div data-uid="${escapeHtml(p.uid)}" class="peer-card" style="
                     display:flex;align-items:center;gap:12px;
                     background:#1a1030;border-radius:12px;padding:10px 14px;
                     cursor:pointer;border:1px solid #2d2050;
@@ -265,11 +283,11 @@ async function _loadDiscovery(container, profile) {
                     <div style="width:40px;height:40px;border-radius:50%;background:#4b3f72;
                                 display:flex;align-items:center;justify-content:center;
                                 color:#fff;font-weight:700;flex-shrink:0">
-                        ${(p.displayName||'?')[0].toUpperCase()}
+                        ${escapeHtml((p.displayName||'?')[0].toUpperCase())}
                     </div>
                     <div style="flex:1;min-width:0">
-                        <div style="color:var(--text);font-weight:600;font-size:0.9rem">${p.displayName}</div>
-                        ${p.aiStyleLabel ? `<div style="color:#6b7280;font-size:0.75rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.aiStyleLabel}</div>` : ''}
+                        <div style="color:var(--text);font-weight:600;font-size:0.9rem">${escapeHtml(p.displayName)}</div>
+                        ${p.aiStyleLabel ? `<div style="color:#6b7280;font-size:0.75rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(p.aiStyleLabel)}</div>` : ''}
                     </div>
                     <div style="color:#8b5cf6;font-size:0.75rem;flex-shrink:0">${p.streak || 0}🔥</div>
                 </div>
@@ -310,10 +328,10 @@ async function _loadPublicDecks(container, uid) {
                     return `
                     <div style="background:#1a1030;border-radius:12px;padding:12px 14px;border:1px solid #2d2050">
                         <div style="display:flex;justify-content:space-between;align-items:center">
-                            <div style="color:var(--text);font-weight:600;font-size:0.9rem">${deck.name}</div>
-                            <div style="color:#6b7280;font-size:0.78rem">${deck.cardCount || 0} carte</div>
+                            <div style="color:var(--text);font-weight:600;font-size:0.9rem">${escapeHtml(deck.name)}</div>
+                            <div style="color:#6b7280;font-size:0.78rem">${escapeHtml(deck.cardCount || 0)} carte</div>
                         </div>
-                        ${deck.description ? `<div style="color:#9ca3af;font-size:0.78rem;margin-top:4px">${deck.description}</div>` : ''}
+                        ${deck.description ? `<div style="color:#9ca3af;font-size:0.78rem;margin-top:4px">${escapeHtml(deck.description)}</div>` : ''}
                     </div>`;
                 }).join('')}
             </div>
@@ -342,13 +360,14 @@ function _renderSetupPrompt() {
 function _statBox(value, label) {
     return `
     <div style="background:#1a1030;border-radius:12px;padding:12px;text-align:center;border:1px solid #2d2050">
-        <div style="color:var(--text);font-weight:800;font-size:1.2rem">${value}</div>
-        <div style="color:#6b7280;font-size:0.72rem;margin-top:2px">${label}</div>
+        <div style="color:var(--text);font-weight:800;font-size:1.2rem">${escapeHtml(value)}</div>
+        <div style="color:#6b7280;font-size:0.72rem;margin-top:2px">${escapeHtml(label)}</div>
     </div>`;
 }
 
 function _field(label, id, value, placeholder, maxLength, isTextarea = false) {
-    const base = `id="${id}" placeholder="${placeholder}" maxlength="${maxLength}"
+    const safeValue = escapeHtml(value || '');
+    const base = `id="${escapeHtml(id)}" placeholder="${escapeHtml(placeholder)}" maxlength="${Number(maxLength) || 0}"
         style="width:100%;padding:12px;border-radius:10px;border:1px solid #4b3f72;
                background:#1a1030;color:#fff;font-size:0.9rem;
                box-sizing:border-box;resize:vertical;outline:none;margin-top:6px"`;
@@ -356,8 +375,8 @@ function _field(label, id, value, placeholder, maxLength, isTextarea = false) {
     <div style="margin-bottom:14px">
         <label style="color:#9ca3af;font-size:0.82rem">${label}</label><br>
         ${isTextarea
-            ? `<textarea ${base} rows="3">${value || ''}</textarea>`
-            : `<input type="text" ${base} value="${value || ''}">`
+            ? `<textarea ${base} rows="3">${safeValue}</textarea>`
+            : `<input type="text" ${base} value="${safeValue}">`
         }
     </div>`;
 }

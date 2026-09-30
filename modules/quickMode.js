@@ -11,6 +11,7 @@ import { gState, awardXP } from './gamification.js';
 import { showToast } from '../core/ui.js';
 import { processAnswer } from '../services/srs.js';
 import { registry } from '../core/registry.js';
+import { escapeHTML } from '../js/utils.js';
 
 // ── Card demo per utenti senza mazzi ─────────────────────────────────────────
 const DEMO_CARDS = [
@@ -116,7 +117,7 @@ function _showSubjectPicker(decks) {
         " onmouseenter="this.style.background='rgba(124,58,237,0.12)'"
           onmouseleave="this.style.background='rgba(255,255,255,0.03)'">
             <div>
-                <div style="color:#fff; font-size:1rem; font-weight:700;">${d.name || 'Materia ' + (i+1)}</div>
+                <div style="color:#fff; font-size:1rem; font-weight:700;">${escapeHTML(d.name || 'Materia ' + (i+1))}</div>
                 <div style="color:rgba(255,255,255,0.4); font-size:0.78rem; margin-top:2px;">${(d.cards||[]).length} card totali</div>
             </div>
             <div style="background:rgba(124,58,237,0.18); color:#a78bfa; font-size:0.75rem; font-weight:700; padding:4px 10px; border-radius:20px; white-space:nowrap;">

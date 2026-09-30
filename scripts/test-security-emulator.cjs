@@ -2,7 +2,18 @@
 'use strict';
 process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8189';
 const assert = require('node:assert/strict');
-const admin = require('../functions/node_modules/firebase-admin');
+const {createRequire} = require('node:module');
+const requireFunctions = createRequire(require.resolve('../functions/package.json'));
+const {initializeApp} = requireFunctions('firebase-admin/app');
+const {getFirestore, FieldValue, Timestamp} = requireFunctions('firebase-admin/firestore');
+const {getAuth} = requireFunctions('firebase-admin/auth');
+const {getMessaging} = requireFunctions('firebase-admin/messaging');
+const admin = {
+  initializeApp,
+  firestore: Object.assign(() => getFirestore(), {FieldValue, Timestamp}),
+  auth: () => getAuth(),
+  messaging: () => getMessaging(),
+};
 const security = require('../functions/security');
 const {handler} = require('../functions/telemetry');
 const project = 'demo-cortex-security';

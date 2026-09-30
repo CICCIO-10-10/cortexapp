@@ -39,7 +39,7 @@ it('does not call the paid provider when quota storage is unavailable',async()=>
     fetch:async()=>{providerCalls++;},process:{env:{GEMINI_KEY:'test-only'}},console:{error:()=>{}},
   });
   const res={set(){return this;},status(v){status=v;return this;},json(){return this;}};
-  await exports.callGeminiHttp({method:'POST',headers:{authorization:'Bearer test'},body:{model:'gemini-test',contents:[]}},res);
+  await exports.callGeminiHttp({method:'POST',headers:{authorization:'Bearer test'},body:{model:'gemini-2.5-flash',contents:[]}},res);
   expect(status).toBe(503);expect(providerCalls).toBe(0);
 });
 describe('guest telemetry input',()=>{

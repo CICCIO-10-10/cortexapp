@@ -72,9 +72,50 @@ export function onAuthStateChangedHandler(user, firebaseDeps = {}) {
             try { localStorage.setItem('cortex_no_track', '1'); } catch (_) {}
         }
 
-        // Analytics: track login / first open
-        const isFirstLogin = !localStorage.getItem('cortex_onboarded');
-        track(isFirstLogin ? 'sign_up' : 'login', { method: 'google' });
+        // Il flag onboarding è per-browser e non dimostra una nuova registrazione:
+        // un account esistente su un browser nuovo veniva contato come sign_up.
+        // Firebase Auth fornisce creationTime/lastSignInTime; deduplichiamo anche
+        // l'evento nello stesso browser. Il KPI giornaliero resta basato su Auth.
+        const authMeta = user.metadata || {};
+        const createdMs = Date.parse(authMeta.creationTime || '') || 0;
+        const signedInMs = Date.parse(authMeta.lastSignInTime || '') || 0;
+        const signupMarker = createdMs ? `cortex_signup_telemetry_${user.uid}_${createdMs}` : '';
+        let isNewAuthAccount = !!(createdMs && signedInMs && Math.abs(signedInMs - createdMs) <= 2 * 60 * 1000);
+        try {
+            if (signupMarker && localStorage.getItem(signupMarker)) isNewAuthAccount = false;
+            if (signupMarker) localStorage.setItem(signupMarker, '1');
+        } catch (_) {}
+        track(isNewAuthAccount ? 'sign_up' : 'login', {
+            method: 'google',
+            ...(isNewAuthAccount ? { auth_created_recently: true } : {}),
+        });
+        // Collega la prima sorgente/campagna consentita al profilo Auth appena creato.
+        // Non sovrascrive una prima attribuzione già salvata e non persiste UTMs senza consenso.
+        if (isNewAuthAccount) {
+            try {
+                const consented = localStorage.getItem('cortex_cookie_consent') === 'accepted';
+                const source = localStorage.getItem('cortex_acquisition_source') ||
+                    (consented ? localStorage.getItem('cx_src0') : '');
+                const campaign = consented ? localStorage.getItem('cx_campaign0') : '';
+                const attribution = {};
+                if (source) attribution.acquisitionSource = source.slice(0, 40);
+                if (campaign) attribution.acquisitionCampaign = campaign.slice(0, 80);
+                if (Object.keys(attribution).length && typeof firebase !== 'undefined' && firebase.apps?.length) {
+                    const ref = firebase.app().firestore().collection('users').doc(user.uid);
+                    firebase.app().firestore().runTransaction(async tx => {
+                        const snap = await tx.get(ref);
+                        const profile = snap.exists ? snap.data() : {};
+                        const firstTouch = {};
+                        if (!profile.acquisitionSource && attribution.acquisitionSource) firstTouch.acquisitionSource = attribution.acquisitionSource;
+                        if (!profile.acquisitionCampaign && attribution.acquisitionCampaign) firstTouch.acquisitionCampaign = attribution.acquisitionCampaign;
+                        if (Object.keys(firstTouch).length) {
+                            firstTouch.acquisitionTs = Date.now();
+                            tx.set(ref, firstTouch, { merge: true });
+                        }
+                    }).catch(() => {});
+                }
+            } catch (_) {}
+        }
         touchSeen(); // D1/D7: aggiorna lastSeen (+ firstSeen una volta) server-side
         const plan = localStorage.getItem('cortex_user_plan') || 'free';
         setUserProperty('plan', plan);

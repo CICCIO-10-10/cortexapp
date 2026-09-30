@@ -3,7 +3,7 @@ import vm from 'node:vm';
 import fs from 'node:fs';
 const code=fs.readFileSync(new URL('../core/journey.js',import.meta.url),'utf8');
 it('retries rejected writes with the same event id and respects tracking opt-out',async()=>{
- const values=new Map();const writes=[];let tick;let fail=true;let id=0;
+ const values=new Map([['cortex_cookie_consent','accepted']]);const writes=[];let tick;let fail=true;let id=0;
  const events={doc:key=>({set:async data=>{writes.push({key,data});if(fail)throw Error('offline')}})};
  const documentRef={collection:()=>events,set:async()=>{}};
  const db={collection:()=>({doc:()=>documentRef})};

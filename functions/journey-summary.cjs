@@ -20,33 +20,80 @@ function summarizeJourneys(events, coverage = {}) {
       if (next === sequence.length) break;
     }
   }
-  // ── Tracking v3 (25/09/2026) — funnel separati, browser distinti per passo ──
-  const V3 = {
-    tolc: ['tolc_selector_viewed', 'tolc_type_picked', 'tolc_intro_viewed', 'tolc_test_start', 'tolc_first_answer', 'tolc_sim_complete', 'tolc_errors_generate_click'],
-    tolcErrorCards: ['tolc_errors_generate_click', 'tolc_errors_login_completed', 'tolc_error_cards_generation_started', 'tolc_error_cards_generated', 'tolc_error_cards_saved', 'tolc_error_first_study'],
-    tolcLoss: ['tolc_selector_closed', 'tolc_test_quit'],
-    onboarding: ['onboarding_shown', 'onboarding_finished', 'onboarding_skipped'],
-    generation: ['cards_generation_started', 'cards_generated', 'cards_generation_failed', 'generated_cards_saved', 'generated_cards_discarded', 'study_session_start', 'study_session_completed', 'activated'],
+  // ── Tracking v4 — ordered funnels, unique browser IDs, split by environment ──
+  const PATHS = {
+    appActivation: ['app_open', 'cards_generation_started', 'cards_generated', 'generated_cards_saved', 'study_session_start'],
+    tolc: ['tolc_selector_viewed', 'tolc_type_picked', 'tolc_intro_viewed', 'tolc_test_start', 'tolc_first_answer', 'tolc_sim_complete'],
+    tolcCards: ['tolc_errors_generate_click', 'tolc_error_cards_generation_started', 'tolc_error_cards_generated', 'tolc_error_cards_saved', 'tolc_error_first_study'],
+    onboarding: ['onboarding_shown', 'onboarding_finished'],
+    generation: ['cards_generation_started', 'cards_generated', 'generated_cards_saved', 'study_session_start', 'study_session_completed', 'activated'],
   };
-  const v3 = { steps: {}, breakdown: { gen_fail_reason: {}, tolc_closed_stage: {}, onboarding_skip_step: {}, tolc_quit_answered: [] }, since: null };
-  Object.values(V3).flat().forEach(k => { v3.steps[k] = 0; });
-  const v3Names = new Set(['tolc_selector_viewed', 'tolc_type_picked', 'tolc_intro_viewed', 'tolc_selector_closed', 'tolc_test_quit', 'tolc_errors_generate_click', 'tolc_errors_login_completed', 'tolc_error_cards_generation_started', 'tolc_error_cards_generated', 'tolc_error_cards_saved', 'tolc_error_first_study', 'onboarding_step_viewed', 'onboarding_finished', 'onboarding_skipped', 'cards_generation_started', 'cards_generation_failed', 'generated_cards_discarded']);
+  const BRANCHES = ['tolc_selector_closed', 'tolc_test_quit', 'tolc_errors_login_completed', 'onboarding_skipped', 'cards_generation_failed', 'generated_cards_discarded'];
+  const V3 = [...Object.values(PATHS).flat(), ...BRANCHES, 'onboarding_step_viewed'];
+  const v3 = { steps: {}, paths: {}, breakdown: { gen_fail_reason: {}, tolc_closed_stage: {}, onboarding_skip_step: {}, tolc_quit_answered: [] }, platforms: {}, since: null };
+  V3.forEach(k => { v3.steps[k] = 0; });
+  const v3Names = new Set([...V3, 'app_open']);
   const v3Start = events.filter(e => v3Names.has(e.type)).reduce((m, e) => Math.min(m, e.ts), Infinity);
+  function orderedPathCounts(visitorMap, path) {
+    const counts = Object.fromEntries(path.map(k => [k, 0]));
+    for (const list of visitorMap.values()) {
+      let next = 0;
+      const sorted = list.slice().sort((a, b) => a.ts - b.ts);
+      for (const event of sorted) {
+        if (event.type === path[next]) { counts[path[next]]++; next++; if (next === path.length) break; }
+      }
+    }
+    return counts;
+  }
+  function summarizeGroup(visitorMap) {
+    const steps = {};
+    const paths = {};
+    for (const [name, path] of Object.entries(PATHS)) { paths[name] = orderedPathCounts(visitorMap, path); Object.assign(steps, paths[name]); }
+    for (const branch of BRANCHES) {
+      steps[branch] = 0;
+      for (const list of visitorMap.values()) if (list.some(e => e.type === branch)) steps[branch]++;
+    }
+    steps.onboarding_step_viewed = 0;
+    for (const list of visitorMap.values()) if (list.some(e => e.type === 'onboarding_step_viewed')) steps.onboarding_step_viewed++;
+    return { visitors: visitorMap.size, steps, paths };
+  }
   if (Number.isFinite(v3Start)) {
     v3.since = v3Start;
-    for (const visitorEvents of byVisitor.values()) {
+    const allV3 = new Map();
+    const byPlatform = new Map();
+    for (const [visitorId, visitorEvents] of byVisitor.entries()) {
+      const vEvents = visitorEvents.filter(e => e.ts >= v3Start && v3Names.has(e.type));
+      if (!vEvents.length) continue;
+      allV3.set(visitorId, vEvents);
       const seen = new Set();
-      for (const e of visitorEvents) {
-        if (e.ts < v3Start) continue;
-        if (Object.prototype.hasOwnProperty.call(v3.steps, e.type) && !seen.has(e.type)) { seen.add(e.type); v3.steps[e.type]++; }
+      if (vEvents.some(e => e.type === 'onboarding_step_viewed')) v3.steps.onboarding_step_viewed++;
+      for (const e of vEvents) {
         const m = e.meta || {};
         const inc = (obj, k) => { k = String(k == null ? 'n/d' : k); obj[k] = (obj[k] || 0) + 1; };
         if (e.type === 'cards_generation_failed') inc(v3.breakdown.gen_fail_reason, m.reason);
         if (e.type === 'tolc_selector_closed') inc(v3.breakdown.tolc_closed_stage, m.stage);
         if (e.type === 'onboarding_skipped') inc(v3.breakdown.onboarding_skip_step, m.step);
         if (e.type === 'tolc_test_quit' && typeof m.answered === 'number') v3.breakdown.tolc_quit_answered.push(m.answered);
+        if (BRANCHES.includes(e.type) && !seen.has(e.type)) { v3.steps[e.type]++; seen.add(e.type); }
+      }
+      const platformEvents = new Map();
+      for (const e of vEvents) {
+        const p = e.meta && e.meta.platform;
+        if (!p || !['android_twa', 'android_web', 'mobile_web', 'tablet_web', 'desktop_web'].includes(p)) continue;
+        if (!platformEvents.has(p)) platformEvents.set(p, []);
+        platformEvents.get(p).push(e);
+      }
+      for (const [p, list] of platformEvents.entries()) {
+        if (!byPlatform.has(p)) byPlatform.set(p, new Map());
+        byPlatform.get(p).set(visitorId, list);
       }
     }
+    const allSummary = summarizeGroup(allV3);
+    Object.assign(v3.steps, allSummary.steps);
+    v3.paths = allSummary.paths;
+    for (const [p, map] of byPlatform.entries()) v3.platforms[p] = summarizeGroup(map);
+    // Counts that are branches are independent of the ordered path and must never
+    // be used as the denominator for the next success step.
   }
   // ── Errori da utenti reali (26/09/2026), ultimi 7 giorni: eventi, browser distinti, motivi ──
   const ERR_TYPES = ['cloud_sync_failed', 'js_error', 'cards_generation_failed'];
@@ -66,8 +113,8 @@ function summarizeJourneys(events, coverage = {}) {
   }
   const times = events.map(e => e.ts).filter(t => Number.isFinite(t) && t > 0);
   return { ...counts, visitors: byVisitor.size, sequential, v3, errors,
-    coverage: { status: 'ok', unit: 'browser_id', ordered: true, ...coverage,
+      coverage: { status: 'ok', unit: 'browser_id', ordered: true, ...coverage,
       eventCount: events.length, from: times.length ? Math.min(...times) : null,
-      to: times.length ? Math.max(...times) : null, trackingVersion: 2 } };
+      to: times.length ? Math.max(...times) : null, trackingVersion: 4 } };
 }
 module.exports = { summarizeJourneys };

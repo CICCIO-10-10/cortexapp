@@ -370,16 +370,27 @@ export async function importSharedDeck(shareId) {
 
         if (docSnap.exists()) {
             const data    = docSnap.data();
+            const cards = (Array.isArray(data.cards) ? data.cards : []).slice(0, 200)
+                .filter(card => card && typeof card === 'object' && !Array.isArray(card))
+                .map(card => {
+                    const q = [card.front, card.q, card.question].find(value => typeof value === 'string' && value.trim());
+                    const a = [card.back, card.a, card.answer].find(value => typeof value === 'string' && value.trim());
+                    return q && a ? { q: q.slice(0, 10000), a: a.slice(0, 10000) } : null;
+                }).filter(Boolean);
+            if (!cards.length) {
+                _deps.showToast('Questo mazzo non contiene flashcard valide.', 'error');
+                return;
+            }
             const newDeck = {
-                name:    data.name + " (Importato)",
-                subject: data.subject,
-                cards:   data.cards,
+                name:    `${String(data.name || 'Mazzo condiviso').slice(0, 200)} (Importato)`,
+                subject: String(data.subject || 'Generale').slice(0, 80),
+                cards,
                 created: todayStr()
             };
             _deps.state.decks.push(newDeck);
             _deps.saveState();
             _deps.renderDecks();
-            _deps.showToast(`✅ Mazzo "${data.name}" importato con successo!`, "success");
+            _deps.showToast(`✅ Mazzo "${newDeck.name}" importato con successo!`, "success");
             awardXP(10, "📚 Nuovo mazzo importato");
 
             const url = new URL(window.location);

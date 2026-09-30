@@ -7,7 +7,18 @@
  */
 
 const functions = require("firebase-functions/v1");
-const admin = require("firebase-admin");
+// Firebase Admin v14 removed the legacy namespaced API. Keep this tiny local
+// adapter so the existing handlers share one initialized modular SDK instance.
+const { initializeApp } = require("firebase-admin/app");
+const { getFirestore, FieldValue, Timestamp } = require("firebase-admin/firestore");
+const { getAuth } = require("firebase-admin/auth");
+const { getMessaging } = require("firebase-admin/messaging");
+const admin = {
+  initializeApp,
+  firestore: Object.assign(() => getFirestore(), { FieldValue, Timestamp }),
+  auth: () => getAuth(),
+  messaging: () => getMessaging(),
+};
 const security = require("./security");
 const crypto = require("node:crypto");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
@@ -108,8 +119,8 @@ exports.callGeminiHttp = functions.https.onRequest(async (req, res) => {
 
   // ── Input validation ─────────────────────────────────────────────────────────
   const { model: modelName, contents, generationConfig } = req.body || {};
-  if (!modelName || typeof modelName !== 'string' || modelName.length > 100) {
-    res.status(400).json({ error: 'Parametro model non valido' });
+  if (!modelName || typeof modelName !== 'string' || modelName.length > 100 || !/^gemini-[a-z0-9.-]*flash[a-z0-9.-]*$/i.test(modelName)) {
+    res.status(400).json({ error: 'Modello non consentito. Il proxy accetta solo modelli Gemini Flash.' });
     return;
   }
   if (!contents || typeof contents !== 'object') {
@@ -144,7 +155,9 @@ exports.callGeminiHttp = functions.https.onRequest(async (req, res) => {
       }
       const usageDoc = await transaction.get(usageRef);
       const currentUsage = (usageDoc.exists ? usageDoc.data().calls : 0) || 0;
-      const limits = { free: 25, student: 100, pro: Infinity };
+      // Pro keeps effectively high fair-use headroom while protecting spend
+      // from scripted abuse. Can be tuned centrally without redeploying code.
+      const limits = { free: 25, student: 100, pro: Math.max(100, Number(process.env.GEMINI_PRO_DAILY_LIMIT) || 2000) };
       const limit = limits[plan] || limits.free;
       if (currentUsage >= limit) {
         const sparksBalance = (userDoc.exists ? userDoc.data().sparksBalance : 0) || 0;
@@ -175,8 +188,13 @@ exports.callGeminiHttp = functions.https.onRequest(async (req, res) => {
   try {
     const rawConfig = generationConfig || {};
     const normalizedConfig = {};
-    if (rawConfig.temperature !== undefined) normalizedConfig.temperature = rawConfig.temperature;
-    if (rawConfig.maxOutputTokens !== undefined) normalizedConfig.maxOutputTokens = rawConfig.maxOutputTokens;
+    if (rawConfig.temperature !== undefined && Number.isFinite(Number(rawConfig.temperature))) {
+      normalizedConfig.temperature = Math.min(2, Math.max(0, Number(rawConfig.temperature)));
+    }
+    const requestedTokens = Number(rawConfig.maxOutputTokens);
+    normalizedConfig.maxOutputTokens = Number.isFinite(requestedTokens)
+      ? Math.min(8192, Math.max(1, Math.floor(requestedTokens)))
+      : 4096;
     const mimeType = rawConfig.responseMimeType || rawConfig.response_mime_type;
     if (mimeType) normalizedConfig.responseMimeType = mimeType;
 
@@ -511,12 +529,25 @@ exports.sparksWebhook = functions.https.onRequest(async (req, res) => {
     const session = event.data.object;
     const { uid, sparks, type } = session.metadata || {};
 
-    if (type === 'sparks' && uid && sparks) {
+    if (type === 'sparks' && uid && sparks && session.payment_status === 'paid' && session.mode === 'payment') {
       const sparksCount = parseInt(sparks, 10);
-      await db.collection('users').doc(uid).set(
-        { sparksBalance: admin.firestore.FieldValue.increment(sparksCount) },
-        { merge: true }
-      );
+      const allowedPacks = new Set([50, 150, 500]);
+      if (!Number.isInteger(sparksCount) || !allowedPacks.has(sparksCount) || !/^[A-Za-z0-9_-]{1,128}$/.test(uid)) {
+        return res.status(400).send('Invalid Sparks checkout metadata');
+      }
+      const markerRef = db.collection('_stripeSparksProcessed').doc(session.id);
+      const userRef = db.collection('users').doc(uid);
+      await db.runTransaction(async (tx) => {
+        const marker = await tx.get(markerRef);
+        if (marker.exists) return;
+        tx.set(markerRef, {
+          eventId: event.id,
+          uid,
+          sparks: sparksCount,
+          processedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        tx.set(userRef, { sparksBalance: admin.firestore.FieldValue.increment(sparksCount) }, { merge: true });
+      });
     }
   }
 
@@ -674,6 +705,177 @@ exports.deleteUserAccount = functions.https.onCall(async (data, context) => {
  * Il codice ref = prime 8 chars dello UID del referrer.
  * Sicurezza: viene eseguito solo una volta (flag `referralProcessed`).
  */
+// Social counters are derived from relationship documents on the server;
+// browser clients cannot inflate or edit them.
+exports.syncFollowCounts = functions.firestore.document('follows/{followId}').onWrite(async (change, context) => {
+  const before = change.before.exists ? change.before.data() : null;
+  const after = change.after.exists ? change.after.data() : null;
+  if (!!before === !!after) return null;
+  const relation = after || before;
+  const delta = after ? 1 : -1;
+  const followerRef = db.collection('profiles').doc(relation.followerUid);
+  const followingRef = db.collection('profiles').doc(relation.followingUid);
+  const eventRef = db.collection('_socialCounterEvents').doc(context.eventId);
+  return db.runTransaction(async (tx) => {
+    const [seen, follower, following] = await Promise.all([tx.get(eventRef), tx.get(followerRef), tx.get(followingRef)]);
+    if (seen.exists) return;
+    if (follower.exists) tx.update(followerRef, { followingCount: admin.firestore.FieldValue.increment(delta) });
+    if (following.exists) tx.update(followingRef, { followersCount: admin.firestore.FieldValue.increment(delta) });
+    tx.create(eventRef, { processedAt: admin.firestore.FieldValue.serverTimestamp() });
+  });
+});
+
+exports.syncFriendCounts = functions.firestore.document('friends/{friendshipId}').onWrite(async (change, context) => {
+  const before = change.before.exists ? change.before.data() : null;
+  const after = change.after.exists ? change.after.data() : null;
+  if (!!before === !!after) return null;
+  const relation = after || before;
+  // The app stores both directions. Only the lexicographically canonical
+  // document updates counters, avoiding double counting.
+  if (relation.uid1 >= relation.uid2) return null;
+  const delta = after ? 1 : -1;
+  const refs = [relation.uid1, relation.uid2].map((uid) => db.collection('profiles').doc(uid));
+  const eventRef = db.collection('_socialCounterEvents').doc(context.eventId);
+  return db.runTransaction(async (tx) => {
+    const [seen, ...docs] = await Promise.all([tx.get(eventRef), ...refs.map((ref) => tx.get(ref))]);
+    if (seen.exists) return;
+    docs.forEach((doc, i) => { if (doc.exists) tx.update(refs[i], { friendsCount: admin.firestore.FieldValue.increment(delta) }); });
+    tx.create(eventRef, { processedAt: admin.firestore.FieldValue.serverTimestamp() });
+  });
+});
+
+const DUEL_QUESTIONS = [
+  { q: 'Quale neurotrasmettitore è associato al reward system?', a: 'Dopamina', options: ['Serotonina', 'Dopamina', 'GABA', 'Acetilcolina'] },
+  { q: 'Parte del cervello per la memoria a lungo termine?', a: 'Ippocampo', options: ['Amigdala', 'Ippocampo', 'Corteccia visiva', 'Cervelletto'] },
+  { q: "Cos'è l'Apoptosi?", a: 'Morte cellulare programmata', options: ['Morte cellulare programmata', 'Divisione cellulare', 'Sintesi proteica', 'Necrosi casuale'] },
+  { q: "Quale organo produce l'insulina?", a: 'Pancreas', options: ['Fegato', 'Rene', 'Pancreas', 'Milza'] },
+  { q: 'Quante ossa ha il corpo umano adulto?', a: '206', options: ['206', '213', '180', '256'] },
+  { q: "Cos'è la mitosi?", a: 'Divisione cellulare somatica', options: ['Divisione cellulare somatica', 'Riproduzione sessuale', 'Trascrizione del DNA', 'Traduzione proteica'] },
+  { q: 'Chi ha formulato la teoria della relatività generale?', a: 'Einstein', options: ['Newton', 'Einstein', 'Bohr', 'Heisenberg'] },
+  { q: 'Quanti cromosomi ha una cellula umana normale?', a: '46', options: ['23', '46', '48', '92'] },
+  { q: "Cos'è l'osmosi?", a: 'Passaggio di solvente attraverso membrana semipermeabile', options: ['Passaggio di solvente attraverso membrana semipermeabile', 'Diffusione di soluto', 'Trasporto attivo', 'Endocitosi'] },
+  { q: 'In quale organo avviene la sintesi della bile?', a: 'Fegato', options: ['Pancreas', 'Rene', 'Fegato', 'Stomaco'] },
+  { q: 'Cosa studia la neurologia?', a: 'Il sistema nervoso', options: ['Il sistema circolatorio', 'Il sistema nervoso', 'Il sistema endocrino', 'Il sistema immunitario'] },
+  { q: "Cos'è il teorema di Pitagora?", a: 'a² + b² = c²', options: ['a² + b² = c²', 'a + b = c', 'a × b = c²', 'a² - b² = c²'] },
+];
+function duelQuestion(index) {
+  const { q, options } = DUEL_QUESTIONS[index % DUEL_QUESTIONS.length];
+  return { q, options };
+}
+async function requireDuelPlan(uid) {
+  const userDoc = await db.collection('users').doc(uid).get();
+  const user = userDoc.exists ? userDoc.data() : {};
+  let plan = user.plan || 'free';
+  if (plan === 'free' && user.trialPlan && Number(user.trialExpiresAt) > Date.now()) plan = user.trialPlan;
+  if (plan !== 'student' && plan !== 'pro' && uid !== 'f8oLEt3LDpT7VN9zFOa10mVE2Cf2') {
+    throw new functions.https.HttpsError('permission-denied', 'Neural Duels richiede il piano Student o Pro.');
+  }
+}
+
+exports.createOrJoinNeuralDuel = functions.https.onCall(async (data, context) => {
+  if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Accedi per giocare.');
+  const uid = context.auth.uid;
+  await requireDuelPlan(uid);
+  const name = String(data && data.name || 'Guest').replace(/[<>\u0000-\u001f]/g, '').trim().slice(0, 40) || 'Guest';
+  const lobbies = await db.collection('duels').where('status', '==', 'waiting').limit(10).get();
+  const candidate = lobbies.docs.find((doc) => doc.data().player1 && doc.data().player1.id !== uid);
+  const ref = candidate ? candidate.ref : db.collection('duels').doc();
+  const result = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (snap.exists && snap.data().status === 'waiting' && snap.data().player1.id !== uid) {
+      const state = snap.data();
+      tx.update(ref, {
+        player2: { id: uid, name, score: 0 }, status: 'playing',
+        startedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      return { joined: true, questionIndex: state.questionIndex || 0 };
+    }
+    if (snap.exists) throw new functions.https.HttpsError('aborted', 'La lobby è già stata occupata. Riprova.');
+    tx.create(ref, {
+      player1: { id: uid, name, score: 0 }, player2: null, status: 'waiting',
+      createdAt: admin.firestore.FieldValue.serverTimestamp(), currentQuestion: duelQuestion(0), questionIndex: 0,
+    });
+    return { joined: false, questionIndex: 0 };
+  });
+  return { duelId: ref.id, ...result };
+});
+
+exports.startNeuralDuelBot = functions.https.onCall(async (data, context) => {
+  if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Accedi per giocare.');
+  const uid = context.auth.uid;
+  await requireDuelPlan(uid);
+  const duelId = String(data && data.duelId || '');
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(duelId)) throw new functions.https.HttpsError('invalid-argument', 'Partita non valida.');
+  const ref = db.collection('duels').doc(duelId);
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists || snap.data().player1.id !== uid || snap.data().status !== 'waiting') return { started: false };
+    tx.update(ref, {
+      player2: { id: 'neurobot', name: '🤖 NeuroBot', score: 0, bot: true }, status: 'playing',
+      startedAt: admin.firestore.FieldValue.serverTimestamp(), botNextAt: Date.now() + 3000 + Math.floor(Math.random() * 4000),
+    });
+    return { started: true };
+  });
+});
+
+exports.cancelNeuralDuelLobby = functions.https.onCall(async (data, context) => {
+  if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Accedi per giocare.');
+  const duelId = String(data && data.duelId || '');
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(duelId)) throw new functions.https.HttpsError('invalid-argument', 'Partita non valida.');
+  const ref = db.collection('duels').doc(duelId);
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists || snap.data().player1.id !== context.auth.uid || snap.data().status !== 'waiting') return { cancelled: false };
+    tx.update(ref, { status: 'cancelled' });
+    return { cancelled: true };
+  });
+});
+
+exports.submitNeuralDuelAnswer = functions.https.onCall(async (data, context) => {
+  if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Accedi per giocare.');
+  const uid = context.auth.uid;
+  await requireDuelPlan(uid);
+  const duelId = String(data && data.duelId || '');
+  const answer = typeof (data && data.answer) === 'string' ? data.answer.slice(0, 300) : '';
+  const index = Number(data && data.questionIndex);
+  const botTurn = data && data.botTurn === true;
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(duelId) || !Number.isInteger(index) || index < 0 || index >= DUEL_QUESTIONS.length || (!botTurn && !answer)) {
+    throw new functions.https.HttpsError('invalid-argument', 'Risposta non valida.');
+  }
+  const ref = db.collection('duels').doc(duelId);
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) throw new functions.https.HttpsError('not-found', 'Partita non trovata.');
+    const state = snap.data();
+    if (state.status !== 'playing' || state.questionIndex !== index) return { accepted: false, stale: true };
+    const field = state.player1.id === uid ? 'player1' : state.player2 && state.player2.id === uid ? 'player2' : null;
+    if (botTurn) {
+      if (state.player1.id !== uid || !state.player2?.bot || Date.now() < Number(state.botNextAt || 0)) return { accepted: false };
+      const correct = Math.random() < 0.62;
+      const nextIdx = correct ? (index + 1) % DUEL_QUESTIONS.length : index;
+      const score = (state.player2.score || 0) + (correct ? 1 : 0);
+      const patch = { botNextAt: Date.now() + 3000 + Math.floor(Math.random() * 4000) };
+      if (correct) {
+        patch['player2.score'] = score;
+        patch.questionIndex = nextIdx;
+        patch.currentQuestion = duelQuestion(nextIdx);
+      }
+      if (score >= 5) { patch.status = 'finished'; patch.winner = 'player2'; }
+      tx.update(ref, patch);
+      return { accepted: true, correct, score };
+    }
+    if (!field) throw new functions.https.HttpsError('permission-denied', 'Non partecipi a questa partita.');
+    const correct = answer === DUEL_QUESTIONS[index].a;
+    if (!correct) return { accepted: true, correct: false };
+    const score = (state[field].score || 0) + 1;
+    const nextIdx = (index + 1) % DUEL_QUESTIONS.length;
+    const patch = { [`${field}.score`]: score, questionIndex: nextIdx, currentQuestion: duelQuestion(nextIdx) };
+    if (score >= 5) { patch.status = 'finished'; patch.winner = field; }
+    tx.update(ref, patch);
+    return { accepted: true, correct: true, score };
+  });
+});
+
 exports.processReferral = functions.firestore
   .document('users/{uid}')
   .onWrite(async (change, context) => {
@@ -781,51 +983,46 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
   try {
     const stripe = getStripe();
 
-    // ── Stripe: abbonamenti + pagamenti in parallelo ──
-    const [subsList, chargesList, balanceObj] = await Promise.all([
-      stripe.subscriptions.list({ limit: 100, status: 'all', expand: ['data.items.data.price'] }),
-      stripe.charges.list({ limit: 50 }),
-      stripe.balance.retrieve(),
-    ]);
-
-    // MRR: somma di tutti gli abbonamenti attivi (unit_amount / 100 per €)
-    const activeSubscriptions = subsList.data.filter(s => s.status === 'active' || s.status === 'trialing');
-    const mrr = activeSubscriptions.reduce((sum, s) => {
-      const price = s.items.data[0]?.price;
-      if (!price) return sum;
-      const amount = (price.unit_amount || 0) / 100;
-      if (price.recurring?.interval === 'year') return sum + amount / 12;
-      return sum + amount;
-    }, 0);
-
-    // Revenue totale dai charge riusciti
-    const successfulCharges = chargesList.data.filter(c => c.paid && !c.refunded);
-    const totalRevenue = successfulCharges.reduce((sum, c) => sum + c.amount / 100, 0);
+    // La paginazione automatica evita che i limiti a 50/100 falsino gli aggregati
+    // quando lo storico cresce. Conserviamo solo somme e ultimi 10 pagamenti.
+    const balanceObj = await stripe.balance.retrieve();
+    let mrr = 0, activeSubscriptionCount = 0, successfulChargeCount = 0, totalRevenue = 0;
+    const recentPayments = [];
+    const subsByPlan = { student: 0, pro: 0, trialing: 0, canceled: 0, other: 0 };
+    for await (const s of stripe.subscriptions.list({ limit: 100, status: 'all', expand: ['data.items.data.price'] })) {
+      if (s.status === 'active' || s.status === 'trialing') {
+        activeSubscriptionCount++;
+        const price = s.items.data[0]?.price;
+        if (price) {
+          const amount = (price.unit_amount || 0) / 100;
+          mrr += price.recurring?.interval === 'year' ? amount / 12 : amount;
+        }
+      }
+      if (s.status === 'canceled') subsByPlan.canceled++;
+      else if (s.status === 'trialing') subsByPlan.trialing++;
+      else {
+        const priceId = s.items.data[0]?.price?.id || '';
+        if (priceId === process.env.STRIPE_PRICE_STUDENT) subsByPlan.student++;
+        else if (priceId === process.env.STRIPE_PRICE_PRO) subsByPlan.pro++;
+        else subsByPlan.other++;
+      }
+    }
+    for await (const c of stripe.charges.list({ limit: 100 })) {
+      if (c.paid) {
+        successfulChargeCount++;
+        totalRevenue += Math.max(0, c.amount - (c.amount_refunded || 0)) / 100;
+      }
+      if (recentPayments.length < 10) recentPayments.push({
+        id: c.id, amount: c.amount / 100, currency: c.currency.toUpperCase(),
+        status: c.paid ? ((c.amount_refunded || 0) > 0 ? 'refunded' : 'paid') : 'failed',
+        description: c.description || c.metadata?.plan || '—',
+        date: c.created * 1000, email: c.billing_details?.email || '—',
+      });
+    }
 
     // Saldo disponibile Stripe
-    const availableBalance = (balanceObj.available || []).reduce((s, b) => s + b.amount / 100, 0);
-
-    // Pagamenti recenti (ultimi 10)
-    const recentPayments = chargesList.data.slice(0, 10).map(c => ({
-      id: c.id,
-      amount: c.amount / 100,
-      currency: c.currency.toUpperCase(),
-      status: c.paid ? (c.refunded ? 'refunded' : 'paid') : 'failed',
-      description: c.description || c.metadata?.plan || '—',
-      date: c.created * 1000,
-      email: c.billing_details?.email || '—',
-    }));
-
-    // Sub per piano (student/pro)
-    const subsByPlan = { student: 0, pro: 0, trialing: 0, canceled: 0, other: 0 };
-    subsList.data.forEach(s => {
-      if (s.status === 'canceled') { subsByPlan.canceled++; return; }
-      if (s.status === 'trialing') { subsByPlan.trialing++; return; }
-      const priceId = s.items.data[0]?.price?.id || '';
-      if (priceId === process.env.STRIPE_PRICE_STUDENT) subsByPlan.student++;
-      else if (priceId === process.env.STRIPE_PRICE_PRO) subsByPlan.pro++;
-      else subsByPlan.other++;
-    });
+    const availableBalance = (balanceObj.available || []).filter(b => b.currency === 'eur')
+      .reduce((s, b) => s + b.amount / 100, 0);
 
     // ── Firestore: utenti per piano ──
     // Data odierna in timezone Europe/Rome (non UTC), per allinearsi ai contatori
@@ -833,15 +1030,11 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
     const romeNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Rome' }));
     const today = `${romeNow.getFullYear()}-${String(romeNow.getMonth() + 1).padStart(2, '0')}-${String(romeNow.getDate()).padStart(2, '0')}`;
     const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000);
-    const msSinceRomeMidnight = romeNow.getHours() * 3600000 + romeNow.getMinutes() * 60000 + romeNow.getSeconds() * 1000 + romeNow.getMilliseconds();
-    const todayStart = new Date(Date.now() - msSinceRomeMidnight);
-
-    const [usersSnap, presenceSnap, pageviewsDoc, newUsersSnap, analyticsAllSnap] = await Promise.all([
+    const [usersSnap, presenceSnap, pageviewsDoc, analyticsAllSnap] = await Promise.all([
       db.collection('users').get(),
       db.collection('analytics').doc('presence').collection('sessions')
         .where('lastSeen', '>', fiveMinsAgo).get(),
       db.collection('analytics').doc('pageviews_' + today).get(),
-      db.collection('users').where('createdAt', '>', todayStart).get(),
       db.collection('analytics').get(),
     ]);
 
@@ -853,7 +1046,6 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
     let usersActivated = 0;   // activation VERA (activation.activated) da services/activation.js
     let usersNoEmail = 0;     // utenti senza email (anonimi/non-Google): non sono "account Google"
     const registrationByMonth = {};
-    const _noCreated = [];    // FIX 25/09: doc senza createdAt (nati da touchSeen) -> data da Firebase Auth
 
     usersSnap.docs.forEach(doc => {
       if (doc.id === ADMIN_UID) return;  // non contare l'admin tra gli utenti reali
@@ -870,13 +1062,6 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
       if (d.activation && d.activation.activated) usersActivated++;
       if (!d.email) usersNoEmail++;
 
-      const createdAt = d.createdAt?.toDate ? d.createdAt.toDate() : (d.createdAt ? new Date(d.createdAt) : null);
-      if (createdAt) {
-        const month = `${createdAt.getFullYear()}-${String(createdAt.getMonth() + 1).padStart(2, '0')}`;
-        registrationByMonth[month] = (registrationByMonth[month] || 0) + 1;
-      } else {
-        _noCreated.push(doc.id);
-      }
     });
 
     // ── Attività reale utenti (Firebase Auth: lastSignInTime / lastRefreshTime) ──
@@ -885,8 +1070,16 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
     let usersActive7d = 0;   // hanno aperto l'app negli ultimi 7 giorni
     let usersReturned = 0;   // sono tornati almeno una volta DOPO la registrazione
     let usersEverOpened = 0; // hanno fatto almeno un accesso (loginato)
+    let authMetricsAvailable = false;
+    let authAccountsTotal = 0;
+    let authAnonymousTotal = 0;
+    let authDisabledTotal = 0;
+    let authProfilesMissing = 0;
+    let newUsersToday = null;
     const authAct = {};      // uid -> {lastActive, returned, active7d} per il dettaglio
     try {
+      authMetricsAvailable = true;
+      newUsersToday = 0;
       const now = Date.now();
       const sevenDaysAgo = now - 7 * 24 * 3600 * 1000;
       let pageToken;
@@ -894,9 +1087,36 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
         const list = await admin.auth().listUsers(1000, pageToken);
         list.users.forEach(u => {
           if (u.uid === ADMIN_UID) return;
-          if (!realUserIds.has(u.uid)) return;  // solo i 9 utenti reali, non account test/auth-only
+          // GDPR account deletion removes the Firestore profile and leaves the
+          // Auth identity disabled during the recovery window. Exclude these
+          // tombstones from current registrations/activity and report them apart.
+          if (u.disabled === true) {
+            authDisabledTotal++;
+            return;
+          }
           const md = u.metadata || {};
           const created  = md.creationTime    ? new Date(md.creationTime).getTime()    : 0;
+          // Un account registrato ha almeno un provider collegato. I guest anonimi
+          // sono tenuti separati e non vengono contati come nuove iscrizioni.
+          const linkedAccount = Array.isArray(u.providerData) && u.providerData.length > 0;
+          if (linkedAccount) {
+            authAccountsTotal++;
+            if (created) {
+              const dayParts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', {
+                timeZone: 'Europe/Rome', year: 'numeric', month: '2-digit', day: '2-digit'
+              }).formatToParts(new Date(created)).map(p => [p.type, p.value]));
+              if (`${dayParts.year}-${dayParts.month}-${dayParts.day}` === today) newUsersToday++;
+            }
+            if (created) {
+              const monthParts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', {
+                timeZone: 'Europe/Rome', year: 'numeric', month: '2-digit'
+              }).formatToParts(new Date(created)).map(p => [p.type, p.value]));
+              const month = `${monthParts.year}-${monthParts.month}`;
+              registrationByMonth[month] = (registrationByMonth[month] || 0) + 1;
+            }
+          } else authAnonymousTotal++;
+          if (!linkedAccount) return; // i guest anonimi non entrano nelle metriche account
+          if (!realUserIds.has(u.uid)) authProfilesMissing++;
           const signIn   = md.lastSignInTime  ? new Date(md.lastSignInTime).getTime()  : 0;
           const refresh  = md.lastRefreshTime ? new Date(md.lastRefreshTime).getTime() : 0;
           const lastAct  = Math.max(signIn, refresh);
@@ -914,21 +1134,11 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
         pageToken = list.pageToken;
       } while (pageToken);
     } catch (e) {
+      authMetricsAvailable = false;
+      newUsersToday = null;
+      Object.keys(registrationByMonth).forEach(k => delete registrationByMonth[k]);
       console.error('[adminDashboard] auth activity error:', e);
     }
-
-    // FIX 25/09/2026: dal 12/09 i nuovi doc utente non hanno createdAt (li crea
-    // touchSeen prima dell'init). Per non perderli, la data d'iscrizione si prende
-    // da Firebase Auth (metadata.creationTime), che è sempre affidabile.
-    let _newTodayExtra = 0;
-    _noCreated.forEach(uid => {
-      const a = authAct[uid];
-      if (!a || !a.createdMs) return;
-      const dt = new Date(a.createdMs);
-      const month = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
-      registrationByMonth[month] = (registrationByMonth[month] || 0) + 1;
-      if (a.createdMs >= todayStart.getTime()) _newTodayExtra++;
-    });
 
     // ── Dettaglio per-utente: cosa fanno DAVVERO nell'app ──
     let usersDetail = [];
@@ -951,11 +1161,11 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
           return {
             uid: uid.slice(0, 6),
             email: d.email || (authAct[uid] || {}).email || null,
-            source: d.source || 'diretto',
+            source: d.acquisitionSource || d.source || 'n/d',
+            campaign: d.acquisitionCampaign || null,
             plan: d.plan || 'free',
             sparks: d.sparksBalance || 0,
-            created: d.createdAt?.toDate ? d.createdAt.toDate().toISOString().slice(0, 10)
-                   : ((authAct[uid] || {}).createdMs ? new Date(authAct[uid].createdMs).toISOString().slice(0, 10) : null),
+            created: a.createdMs ? new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome' }).format(new Date(a.createdMs)) : null,
             lastActive: a.lastActive || null,
             returned: !!a.returned,
             active7d: !!a.active7d,
@@ -1030,17 +1240,32 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
     let journeys = [];
     let journeyFunnel = { landing_view: 0, app_open: 0, onboarding_start: 0, cards_generated: 0, study_session_start: 0, activated: 0, tolc_sim_open: 0, tolc_sim_complete: 0, visitors: 0 };
     try {
-      let evSnap;
+      const EVENT_WINDOW_DAYS = 7;
+      const EVENT_PAGE_SIZE = 1000;
+      const eventWindowStart = Date.now() - EVENT_WINDOW_DAYS * 24 * 3600 * 1000;
+      const evDocs = [];
+      let cursor = null;
       let ordered = true;
-      try {
-        evSnap = await db.collectionGroup('events').orderBy('ts', 'desc').limit(4000).get();
-      } catch (_ordErr) {
-        ordered = false;
-        // Unordered fallback is explicitly marked as incomplete.
-        evSnap = await db.collectionGroup('events').limit(3000).get();
+      while (true) {
+        let query = db.collectionGroup('events')
+          .orderBy('ts', 'desc')
+          .limit(EVENT_PAGE_SIZE);
+        if (cursor) query = query.startAfter(cursor);
+        const page = await query.get();
+        if (!page.size) break;
+        cursor = page.docs[page.docs.length - 1];
+        let reachedWindowStart = false;
+        for (const doc of page.docs) {
+          const value = doc.get('ts');
+          const ts = value && value.toMillis ? value.toMillis() : 0;
+          if (ts < eventWindowStart) { reachedWindowStart = true; break; }
+          evDocs.push(doc);
+        }
+        if (reachedWindowStart) break;
+        if (page.size < EVENT_PAGE_SIZE) break;
       }
       const byVid = {};
-      evSnap.forEach(doc => {
+      evDocs.forEach(doc => {
         const parent = doc.ref.parent.parent;
         if (!parent || parent.parent.id !== 'journeys') return;
         const vid = parent.id;
@@ -1049,7 +1274,7 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
         const ts = (x.ts && x.ts.toMillis) ? x.ts.toMillis() : (x.t_client || 0);
         // 25/09/2026 v3: teniamo solo i campi meta utili al funnel (niente contenuti utente)
         const _m = x.meta || {};
-        const meta = { reason: _m.reason || null, stage: _m.stage || null, test: _m.test || _m.direct || null, step: (_m.step != null ? _m.step : (_m.last_step != null ? _m.last_step : null)), answered: (typeof _m.answered === 'number' ? _m.answered : null) };
+        const meta = { reason: _m.reason || null, stage: _m.stage || null, test: _m.test || _m.direct || null, step: (_m.step != null ? _m.step : (_m.last_step != null ? _m.last_step : null)), answered: (typeof _m.answered === 'number' ? _m.answered : null), platform: ['android_twa', 'android_web', 'mobile_web', 'tablet_web', 'desktop_web'].includes(_m.platform) ? _m.platform : null, acquisition_source: String(_m.acquisition_source || '').slice(0, 40) || null, acquisition_campaign: String(_m.acquisition_campaign || '').slice(0, 80) || null, auth_created_recently: _m.auth_created_recently === true };
         (byVid[vid] = byVid[vid] || []).push({ type: x.type || '', page: x.page || '', ts, source: x.source || (x.meta && x.meta.source) || null, meta });
       });
       const STAGES = ['landing_view', 'app_open', 'onboarding_start', 'cards_generated', 'study_session_start', 'activated', 'tolc_sim_open', 'tolc_sim_complete'];
@@ -1059,20 +1284,27 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
         const types = new Set(evs.map(e => e.type));
         STAGES.forEach(st => { if (types.has(st)) journeyFunnel[st]++; });
         const first = evs[0] || {}, last = evs[evs.length - 1] || {};
-        const src = (evs.find(e => e.source) || {}).source || 'n/d';
+        // Il campo event.source dei record storici era spesso il default "direct".
+        // La sorgente acquisizione affidabile è quella salvata nel meta del browser.
+        const src = (evs.find(e => e.meta && e.meta.acquisition_source) || {}).meta?.acquisition_source
+          || (evs.find(e => e.source && e.source !== 'direct') || {}).source
+          || (evs.find(e => e.source) || {}).source || 'n/d';
+        const campaign = (evs.find(e => e.meta && e.meta.acquisition_campaign) || {}).meta?.acquisition_campaign || null;
         const durSec = Math.max(0, Math.round(((last.ts || 0) - (first.ts || 0)) / 1000));
         let outcome = 'bounce';
         if (types.has('activated')) outcome = 'attivato';
-        else if (types.has('first_login_data_migrated') || types.has('sign_up')) outcome = 'registrato';
+        else if (evs.some(e => e.type === 'sign_up' && e.meta.auth_created_recently)) outcome = 'account_creato';
+        else if (types.has('first_login_data_migrated')) outcome = 'account_collegato';
+        else if (types.has('sign_up')) outcome = 'signup_non_verificato';
         else if (types.has('cards_generated')) outcome = 'ha_generato';
         else if (types.has('app_open')) outcome = 'in_app';
         const path = [];
         evs.forEach(e => { if (e.type && e.type !== path[path.length - 1]) path.push(e.type); });
-        rows.push({ vid: String(vid).slice(0, 8), source: src, entry: (first.page || ''), steps: evs.length, lastStep: (last.type || ''), durSec, outcome, path: path.slice(0, 14), lastTs: (last.ts || 0) });
+        rows.push({ vid: String(vid).slice(0, 8), source: src, campaign, entry: (first.page || ''), steps: evs.length, lastStep: (last.type || ''), durSec, outcome, path: path.slice(0, 14), lastTs: (last.ts || 0) });
       });
       journeyFunnel = require('./journey-summary.cjs').summarizeJourneys(
         Object.entries(byVid).flatMap(([vid, events]) => events.map(event => ({ ...event, vid }))),
-        { ordered, limited: evSnap.size >= (ordered ? 4000 : 3000) }
+        { ordered, limited: false, windowDays: EVENT_WINDOW_DAYS, sampleLimit: null }
       );
       rows.sort((a, b) => b.lastTs - a.lastTs);
       // Tabella dettaglio: SOLO visitatori attivi OGGI, dalla mezzanotte (Europe/Rome)
@@ -1096,22 +1328,28 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
         mrr: Math.round(mrr * 100) / 100,
         totalRevenue: Math.round(totalRevenue * 100) / 100,
         availableBalance: Math.round(availableBalance * 100) / 100,
-        activeSubscriptions: activeSubscriptions.length,
+        activeSubscriptions: activeSubscriptionCount,
         subsByPlan,
         recentPayments,
+        successfulChargeCount,
       },
       firestore: {
         totalUsers: usersSnap.docs.filter(x => x.id !== ADMIN_UID).length,
-        newUsersToday: newUsersSnap.docs.filter(x => x.id !== ADMIN_UID).length + _newTodayExtra,
+        newUsersToday,
+        authMetricsAvailable,
+        authAccountsTotal: authMetricsAvailable ? authAccountsTotal : null,
+        authAnonymousTotal: authMetricsAvailable ? authAnonymousTotal : null,
+        authDisabledTotal: authMetricsAvailable ? authDisabledTotal : null,
+        authProfilesMissing: authMetricsAvailable ? authProfilesMissing : null,
         usersByPlan,
         usersWithFCM,
         usersWithSparks,
         usersActivated,
         usersNoEmail,
-        usersEverOpened,
-        usersActive7d,
-        usersReturned,
-        registrationByMonth,
+        usersEverOpened: authMetricsAvailable ? usersEverOpened : null,
+        usersActive7d: authMetricsAvailable ? usersActive7d : null,
+        usersReturned: authMetricsAvailable ? usersReturned : null,
+        registrationByMonth: authMetricsAvailable ? registrationByMonth : null,
       },
       analytics: {
         onlineNow,
@@ -1478,6 +1716,7 @@ exports.textToSpeechHttp = functions.https.onRequest(async (req, res) => {
 
   // Piano: solo student/pro (admin bypass)
   const isAdmin = uid === 'f8oLEt3LDpT7VN9zFOa10mVE2Cf2';
+  let ttsDailyLimit = 0;
   if (!isAdmin) {
     const userDoc = await db.collection('users').doc(uid).get();
     const userData = userDoc.exists ? userDoc.data() : {};
@@ -1485,16 +1724,50 @@ exports.textToSpeechHttp = functions.https.onRequest(async (req, res) => {
     if (plan === 'free' && userData.trialPlan && userData.trialExpiresAt > Date.now()) {
       plan = userData.trialPlan || 'student';
     }
-    if (plan === 'free') {
+    if (plan !== 'student' && plan !== 'pro') {
       res.status(403).json({ error: 'PREMIUM_REQUIRED', message: 'Cloud TTS richiede piano Student o Pro' });
       return;
     }
+    ttsDailyLimit = plan === 'pro'
+      ? Math.max(100, Number(process.env.TTS_PRO_DAILY_LIMIT) || 500)
+      : Math.max(25, Number(process.env.TTS_STUDENT_DAILY_LIMIT) || 100);
   }
 
   // Validazione input
   const { text, voice, speakingRate, pitch } = req.body || {};
   if (!text || typeof text !== 'string' || text.length > 2000) {
     res.status(400).json({ error: 'Parametro text non valido (max 2000 caratteri)' }); return;
+  }
+  const rate = speakingRate === undefined ? 0.90 : Number(speakingRate);
+  const voicePitch = pitch === undefined ? -2.0 : Number(pitch);
+  if (!Number.isFinite(rate) || !Number.isFinite(voicePitch)) {
+    res.status(400).json({ error: 'Parametri vocali non validi' }); return;
+  }
+  const allowedVoices = new Set(['it-IT-Neural2-C']);
+  if (voice && !allowedVoices.has(voice)) {
+    res.status(400).json({ error: 'Voce non supportata' }); return;
+  }
+
+  if (!isAdmin) {
+    const today = new Date().toISOString().slice(0, 10);
+    const usageRef = db.collection('usage').doc(uid).collection('daily').doc(today);
+    try {
+      const quota = await db.runTransaction(async (tx) => {
+        const snap = await tx.get(usageRef);
+        const used = snap.exists ? Number(snap.data().ttsCalls || 0) : 0;
+        if (used >= ttsDailyLimit) return false;
+        tx.set(usageRef, {
+          ttsCalls: used + 1,
+          ttsUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          expiresAt: new Date(Date.now() + 35 * 86400000),
+        }, { merge: true });
+        return true;
+      });
+      if (!quota) { res.status(429).json({ error: 'TTS_DAILY_LIMIT_REACHED', limit: ttsDailyLimit }); return; }
+    } catch (err) {
+      console.error('[textToSpeech] quota unavailable:', err.code || 'unknown');
+      res.status(503).json({ error: 'Quota temporaneamente non verificabile. Riprova.' }); return;
+    }
   }
 
   // Chiama Google Cloud TTS via googleapis (usa ADC del service account della Function)
@@ -1514,8 +1787,8 @@ exports.textToSpeechHttp = functions.https.onRequest(async (req, res) => {
         },
         audioConfig: {
           audioEncoding: 'MP3',
-          speakingRate: Math.min(Math.max(speakingRate !== undefined ? speakingRate : 0.90, 0.25), 4.0),
-          pitch: Math.min(Math.max(pitch !== undefined ? pitch : -2.0, -20.0), 20.0),
+          speakingRate: Math.min(Math.max(rate, 0.25), 4.0),
+          pitch: Math.min(Math.max(voicePitch, -20.0), 20.0),
           effectsProfileId: ['headphone-class-device'],
         },
       },

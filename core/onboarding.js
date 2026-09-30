@@ -274,9 +274,12 @@ export function saveAcquisitionSource(el) {
     try {
         const uid = window._fbUserId;
         if (uid && window.firebase?.apps?.length) {
+            const campaign = localStorage.getItem('cx_campaign0');
+            const attribution = { acquisitionSource: source, acquisitionTs: Date.now() };
+            if (campaign) attribution.acquisitionCampaign = campaign;
             window.firebase.app().firestore()
                 .collection('users').doc(uid)
-                .update({ acquisitionSource: source, acquisitionTs: Date.now() })
+                .update(attribution)
                 .catch(() => {});
         }
     } catch (_) {}

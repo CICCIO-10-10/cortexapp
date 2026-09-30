@@ -1,44 +1,94 @@
-/*
- * cortex-consent.js (25/09/2026) — collega il consenso cookie a Microsoft Clarity.
- *
- * Dal 31/10/2025 Clarity, per i visitatori UE, senza un segnale di consenso gira
- * SENZA cookie: ogni pagina = sessione nuova e utente nuovo (imbuti landing → app
- * inutilizzabili, 0% utenti di ritorno). Qui:
- *  - se l'utente ha già scelto (chiave condivisa con l'app: cortex_cookie_consent)
- *    → manda clarity('consentv2', ...) con la sua scelta;
- *  - se non ha ancora scelto e NON siamo nell'app (che ha il suo banner) → mostra
- *    un piccolo banner con le stesse due scelte dell'app.
- * "Solo essenziali" = Clarity resta senza cookie (come oggi). Fail-safe: ogni
- * errore viene ignorato, la pagina non si rompe mai.
- */
+/* Centralized analytics consent. Optional trackers are not downloaded before opt-in. */
 (function () {
+  'use strict';
   var KEY = 'cortex_cookie_consent';
+  var GA_ID = 'G-DFJ42477QK';
+  var CLARITY_ID = 'y5ldvczo6y';
+  var clarityLoaded = false;
+  var gaLoaded = false;
 
-  function leggi() { try { return localStorage.getItem(KEY); } catch (e) { return null; } }
-
-  function inviaAClarity(scelta) {
+  function optedOut() {
     try {
-      if (typeof window.clarity !== 'function') return;
-      window.clarity('consentv2', {
-        ad_Storage: 'denied',
-        analytics_Storage: scelta === 'accepted' ? 'granted' : 'denied'
-      });
-    } catch (e) {}
+      if (new URLSearchParams(location.search).get('notrack') === '1') {
+        localStorage.setItem('cortex_no_track', '1');
+      }
+      return localStorage.getItem('cortex_no_track') === '1';
+    } catch (_) { return true; }
   }
 
-  // usata anche dal banner dell'app (modules/gdpr.js)
-  window.cortexSetCookieConsent = function (scelta) {
-    try { localStorage.setItem(KEY, scelta); } catch (e) {}
-    inviaAClarity(scelta);
-    var b = document.getElementById('cortex-consent-banner');
-    if (b && b.parentNode) b.parentNode.removeChild(b);
+  function hasConsent() {
+    try { return localStorage.getItem(KEY) === 'accepted' && !optedOut(); }
+    catch (_) { return false; }
+  }
+
+  window.cortexHasAnalyticsConsent = hasConsent;
+
+  function loadClarity() {
+    if (clarityLoaded) return;
+    clarityLoaded = true;
+    var c = window.clarity = window.clarity || function () {
+      (c.q = c.q || []).push(arguments);
+    };
+    var script = document.createElement('script');
+    script.async = true;
+    script.src = 'https://www.clarity.ms/tag/' + CLARITY_ID;
+    document.head.appendChild(script);
+    c('consentv2', { ad_Storage: 'denied', analytics_Storage: 'granted' });
+  }
+
+  function loadGoogleAnalytics() {
+    if (gaLoaded) return;
+    gaLoaded = true;
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = window.gtag || function () { window.dataLayer.push(arguments); };
+    window.gtag('consent', 'default', {
+      analytics_storage: 'granted',
+      ad_storage: 'denied',
+      ad_user_data: 'denied',
+      ad_personalization: 'denied'
+    });
+    window.gtag('js', new Date());
+    window.gtag('config', GA_ID);
+    var script = document.createElement('script');
+    script.async = true;
+    script.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA_ID;
+    document.head.appendChild(script);
+  }
+
+  function startOptionalAnalytics() {
+    if (!hasConsent()) return;
+    loadClarity();
+    loadGoogleAnalytics();
+    try { window.__cxStartTelemetry?.(); } catch (_) {}
+  }
+
+  window.cortexSetCookieConsent = function (choice) {
+    if (choice !== 'accepted' && choice !== 'declined') return;
+    try { localStorage.setItem(KEY, choice); } catch (_) {}
+    var banner = document.getElementById('cortex-consent-banner');
+    if (banner) banner.remove();
+
+    if (choice === 'accepted') {
+      startOptionalAnalytics();
+      return;
+    }
+
+    // Stop future first-party events immediately. Reloading tears down optional SDKs
+    // already loaded after a previous opt-in, so they cannot keep recording this page.
+    window.__cortexTrackingDisabled = true;
+    try {
+      if (typeof window.clarity === 'function') {
+        window.clarity('consentv2', { ad_Storage: 'denied', analytics_Storage: 'denied' });
+      }
+      if (typeof window.gtag === 'function') {
+        window.gtag('consent', 'update', {
+          analytics_storage: 'denied', ad_storage: 'denied',
+          ad_user_data: 'denied', ad_personalization: 'denied'
+        });
+      }
+    } catch (_) {}
+    if (clarityLoaded || gaLoaded) location.reload();
   };
-
-  var scelta = leggi();
-  if (scelta) { inviaAClarity(scelta); return; }
-
-  // Nell'app il banner lo mostra già modules/gdpr.js
-  if (/^\/app(\.html)?(\/|$)/.test(location.pathname)) return;
 
   function mostraBanner() {
     try {
@@ -54,23 +104,30 @@
         'box-shadow:0 -8px 40px rgba(0,0,0,.45);';
       d.innerHTML =
         '<p style="flex:1;min-width:230px;margin:0;font-size:13.5px;line-height:1.5;color:#e8e8f0;">' +
-        '🍪 Cortex usa cookie tecnici essenziali per il funzionamento del sito e cookie analitici ' +
-        'per migliorare l’esperienza. ' +
+        '🍪 Cortex usa cookie tecnici essenziali. Con il consenso abilitiamo gli strumenti analitici ' +
+        'facoltativi per migliorare il servizio. ' +
         '<a href="/privacy" target="_blank" rel="noopener" style="color:#a78bfa;text-decoration:underline;">Privacy Policy</a></p>' +
         '<div style="display:flex;gap:10px;flex-shrink:0;">' +
         '<button type="button" data-c="declined" style="padding:8px 16px;background:transparent;border:1px solid #3a3a55;' +
         'border-radius:10px;color:#b9b9d0;font:inherit;font-size:13.5px;cursor:pointer;">Solo essenziali</button>' +
         '<button type="button" data-c="accepted" style="padding:8px 16px;border:none;border-radius:10px;color:#fff;' +
         'font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#7c3aed,#a855f7);">' +
-        'Accetta tutto ✓</button></div>';
-      d.addEventListener('click', function (ev) {
-        var t = ev.target && ev.target.getAttribute && ev.target.getAttribute('data-c');
-        if (t) window.cortexSetCookieConsent(t);
+        'Accetta analisi facoltative</button></div>';
+      d.addEventListener('click', function (event) {
+        var target = event.target;
+        var choice = target && target.getAttribute && target.getAttribute('data-c');
+        if (choice) window.cortexSetCookieConsent(choice);
       });
       document.body.appendChild(d);
-    } catch (e) {}
+    } catch (_) {}
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mostraBanner);
-  else mostraBanner();
+  if (hasConsent()) startOptionalAnalytics();
+  var consentChoice = null;
+  try { consentChoice = localStorage.getItem(KEY); } catch (_) {}
+  if (!consentChoice) {
+    if (/^\/app(?:\.html)?(?:\/|$)/.test(location.pathname)) return; // app banner managed by modules/gdpr.js
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mostraBanner);
+    else mostraBanner();
+  }
 })();

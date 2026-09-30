@@ -1,5 +1,6 @@
 import { t } from '../core/i18n.js';
 import { getActiveEvent, buildEventBanner } from '../services/seasonalEvents.js';
+import { escapeHTML } from '../js/utils.js';
 /**
  * modules/decks.js — Cortex Nebula
  *
@@ -148,7 +149,7 @@ export function renderDecks() {
                 <div class="card-accent-bar"></div>
 
                 <div class="card-top-row">
-                    <span class="card-subject-pill" style="--pill-color:${accentColor};">${subjectLabel}</span>
+                <span class="card-subject-pill" style="--pill-color:${accentColor};">${escapeHTML(subjectLabel)}</span>
                     <button class="card-more-btn" id="more-btn-${i}" onclick="
                         var m=document.getElementById('more-menu-${i}');
                         var open = m.style.display!=='flex';
@@ -158,7 +159,7 @@ export function renderDecks() {
                 </div>
 
                 <div class="card-body-nebula">
-                    <h3 class="card-title-nebula">${d.name || d.title || 'Materia senza nome'}</h3>
+                    <h3 class="card-title-nebula">${escapeHTML(d.name || d.title || 'Materia senza nome')}</h3>
                     <div class="card-progress-row" title="Quota di carte con intervallo di ripasso già assegnato (maggiore di zero). Non indica la preparazione né i ripassi completati.">
                         <div class="progress-aura-wrap" style="flex:1;">
                             <div class="progress-aura" style="width:${progress}%; background:${progressColor};"></div>

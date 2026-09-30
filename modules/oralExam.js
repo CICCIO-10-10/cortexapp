@@ -172,7 +172,7 @@ export function renderProfStep1() {
             ${decks.map((d, i) => `
                 <button class="btn-nebula-main" data-fn="selectProfDeck" data-params="[${i}]"
                     style="width:100%; text-align:left; justify-content:flex-start; padding:14px 18px; border-radius:14px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); color:var(--text); font-weight:700; cursor:pointer;">
-                    ${d.name}<span style="opacity:0.6; font-weight:500; font-size:0.85rem;"> · ${d.cards ? d.cards.length : 0} card</span>
+                    ${escapeHtml(d.name)}<span style="opacity:0.6; font-weight:500; font-size:0.85rem;"> · ${d.cards ? d.cards.length : 0} card</span>
                 </button>
             `).join('')}
         </div>
@@ -190,7 +190,7 @@ function renderProfStep2() {
     const deck = _deps.state.decks[_profSelectDeckIdx];
     const currentMode = getProfMode();
     content.innerHTML = `
-        <div style="color:var(--accent); font-weight:800; font-size:0.85rem; text-transform:uppercase; letter-spacing:3px; margin-bottom:6px;">🎓 ${deck ? deck.name : ''}</div>
+        <div style="color:var(--accent); font-weight:800; font-size:0.85rem; text-transform:uppercase; letter-spacing:3px; margin-bottom:6px;">🎓 ${escapeHtml(deck ? deck.name : '')}</div>
         <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:24px;">Quanto severo deve essere il prof?</p>
         <div style="display:flex; flex-direction:column; gap:12px;">
             ${PROF_ORDER.map(m => {
@@ -233,6 +233,16 @@ let _deps = {
     evaluateWithGemini: async () => null,
     getLang:            () => 'it',
 };
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[char]);
+}
+
+function escapeHtmlWithBreaks(value) {
+    return escapeHtml(value).replace(/\r?\n/g, '<br>');
+}
 
 export function init(deps) { _deps = { ..._deps, ...deps }; }
 
@@ -326,7 +336,7 @@ export function setOralInputMode(mode) {
     chatInput.style.display  = isChat ? 'flex' : 'none';
     // Se si entra in chat con area vuota, mostra subito la domanda corrente come bolla prof
     if (isChat && chatArea && chatArea.children.length === 0 && oralQueue.length > 0 && oralIndex < oralQueue.length) {
-        _chatAppend('prof', oralQueue[oralIndex].q);
+        _chatAppend('prof', escapeHtml(oralQueue[oralIndex].q));
     }
     if (voiceBtn) {
         voiceBtn.style.background = isChat ? 'transparent' : 'var(--accent)';
@@ -388,7 +398,7 @@ async function evaluateOralChat(transcript, answer, typingEl) {
         const _praise = _praisePool[Math.floor(Math.random() * _praisePool.length)];
         _chatAppend('prof',
             `✅ <strong>${_praise}</strong> <span style="opacity:0.6; font-size:0.85rem;">(${result.score}%)</span>`,
-            `<div style="margin-top:6px; font-size:0.82rem; opacity:0.75; font-style:italic;">${result.feedback}</div>`
+            `<div style="margin-top:6px; font-size:0.82rem; opacity:0.75; font-style:italic;">${escapeHtmlWithBreaks(result.feedback)}</div>`
         );
         awardXP(15, '💬 Risposta Chat Prof');
         const nextBtn = document.getElementById('oral-next-btn');
@@ -406,7 +416,7 @@ async function evaluateOralChat(transcript, answer, typingEl) {
         const pushback = randomPushback();
         _chatAppend('prof',
             `🔥 ${pushback}`,
-            `<div style="margin-top:6px; font-size:0.82rem; opacity:0.65;">Tentativo ${oralAttempts}/${cfg.maxAttempts} — ${result.feedback}</div>`
+            `<div style="margin-top:6px; font-size:0.82rem; opacity:0.65;">Tentativo ${oralAttempts}/${cfg.maxAttempts} — ${escapeHtmlWithBreaks(result.feedback)}</div>`
         );
         return;
     }
@@ -415,7 +425,7 @@ async function evaluateOralChat(transcript, answer, typingEl) {
     _chatAppend('prof',
         `❌ <strong>Non ci siamo.</strong>`,
         `<div style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.08); font-size:0.85rem;">
-            <strong>La risposta era:</strong><br>${answer}
+            <strong>La risposta era:</strong><br>${escapeHtmlWithBreaks(answer)}
          </div>`
     );
     const nextBtn = document.getElementById('oral-next-btn');
@@ -503,7 +513,7 @@ function loadOralQuestion() {
             '',
         ];
         const _intro = _introPool[Math.floor(Math.random() * _introPool.length)];
-        _chatAppend('prof', _intro + q);
+        _chatAppend('prof', escapeHtml(_intro) + escapeHtml(q));
         // Assicurati che l'input sia visibile
         document.getElementById('oral-chat-input-area').style.display = 'flex';
         const ta = document.getElementById('oral-chat-input');
@@ -554,7 +564,7 @@ async function evaluateOral(transcript, answer) {
     oralAttempts++;
 
     if (result.match) {
-        resEl.innerHTML        = `✅ Corretto! (${result.score}% precisione)<br><small style="display:block;margin-top:8px;font-style:italic;opacity:0.9;">Coach AI: ${result.feedback}</small>`;
+        resEl.innerHTML        = `✅ Corretto! (${Number(result.score) || 0}% precisione)<br><small style="display:block;margin-top:8px;font-style:italic;opacity:0.9;">Coach AI: ${escapeHtmlWithBreaks(result.feedback)}</small>`;
         resEl.style.color      = 'var(--green)';
         resEl.style.background = 'rgba(16,185,129,0.1)';
         awardXP(15, '🗣️ Risposta Semantica');
@@ -569,7 +579,7 @@ async function evaluateOral(transcript, answer) {
     const cfg = profConfig();
     if (cfg.maxAttempts > 1 && oralAttempts < cfg.maxAttempts) {
         const pushback = randomPushback();
-        resEl.innerHTML        = `🔥 ${pushback}<br><small style="display:block;margin-top:8px;">Coach AI: ${result.feedback}</small><br><small style="display:block;margin-top:4px;opacity:0.7;">Tentativo ${oralAttempts}/${cfg.maxAttempts} — premi il microfono e riprova.</small>`;
+        resEl.innerHTML        = `🔥 ${escapeHtml(pushback)}<br><small style="display:block;margin-top:8px;">Coach AI: ${escapeHtmlWithBreaks(result.feedback)}</small><br><small style="display:block;margin-top:4px;opacity:0.7;">Tentativo ${oralAttempts}/${cfg.maxAttempts} — premi il microfono e riprova.</small>`;
         resEl.style.color      = '#ff6b6b';
         resEl.style.background = 'rgba(239,68,68,0.12)';
         document.getElementById('oral-next-btn').style.display = 'none';
@@ -580,7 +590,7 @@ async function evaluateOral(transcript, answer) {
 
     // Tentativi esauriti (o Prof Normale): mostra la risposta corretta e avanza.
     const exhausted = cfg.maxAttempts > 1 && oralAttempts >= cfg.maxAttempts;
-    resEl.innerHTML        = `❌ Incompleto${exhausted ? ' — tentativi esauriti' : ''}.<br><small style="display:block;margin-top:8px;">Coach AI: ${result.feedback}</small><br><div style="margin-top:8px; padding-top:8px; border-top:1px solid var(--border);"><strong>CORRETTA:</strong> ${answer}</div>`;
+    resEl.innerHTML        = `❌ Incompleto${exhausted ? ' — tentativi esauriti' : ''}.<br><small style="display:block;margin-top:8px;">Coach AI: ${escapeHtmlWithBreaks(result.feedback)}</small><br><div style="margin-top:8px; padding-top:8px; border-top:1px solid var(--border);"><strong>CORRETTA:</strong> ${escapeHtmlWithBreaks(answer)}</div>`;
     resEl.style.color      = 'var(--red)';
     resEl.style.background = 'rgba(239,68,68,0.1)';
     document.getElementById('oral-next-btn').style.display = 'block';

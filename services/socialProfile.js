@@ -82,7 +82,12 @@ export async function saveProfile(fields) {
         isPublic:         fields.isPublic !== false,
         updatedAt:        firebase.firestore.FieldValue.serverTimestamp(),
     };
-    if (fields.photoURL) clean.photoURL = fields.photoURL;
+    if (typeof fields.photoURL === 'string' && fields.photoURL.length <= 2048) {
+        try {
+            const photo = new URL(fields.photoURL);
+            if (photo.protocol === 'https:') clean.photoURL = photo.href;
+        } catch (_) {}
+    }
 
     try {
         await firebase.firestore()
@@ -118,13 +123,6 @@ export async function followUser(targetUid) {
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
 
-    batch.update(db.collection('profiles').doc(uid), {
-        followingCount: firebase.firestore.FieldValue.increment(1),
-    });
-    batch.update(db.collection('profiles').doc(targetUid), {
-        followersCount: firebase.firestore.FieldValue.increment(1),
-    });
-
     await batch.commit();
     return true;
 }
@@ -137,13 +135,6 @@ export async function unfollowUser(targetUid) {
     const batch = db.batch();
 
     batch.delete(db.collection('follows').doc(`${uid}_${targetUid}`));
-    batch.update(db.collection('profiles').doc(uid), {
-        followingCount: firebase.firestore.FieldValue.increment(-1),
-    });
-    batch.update(db.collection('profiles').doc(targetUid), {
-        followersCount: firebase.firestore.FieldValue.increment(-1),
-    });
-
     await batch.commit();
     return true;
 }
@@ -186,15 +177,14 @@ export async function acceptFriendRequest(requestId, fromUid) {
     // Crea friendship bidirezionale
     batch.set(db.collection('friends').doc(`${uid}_${fromUid}`), {
         uid1: uid, uid2: fromUid,
+        requestId,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
     batch.set(db.collection('friends').doc(`${fromUid}_${uid}`), {
         uid1: fromUid, uid2: uid,
+        requestId,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
-
-    batch.update(db.collection('profiles').doc(uid),     { friendsCount: firebase.firestore.FieldValue.increment(1) });
-    batch.update(db.collection('profiles').doc(fromUid), { friendsCount: firebase.firestore.FieldValue.increment(1) });
 
     await batch.commit();
     if (window.showToast) window.showToast('Amicizia confermata! 🎉', 'success');
