@@ -148,7 +148,7 @@ service cloud.firestore {
         && request.resource.data.uid == profileId
         && request.resource.data.isPublic is bool
         && (!('displayName' in request.resource.data) || isValidString(request.resource.data.displayName, 50))
-        && (!('photoURL' in request.resource.data) || (isValidString(request.resource.data.photoURL, 2048) && request.resource.data.photoURL.matches('https://.*')))
+        && (!('photoURL' in request.resource.data) || request.resource.data.photoURL == '' || (isValidString(request.resource.data.photoURL, 2048) && request.resource.data.photoURL.matches('https://.*')))
         && (!('bio' in request.resource.data) || isValidString(request.resource.data.bio, 150))
         && (!('university' in request.resource.data) || isValidString(request.resource.data.university, 80))
         && (!('corso' in request.resource.data) || isValidString(request.resource.data.corso, 80))
@@ -185,8 +185,11 @@ service cloud.firestore {
     // ➕ Follow: relazione "uid_targetUid" → chi segue chi.
     // Scrittura: solo chi crea/elimina il proprio follow (uid estratto dall'id doc).
     match /follows/{followId} {
+      // resource == null: get di un follow inesistente (isFollowing) -> consentito solo sul proprio id
       allow read: if request.auth != null && (
-        resource.data.followerUid == request.auth.uid || resource.data.followingUid == request.auth.uid
+        resource == null
+          ? followId.matches(request.auth.uid + '_.+')
+          : (resource.data.followerUid == request.auth.uid || resource.data.followingUid == request.auth.uid)
       );
       allow create: if request.auth != null
         && request.resource.data.keys().hasOnly(['followerUid','followingUid','createdAt'])
@@ -205,8 +208,11 @@ service cloud.firestore {
     // 🤝 Amicizie: relazione bidirezionale "uid_targetUid".
     // Creata solo da acceptFriendRequest (batch atomico): chi accetta è l'utente autenticato.
     match /friends/{friendshipId} {
+      // resource == null: get di un'amicizia inesistente (isFriend) -> consentito solo sul proprio id
       allow read: if request.auth != null && (
-        resource.data.uid1 == request.auth.uid || resource.data.uid2 == request.auth.uid
+        resource == null
+          ? friendshipId.matches(request.auth.uid + '_.+')
+          : (resource.data.uid1 == request.auth.uid || resource.data.uid2 == request.auth.uid)
       );
       allow create: if request.auth != null
         && request.resource.data.keys().hasOnly(['uid1','uid2','requestId','createdAt'])

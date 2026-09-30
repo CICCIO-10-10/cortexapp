@@ -10,6 +10,7 @@
 
 import { track } from './analytics.js';
 import { t } from './i18n.js';
+import { isGooglePlayAvailable, handleGooglePlayCheckout } from '../js/googlePlayBilling.js';
 
 let toastTimeout;
 
@@ -114,10 +115,24 @@ export function showPaywall(reason = 'ai') {
         priceNote.textContent  = t('pricing_annual_savings');
     });
 
+    // Dentro l'app Play (TWA) l'abbonamento passa da Google Play Billing:
+    // su Play esiste solo lo Student mensile, quindi l'opzione annuale si nasconde.
+    const playBillingPromise = isGooglePlayAvailable().catch(() => false);
+    playBillingPromise.then((usePlay) => {
+        if (!usePlay) return;
+        btnYearly.style.display = 'none';
+        btnMonthly.click();
+    });
+
     // Wiring Stripe: chiama Firebase function per creare sessione Checkout
     gate.querySelector('#paywall-stripe-btn').addEventListener('click', async () => {
         if (!window._fbLoggedIn) {
             showToast('Accedi con Google prima di abbonarti.', 'error');
+            return;
+        }
+        if (await playBillingPromise) {
+            track('upgrade_click', { reason, plan: 'student', billing: 'google_play' });
+            await handleGooglePlayCheckout('student');
             return;
         }
         const btn = gate.querySelector('#paywall-stripe-btn');

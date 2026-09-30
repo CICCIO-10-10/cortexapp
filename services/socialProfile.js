@@ -142,9 +142,14 @@ export async function unfollowUser(targetUid) {
 export async function isFollowing(targetUid) {
     const uid = localStorage.getItem('cortex_uid');
     if (!uid || typeof firebase === 'undefined') return false;
-    const doc = await firebase.firestore()
-        .collection('follows').doc(`${uid}_${targetUid}`).get();
-    return doc.exists;
+    try {
+        const doc = await firebase.firestore()
+            .collection('follows').doc(`${uid}_${targetUid}`).get();
+        return doc.exists;
+    } catch (e) {
+        console.warn('[SocialProfile] isFollowing non disponibile:', e && e.code);
+        return false;
+    }
 }
 
 // ─── Social Graph: Amicizia ───────────────────────────────────────────────────
@@ -208,9 +213,14 @@ export async function getPendingFriendRequests() {
 export async function isFriend(targetUid) {
     const uid = localStorage.getItem('cortex_uid');
     if (!uid || typeof firebase === 'undefined') return false;
-    const doc = await firebase.firestore()
-        .collection('friends').doc(`${uid}_${targetUid}`).get();
-    return doc.exists;
+    try {
+        const doc = await firebase.firestore()
+            .collection('friends').doc(`${uid}_${targetUid}`).get();
+        return doc.exists;
+    } catch (e) {
+        console.warn('[SocialProfile] isFriend non disponibile:', e && e.code);
+        return false;
+    }
 }
 
 // ─── Discovery ────────────────────────────────────────────────────────────────
@@ -303,8 +313,11 @@ export async function initSocialProfile() {
 
     if (!existing) {
         // Primo accesso: crea profilo base
-        const displayName = localStorage.getItem('cortex_username') || 'Studente';
-        const photoURL = localStorage.getItem('cortex_photo') || '';
+        const displayName = (localStorage.getItem('cortex_username') || 'Studente').slice(0, 50);
+        // Le regole accettano solo '' oppure un URL https: qualsiasi altro valore
+        // farebbe fallire la creazione del profilo.
+        const rawPhoto = localStorage.getItem('cortex_photo') || '';
+        const photoURL = /^https:\/\//i.test(rawPhoto) && rawPhoto.length <= 2048 ? rawPhoto : '';
         await firebase.firestore().collection('profiles').doc(uid).set({
             ...EMPTY_PROFILE,
             uid,

@@ -134,8 +134,22 @@ export async function handleGooglePlayCheckout(plan) {
     if (window.showToast) window.showToast('Verifica acquisto in corso... ⏳', 'info');
 
     try {
-        await verifyAndActivateGooglePlayPurchase(result.purchaseToken, result.sku, plan);
-        if (window.showToast) window.showToast('🎉 Piano attivato! Benvenuto in Cortex ' + plan + '.', 'success');
+        const data = await verifyAndActivateGooglePlayPurchase(result.purchaseToken, result.sku, plan);
+        const isSparks = plan.startsWith('sparks_');
+        if (isSparks) {
+            // Gli Sparks sono consumabili: dopo l'accredito lato server l'acquisto va
+            // "consumato", altrimenti Play impedisce di ricomprare lo stesso pacchetto.
+            try {
+                if (_digitalGoodsService && typeof _digitalGoodsService.consume === 'function') {
+                    await _digitalGoodsService.consume(result.purchaseToken);
+                }
+            } catch (e) {
+                console.warn('[GooglePlay] consume non riuscito:', e && e.message);
+            }
+            if (window.showToast) window.showToast(`⚡ ${data?.sparks || ''} Sparks accreditati!`, 'success');
+        } else if (window.showToast) {
+            window.showToast('🎉 Piano attivato! Benvenuto in Cortex ' + plan + '.', 'success');
+        }
 
         // Ricarica la pagina impostazioni per mostrare il nuovo piano
         setTimeout(() => {

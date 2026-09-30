@@ -449,6 +449,12 @@ export function renderPlanSection() {
 
 export async function buyNeuralSparks(pack) {
     if (!window.firebase) { if (window.showToast) window.showToast('Effettua il login prima.', 'info'); return; }
+    // Dentro l'app Play (TWA) i beni digitali passano da Google Play Billing, non da Stripe.
+    const playPack = { S: 'sparks_s', M: 'sparks_m', L: 'sparks_l' }[pack];
+    if (playPack && await isGooglePlayAvailable()) {
+        await handleGooglePlayCheckout(playPack);
+        return;
+    }
     if (window.showToast) window.showToast('Preparazione pagamento ⚡...', 'info');
     try {
         const createSparks = firebase.functions().httpsCallable('createSparksSession');
