@@ -1,6 +1,6 @@
 # Correzioni sicurezza — 28 settembre 2026
 
-Stato: implementate e verificate localmente. Nessuna modifica pubblicata da questa attività.
+Stato: pubblicate il 30 settembre 2026 su Firebase Functions, Hosting e Firestore Rules. La funzione legacy `callGeminiProxy`, ancora presente nel progetto Firebase ma assente dal sorgente locale, è stata lasciata intatta; lo script `deploy:security` aggiorna solo le 22 funzioni definite localmente.
 
 ## Correzioni
 
@@ -29,7 +29,7 @@ Set-Location 'C:\Users\User\Desktop\PROGETTI\cortex'
 npm run deploy:security
 ```
 
-Il comando esegue test, build e scansione, poi pubblica **funzioni → hosting → regole Firestore**, fermandosi al primo errore. Richiede accesso Firebase al progetto `cortex-74a4e`; `npx` può richiedere di installare la CLI. Non usare il precedente `deploy:prod` per questa correzione: aggiorna solo hosting.
+Il comando esegue test, build e scansione, poi pubblica **le 22 funzioni locali → hosting → regole Firestore**, fermandosi al primo errore. La funzione legacy online `callGeminiProxy` è esclusa per evitare cancellazioni implicite. Richiede accesso Firebase al progetto `cortex-74a4e`; `npx` può richiedere di installare la CLI. Non usare il precedente `deploy:prod` per questa correzione: aggiorna solo hosting.
 
 Verificare che `DASHBOARD_SECRET` sia configurata nelle funzioni: serve anche per firmare le sessioni e pseudonimizzare i limiti IP. Nessun valore segreto è incluso in questo documento. È consigliabile ruotare la vecchia chiave dopo il deploy, perché versioni precedenti la conservavano nel browser; aggiornare anche eventuali script privati che la usano. La rotazione non è stata eseguita.
 

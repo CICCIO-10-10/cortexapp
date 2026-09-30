@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:security:emulator": "node scripts/test-security-emulator.cjs",
-    "deploy:security": "npm test && npm run build && node scripts/verify-security-build.mjs && npx firebase-tools deploy --project cortex-74a4e --only functions && npx firebase-tools deploy --project cortex-74a4e --only hosting && npx firebase-tools deploy --project cortex-74a4e --only firestore:rules",
+    "deploy:security": "npm test && npm run build && node scripts/verify-security-build.mjs && npx firebase-tools deploy --project cortex-74a4e --only functions:callGeminiHttp,functions:dailyStudyReminder,functions:createCheckoutSession,functions:stripeWebhook,functions:createSparksSession,functions:sparksWebhook,functions:createPortalSession,functions:verifyGooglePlayPurchase,functions:deleteUserAccount,functions:processReferral,functions:adminDashboard,functions:adminFeedbackAction,functions:tiktokAdminSession,functions:tiktokAuthUrl,functions:tiktokExchangeToken,functions:tiktokStatus,functions:tiktokPublish,functions:tiktokPublishStatus,functions:textToSpeechHttp,functions:welcomeEmail,functions:reengageEmails,functions:telemetry && npx firebase-tools deploy --project cortex-74a4e --only hosting && npx firebase-tools deploy --project cortex-74a4e --only firestore:rules",
     "deploy:preview": "npm test && npm run build && firebase hosting:channel:deploy staging --expires 7d",
     "deploy:prod": "npm test && npm run build && firebase deploy --only hosting",
     "i18n:validate": "node --experimental-vm-modules scripts/i18n-validate.js",

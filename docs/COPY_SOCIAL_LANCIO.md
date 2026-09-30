@@ -30,7 +30,7 @@ Badge Play Store
 
 **Slide 5 — CTA**
 Testo grande: "Gratis. Per sempre."
-Sub: "Link in bio → cortexapp.it"
+Sub: "Android: cercaci su Play Store · PC/iPhone: cortexapp.it"
 Countdown Maturità: "37 giorni alla prima prova"
 
 **Caption:**
@@ -42,7 +42,7 @@ con altri studenti e simula l'esame orale con Boss Mode.
 
 Gratis. Senza pubblicità. Senza trucchi.
 
-Link in bio per scaricarla.
+Su Android cercala sul Play Store come Cortex. Da PC o iPhone: cortexapp.it.
 
 #cortex #studiare #maturità2026 #flashcard #studiotips #studentitaliani 
 #maturità #AI #appstudio #ripetizione #srs #universitá #esami #studiameglio
@@ -95,7 +95,7 @@ l'algoritmo ti dice cosa ripassare ogni giorno."
 Il giorno dell'esame ricordavo tutto."
 
 [CTA — 30-35s]
-"È gratis. Link in bio. Si chiama Cortex."
+"È gratis. Su Android cercaci sul Play Store come Cortex; da PC o iPhone vai su cortexapp.it."
 
 Hashtag: #studiotips #maturità2026 #flashcard #AI #studentlife #cortexapp
 ```
@@ -122,7 +122,7 @@ Il cervello non funziona a cramming. Funziona a frequenza."
 
 [CTA — 18-23s]
 "Cortex ha una modalità dedicata alla Maturità. È gratis.
-Link in bio."
+Su Android cercaci sul Play Store; da PC o iPhone vai su cortexapp.it."
 
 Hashtag: #maturità2026 #maturità #studiotips #primaprova #secondaprova 
 #cortexapp #studiameglio #esami #studentiitaliani
@@ -153,7 +153,7 @@ Voiceover: "23 flashcard in 12 secondi. A mano ti avrei messo un'ora."
 "E ora l'app sa già quando farmele ripassare per non dimenticarle."
 
 [CTA — 26-30s]
-"Gratis su Google Play. Si chiama Cortex — link in bio."
+"Gratis su Google Play. Si chiama Cortex — cercala sul Play Store; da PC o iPhone: cortexapp.it."
 
 Hashtag: #cortexapp #flashcard #AI #PDF #studiotips #hack #studiare 
 #maturità2026 #universita #appstudiare
