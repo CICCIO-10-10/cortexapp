@@ -43,6 +43,9 @@ const CLARITY_STEPS = new Set(['app_open', 'onboarding_start', 'onboarding_shown
     'tolc_errors_login_completed', 'tolc_error_cards_generation_started', 'tolc_error_cards_generated',
     'tolc_error_cards_generation_failed', 'tolc_error_cards_saved', 'tolc_error_first_study',
     'tolc_exit_prompt_shown', 'tolc_exit_prompt_leave',
+    // 01/10/2026: mazzo errori TOLC creato in locale (senza AI) e passaggi successivi
+    'tolc_error_deck_created', 'tolc_error_first_card_rated', 'tolc_error_session_completed', 'tolc_error_deck_login_completed',
+    'tolc_error_save_prompt_shown', 'tolc_error_save_prompt_login_click', 'tolc_error_save_prompt_ai_click', 'tolc_error_save_prompt_dismiss',
     // 25/09/2026 tracking v3 (tracking plan: docs/TRACKING_PLAN.md)
     'tolc_selector_viewed', 'tolc_type_picked', 'tolc_intro_viewed', 'tolc_selector_closed', 'tolc_test_quit',
     'onboarding_step_viewed', 'onboarding_finished', 'onboarding_skipped', 'onboarding_goal_selected',
@@ -51,7 +54,8 @@ const CLARITY_STEPS = new Set(['app_open', 'onboarding_start', 'onboarding_shown
 const CLARITY_ANDROID_STEPS = new Set(['app_open', 'onboarding_shown', 'onboarding_finished', 'onboarding_skipped',
     'cards_generation_started', 'cards_generated', 'generated_cards_saved', 'study_session_start',
     'study_session_completed', 'activated', 'tolc_sim_complete', 'tolc_errors_generate_click',
-    'tolc_error_cards_generated', 'tolc_error_cards_saved', 'tolc_error_first_study']);
+    'tolc_error_cards_generated', 'tolc_error_cards_saved', 'tolc_error_first_study',
+    'tolc_error_deck_created', 'tolc_error_first_card_rated', 'tolc_error_session_completed', 'tolc_error_deck_login_completed']);
 
 /**
  * Inizializza Analytics (chiamato una volta dal bootstrap dopo firebase.initializeApp).

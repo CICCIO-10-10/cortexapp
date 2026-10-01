@@ -129,9 +129,18 @@ export function onAuthStateChangedHandler(user, firebaseDeps = {}) {
         // FIX 10/07/2026: memorizza che questa sessione è una conversione ospite→account,
         // così loadFromCloud() fa il merge dei mazzi locali invece di sovrascriverli.
         try {
-            window._guestConversion = localStorage.getItem('cortex_guest') === '1';
+            // FIX 01/10/2026: window.__guestLogin rimuove 'cortex_guest' PRIMA del login, quindi qui
+            // risultava sempre false e su un account gia' esistente i mazzi creati da ospite
+            // venivano sostituiti da quelli cloud. Il marcatore temporaneo (30 min) lo conserva.
+            let _convTs = 0;
+            try { _convTs = parseInt(localStorage.getItem('cortex_guest_conversion_ts') || '0', 10) || 0; } catch (_) {}
+            window._guestConversion = localStorage.getItem('cortex_guest') === '1' ||
+                (_convTs > 0 && Date.now() - _convTs <= 30 * 60 * 1000);
             localStorage.removeItem('cortex_guest');
+            localStorage.removeItem('cortex_guest_conversion_ts');
         } catch (_) {}
+        // Funnel TOLC: accesso completato da chi aveva creato il mazzo errori da ospite (una volta).
+        try { if (typeof window.__cxTolcErrorLoginDone === 'function') window.__cxTolcErrorLoginDone(); } catch (_) {}
         const _gb = document.getElementById('guest-banner');
         if (_gb) { _gb.remove(); document.body.style.paddingTop = ''; }
 

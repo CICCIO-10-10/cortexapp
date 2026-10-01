@@ -25,12 +25,17 @@ function summarizeJourneys(events, coverage = {}) {
     appActivation: ['app_open', 'cards_generation_started', 'cards_generated', 'generated_cards_saved', 'study_session_start'],
     tolc: ['tolc_selector_viewed', 'tolc_type_picked', 'tolc_intro_viewed', 'tolc_test_start', 'tolc_first_answer', 'tolc_sim_complete'],
     tolcCards: ['tolc_errors_generate_click', 'tolc_error_cards_generation_started', 'tolc_error_cards_generated', 'tolc_error_cards_saved', 'tolc_error_first_study'],
+    // 01/10/2026: mazzo errori creato in locale, senza AI (modules/tolcErrorDeck.js).
+    // tolc_error_first_study = ingresso nella sessione; la prima carta valutata e' un passo a parte.
+    tolcLocalDeck: ['tolc_sim_complete', 'tolc_error_deck_created', 'tolc_error_first_study', 'tolc_error_first_card_rated', 'tolc_error_session_completed'],
     onboarding: ['onboarding_shown', 'onboarding_finished'],
     generation: ['cards_generation_started', 'cards_generated', 'generated_cards_saved', 'study_session_start', 'study_session_completed', 'activated'],
   };
-  const BRANCHES = ['tolc_selector_closed', 'tolc_test_quit', 'tolc_errors_login_completed', 'onboarding_skipped', 'cards_generation_failed', 'generated_cards_discarded'];
+  const PATHS_ONLY = new Set(['tolcLocalDeck']);
+  const BRANCHES = ['tolc_selector_closed', 'tolc_test_quit', 'tolc_errors_login_completed', 'onboarding_skipped', 'cards_generation_failed', 'generated_cards_discarded',
+    'tolc_error_deck_login_completed', 'tolc_error_save_prompt_shown', 'tolc_error_save_prompt_login_click', 'tolc_error_save_prompt_ai_click'];
   const V3 = [...Object.values(PATHS).flat(), ...BRANCHES, 'onboarding_step_viewed'];
-  const v3 = { steps: {}, paths: {}, breakdown: { gen_fail_reason: {}, tolc_closed_stage: {}, onboarding_skip_step: {}, tolc_quit_answered: [] }, platforms: {}, since: null };
+  const v3 = { steps: {}, paths: {}, breakdown: { gen_fail_reason: {}, tolc_closed_stage: {}, onboarding_skip_step: {}, tolc_quit_answered: [], tolc_deck_type: {} }, platforms: {}, since: null };
   V3.forEach(k => { v3.steps[k] = 0; });
   const v3Names = new Set([...V3, 'app_open']);
   const v3Start = events.filter(e => v3Names.has(e.type)).reduce((m, e) => Math.min(m, e.ts), Infinity);
@@ -48,7 +53,12 @@ function summarizeJourneys(events, coverage = {}) {
   function summarizeGroup(visitorMap) {
     const steps = {};
     const paths = {};
-    for (const [name, path] of Object.entries(PATHS)) { paths[name] = orderedPathCounts(visitorMap, path); Object.assign(steps, paths[name]); }
+    for (const [name, path] of Object.entries(PATHS)) {
+      paths[name] = orderedPathCounts(visitorMap, path);
+      // tolcLocalDeck riusa eventi di altri percorsi (tolc_sim_complete, tolc_error_first_study):
+      // i suoi conteggi ordinati restano solo in paths, senza sovrascrivere steps.
+      if (!PATHS_ONLY.has(name)) Object.assign(steps, paths[name]);
+    }
     for (const branch of BRANCHES) {
       steps[branch] = 0;
       for (const list of visitorMap.values()) if (list.some(e => e.type === branch)) steps[branch]++;
@@ -74,6 +84,8 @@ function summarizeJourneys(events, coverage = {}) {
         if (e.type === 'tolc_selector_closed') inc(v3.breakdown.tolc_closed_stage, m.stage);
         if (e.type === 'onboarding_skipped') inc(v3.breakdown.onboarding_skip_step, m.step);
         if (e.type === 'tolc_test_quit' && typeof m.answered === 'number') v3.breakdown.tolc_quit_answered.push(m.answered);
+        // Denominatore del login dopo il mazzo: solo i mazzi creati da ospite (meta.type='guest').
+        if (e.type === 'tolc_error_deck_created') inc(v3.breakdown.tolc_deck_type, m.type);
         if (BRANCHES.includes(e.type) && !seen.has(e.type)) { v3.steps[e.type]++; seen.add(e.type); }
       }
       const platformEvents = new Map();

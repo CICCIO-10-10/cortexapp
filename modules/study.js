@@ -93,6 +93,12 @@ let sessionDeckName  = '';  // nome mazzo — per la share card
 let activeDeckId = null;
 let studyRun = 0;
 
+function _tolcErrorHook(step, deck, extra) {
+    // Mazzi creati dagli errori TOLC (modules/tolcErrorDeck.js): passaggi del funnel e
+    // proposta di accesso non bloccante. No-op per tutti gli altri mazzi.
+    try { if (deck && deck.source === 'tolc_errors_local' && typeof window !== 'undefined' && typeof window.__cxTolcErrorStudyEvent === 'function') window.__cxTolcErrorStudyEvent(step, deck, extra); } catch (_) {}
+}
+
 // ── Funzioni esportate ───────────────────────────────────────────────────────
 
 export async function startStudy(deckIndex) {
@@ -230,6 +236,7 @@ export function rateCard(rating) {
     // Activation tracking: 1 rating valutato (GA4 + Firestore server-side)
     try { track('card_rated', { rating }); } catch (_) {}
     bumpActivation('ratingsGiven', 1);
+    _tolcErrorHook('first_rate', deck);
 
     if (rating === 0) {
         sessionWrong++;
@@ -270,6 +277,7 @@ export function rateCard(rating) {
 }
 
 export function closeStudy() {
+    const _closingDeck = activeDeckId != null ? (_deps.state.decks || []).find(d => String(d.id) === String(activeDeckId)) : null;
     studyRun++;
     studyQueue = [];
     studyIndex = 0;
@@ -284,6 +292,7 @@ export function closeStudy() {
     if (typeof refreshDueCounts === 'function') refreshDueCounts();
     renderDecks();
     window.dispatchEvent(new Event('cortex:decks-changed'));
+    _tolcErrorHook('closed', _closingDeck);
 }
 
 // ── Privata (chiamata da showCard) ───────────────────────────────────────────
@@ -306,6 +315,7 @@ function endSession() {
     // Activation tracking: sessione di studio completata (GA4 + Firestore server-side)
     try { track('study_session_completed', { cards: totalCards, pct: finalPct }); } catch (_) {}
     if (totalCards > 0) bumpActivation('cardsStudied', totalCards);
+    _tolcErrorHook('completed', _deps.state.decks.find(d => String(d.id) === String(activeDeckId)), { count: totalCards });
 
     let motivationalMsg = t('study_msg_good');
     let icon = "🎉";

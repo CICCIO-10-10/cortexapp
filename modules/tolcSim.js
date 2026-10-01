@@ -8,6 +8,7 @@
 
 import { TOLC_TESTS, TOLC_ENG_BANCA, tolcTotQ, tolcTotMin } from '../data/tolc.js';
 import { track } from '../core/analytics.js';
+import { createAndStudyTolcErrorDeck } from './tolcErrorDeck.js';
 
 let _state = null;
 let _timer = null;
@@ -188,7 +189,9 @@ function _start(key) {
   const baseSecs = Math.round(totMin * 60 * smp.nBase / (tolcTotQ(t) || smp.nBase));
   const engSecs = Math.round((t.engMin || 15) * 60 * smp.nEng / (t.engQ || smp.nEng || 1));
   const secs = Math.max(180, baseSecs + engSecs);
-  _state = { key: key, test: t, qs: qs, i: 0, answers: new Array(qs.length).fill(null), checked: new Array(qs.length).fill(false), left: secs, running: true };
+  // attemptId: identifica QUESTO tentativo -> al massimo un mazzo errori per tentativo.
+  const attemptId = key + '-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7);
+  _state = { key: key, test: t, qs: qs, i: 0, answers: new Array(qs.length).fill(null), checked: new Array(qs.length).fill(false), left: secs, running: true, attemptId: attemptId };
   _renderQ();
   track('tolc_test_start', { test: key });   // avvio REALE della prova (1a domanda mostrata), distinto da tolc_sim_open (= apertura selettore)
   _clearTimer();
@@ -364,7 +367,7 @@ function _renderResult() {
     : '🎯 Genera flashcard sui tuoi errori';
   var genBtn = nWrong > 0
     ? '<button id="tolc-gen-errors" style="width:100%;padding:15px;border-radius:12px;border:none;font-weight:800;font-size:1rem;color:#fff;background:linear-gradient(135deg,#16a34a,#22c55e);cursor:pointer;box-shadow:0 10px 30px rgba(34,197,94,.25);">' + genLabel + '</button>' +
-      '<div style="text-align:center;font-size:.76rem;color:rgba(255,255,255,.55);margin:6px 0 12px;">Ripassa proprio le domande che hai sbagliato, spiegate bene. Gratis.</div>'
+      '<div style="text-align:center;font-size:.76rem;color:rgba(255,255,255,.55);margin:6px 0 12px;">Ripassa subito le domande che hai sbagliato. Gratis, senza account.</div>'
     : '<div role="status" style="text-align:center;padding:12px;margin:8px 0 12px;border-radius:12px;background:rgba(34,197,94,.1);color:#86efac;font-weight:700;">Nessun errore da trasformare in flashcard — ottimo risultato!</div>';
   var enterBtn = '<button id="tolc-enter" style="width:100%;padding:14px;margin-top:9px;border-radius:12px;border:1px solid rgba(168,85,247,.55);background:rgba(168,85,247,.14);color:#e9d5ff;font-weight:800;font-size:.98rem;cursor:pointer;">Salva i progressi su Cortex →</button>';
   var emoji = pct >= 60 ? '🎉' : '💪';
@@ -453,7 +456,7 @@ function _askBeforeExit(ov, n) {
       '<div style="max-width:380px;width:100%;background:#15151d;border:1px solid rgba(168,85,247,.35);border-radius:18px;padding:22px;text-align:center;color:#e8e8ee;font-family:Inter,system-ui,sans-serif;box-shadow:0 30px 80px rgba(0,0,0,.5);">' +
         '<div style="font-size:1.8rem;">🧠</div>' +
         '<h3 style="font-family:Outfit,sans-serif;font-weight:900;font-size:1.2rem;margin:6px 0 6px;">Vuoi ripassare i ' + n + ' errori prima di uscire?</h3>' +
-        '<p style="font-size:.86rem;color:rgba(255,255,255,.62);margin:0 0 16px;line-height:1.5;">Li trasformiamo in flashcard spiegate: al prossimo TOLC non li sbagli più.</p>' +
+        '<p style="font-size:.86rem;color:rgba(255,255,255,.62);margin:0 0 16px;line-height:1.5;">Li trasformiamo in flashcard da ripassare subito, senza account.</p>' +
         '<button id="tolc-gen-errors" style="width:100%;padding:14px;border-radius:12px;border:none;font-weight:800;font-size:.98rem;color:#fff;background:linear-gradient(135deg,#16a34a,#22c55e);cursor:pointer;">🎯 Sì, ripasso gli errori</button>' +
         '<button id="tolc-exit-yes" style="width:100%;padding:12px;margin-top:9px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(255,255,255,.6);font-weight:700;cursor:pointer;">No, esci</button>' +
       '</div>';
@@ -553,27 +556,26 @@ document.addEventListener('click', function (e) {
   }
   if (id === 'tolc-gen-errors') {
     var st2 = _state; if (!st2) return;
-    var lines = [];
-    (st2.qs || []).forEach(function (q, i) {
+    // 01/10/2026: percorso a basso attrito. Il mazzo degli errori si crea SUBITO in
+    // locale (domanda + risposta corretta dalla banca, niente AI, niente login) e si
+    // apre lo studio. Il login viene proposto dopo, senza bloccare (tolcErrorDeck.js).
+    var nWrongNow = (st2.qs || []).filter(function (q, i) {
       var a = st2.answers ? st2.answers[i] : null;
-      if (a !== null && a !== undefined && a !== q.c) {
-        var corr = (q.o && q.o[q.c] != null) ? q.o[q.c] : String.fromCharCode(65 + q.c);
-        lines.push('[' + (q.s || '') + '] ' + String(q.q || '').replace(/\s+/g, ' ').slice(0, 280) + '\nRisposta corretta: ' + String(corr).slice(0, 160));
-      }
+      return a !== null && a !== undefined && a !== q.c;
+    }).length;
+    try { track('tolc_errors_generate_click', { n: nWrongNow }); } catch (e) {}
+    if (!nWrongNow) { if (window.showToast) window.showToast('Nessun errore da ripassare — ottimo! \uD83C\uDF89', 'success'); return; }
+    if (st2._errorDeckPending) return;               // doppio click
+    st2._errorDeckPending = true;
+    var snapshot = { attemptId: st2.attemptId, key: st2.key, test: st2.test, qs: st2.qs, answers: st2.answers };
+    createAndStudyTolcErrorDeck(snapshot, _math).then(function (res) {
+      if (res && res.ok) { _remove(); return; }
+      if (_state === st2) st2._errorDeckPending = false;
+      if (res && res.reason === 'busy') return;
+      if (window.showToast) window.showToast(res && res.reason === 'incomplete'
+        ? 'Non riesco a creare le carte: i dati di queste domande sono incompleti.'
+        : 'Non sono riuscito a creare il mazzo. Riprova.', 'error');
     });
-    try { track('tolc_errors_generate_click', { n: lines.length }); } catch (e) {}
-    if (!lines.length) { if (window.showToast) window.showToast('Nessun errore da ripassare — ottimo! \uD83C\uDF89', 'success'); return; }
-    var notes = 'Argomenti che ho SBAGLIATO nella simulazione ' + ((st2.test && st2.test.nome) ? st2.test.nome : 'TOLC') + '. Crea flashcard di ripasso mirate su questi concetti:\n\n' + lines.join('\n\n');
-    try { localStorage.setItem('cortex_pending_ai', JSON.stringify({ text: notes, instructions: 'Flashcard di ripasso sugli errori della simulazione TOLC: spiega il concetto corretto, non solo la lettera della risposta.', ts: Date.now(), source: 'tolc_errors', authRequired: !window._fbLoggedIn })); } catch (e) {}
-    _remove();
-    if (window._fbLoggedIn) {
-      if (window.__resumePendingAI) { window.__resumePendingAI(); return; }
-      location.href = '/app'; return;
-    }
-    try { localStorage.setItem('cortex_sim', 'tolc'); } catch (e) {}
-    if (typeof window.__guestLogin === 'function') { window.__guestLogin(); return; }
-    if (typeof window.loginWithGoogle === 'function') { window.loginWithGoogle(); return; }
-    location.href = '/app?utm_source=tolcsim&utm_medium=result&utm_content=genera_errori';
     return;
   }
   if (id === 'tolc-share') { _shareTolc(); return; }

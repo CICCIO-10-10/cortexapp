@@ -25,6 +25,33 @@
 | `tolc_selector_closed` **v3** | chiuso PRIMA di iniziare | stage: selector / intro | tolcSim.js `tolc-close` |
 | `tolc_test_quit` **v3** | abbandono A METÀ prova: durante la prova non c'è un tasto di uscita, quindi scatta quando la scheda viene chiusa/nascosta (una volta per prova) | test, answered, at, of, how:'leave' | tolcSim.js `visibilitychange` |
 
+## Funnel 1b — TOLC → mazzo errori locale → studio (01/10/2026)
+Dal 01/10 il pulsante "Trasforma i tuoi errori in flashcard" **non chiama più l'AI e non chiede il login**: crea in locale un mazzo con una carta per ogni domanda sbagliata (domanda + testo della risposta corretta + risposta scelta, presi dalla banca del test) e apre lo studio. Le domande in bianco non diventano carte. Le domande della banca non hanno spiegazioni: le carte lo dicono e non ne inventano. Un tentativo = al massimo un mazzo (id `tolc-err-<attemptId>`). Codice: `modules/tolcErrorCards.js` (logica pura, testata) + `modules/tolcErrorDeck.js` (salvataggio, studio, proposta di accesso).
+
+| # | Evento | Quando scatta | Meta |
+|---|---|---|---|
+| 1 | `tolc_sim_complete` | consegna del TOLC (invariato) | test, correct, pct |
+| — | `tolc_errors_generate_click` | click sul pulsante (invariato, nessun login dopo) | n |
+| 2 | `tolc_error_deck_created` **nuovo** | mazzo errori creato **senza AI** | count, mode:`local`, type:`guest`/`account` |
+| 3 | `tolc_error_first_study` *(esistente)* | **ingresso** nella sessione di studio di quel mazzo — NON significa che una carta sia stata studiata | — |
+| 4 | `tolc_error_first_card_rated` **nuovo** | prima carta del mazzo effettivamente valutata (una volta per mazzo) | — |
+| 5 | `tolc_error_session_completed` **nuovo** | sessione arrivata in fondo (una volta per mazzo) | count |
+| 6 | `tolc_error_deck_login_completed` **nuovo** | accesso Google completato da chi aveva creato il mazzo **da ospite** (una volta) | — |
+
+Rami (non tappe di successo): `tolc_error_save_prompt_shown`, `tolc_error_save_prompt_login_click`, `tolc_error_save_prompt_ai_click`, `tolc_error_save_prompt_dismiss`.
+
+**Carte senza AI vs carte AI:** il mazzo locale è `tolc_error_deck_created` (deck `source:'tolc_errors_local'`, `cardsOrigin:'tolc_bank'`). Le carte generate dall'AI restano `tolc_error_cards_generation_started` / `tolc_error_cards_generated` / `tolc_error_cards_saved` (percorso facoltativo "Spiegami gli errori con l'AI", sempre dietro login come prima).
+
+**Denominatori:** passo 6 va diviso per i mazzi creati da ospite (`breakdown.tolc_deck_type.guest` in `journey-summary.cjs`), non per tutti i mazzi.
+
+**Attivazione:** definizione invariata (≥3 carte *generate* + ≥3 studiate + 1 voto). Le carte del mazzo locale **non** incrementano `cardsGenerated` (non sono generate). Studio e voti di un utente loggato incrementano `cardsStudied`/`ratingsGiven` come sempre; per un ospite `bumpActivation` resta no-op (nessun uid) e l'attività da ospite **non** viene riattribuita al nuovo account.
+
+**Consenso:** tutti gli eventi passano da `track()`, che non invia nulla senza `cortex_cookie_consent = accepted`. Nessun testo di domande/risposte negli eventi: solo nomi e conteggi.
+
+**Compatibilità dashboard:** il funnel `tolcCards` resta (percorso AI). Nuovo percorso ordinato `tolcLocalDeck` e nuovi rami in `functions/journey-summary.cjs` → visibili solo dopo il deploy di `functions:adminDashboard`.
+
+**Conversione ospite → account:** `window.__guestLogin` ora lascia `cortex_guest_conversion_ts`; `appBoot` lo usa per `window._guestConversion`, così `loadFromCloud()` unisce i mazzi locali anche su un account esistente (prima venivano sostituiti da quelli cloud). Primo login di un account nuovo: invariato (i mazzi locali vengono caricati con `syncToCloud`).
+
 ## Funnel 2 — Onboarding
 | Evento | Quando | Meta |
 |---|---|---|

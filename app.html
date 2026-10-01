@@ -1970,6 +1970,9 @@ document.body.prepend(b);setTimeout(function(){try{var e=document.getElementById
 
       // Login Google (converte l'ospite in account, salva i dati)
       window.__guestLogin = function(){
+        // 01/10/2026: marcatore di conversione ospite->account (letto da appBoot): senza,
+        // su un account esistente i mazzi creati da ospite non venivano uniti al cloud.
+        try{ if(localStorage.getItem('cortex_guest')==='1') localStorage.setItem('cortex_guest_conversion_ts', String(Date.now())); }catch(e){}
         try{ localStorage.removeItem('cortex_guest'); }catch(e){}
         if(typeof window.loginWithGoogle==='function'){ window.loginWithGoogle(); }
         else { location.href='/'; }
@@ -2030,6 +2033,14 @@ document.body.prepend(b);setTimeout(function(){try{var e=document.getElementById
       // Prompt one-time al primo traguardo (chiamato da awardXP quando ospite)
       window.__guestMaybePrompt = function(){
         if(!isGuest() || isLogged()) return;
+        // 01/10/2026: non interrompere la simulazione TOLC o una sessione di studio in corso
+        // (il modale copriva le carte dopo la prima valutazione). Non segna "gia' chiesto":
+        // riproverà al prossimo XP fuori da questi momenti; la proposta del mazzo errori TOLC
+        // (modules/tolcErrorDeck.js) la sostituisce e segna cortex_guest_prompted.
+        try{
+          if(document.getElementById('tolc-sim-overlay') || document.getElementById('tolc-save-prompt')) return;
+          var _so=document.getElementById('study-overlay'); if(_so && _so.classList.contains('active')) return;
+        }catch(e){}
         if(localStorage.getItem('cortex_guest_prompted')==='1') return;
         try{ localStorage.setItem('cortex_guest_prompted','1'); }catch(e){}
         var xp = 0;
@@ -2058,6 +2069,15 @@ document.body.prepend(b);setTimeout(function(){try{var e=document.getElementById
       // side e hardcoded: NON tocca mazzi, stato o database.
       window.__cortexDemo = function(force){
         if((!isGuest() || isLogged()) && !force) return;
+        // 01/10/2026: niente demo automatica per chi arriva a fare il TOLC o sta studiando:
+        // copriva la simulazione e poi lo studio del mazzo degli errori.
+        if(!force){
+          try{
+            if(document.getElementById('tolc-sim-overlay')) return;
+            var _so=document.getElementById('study-overlay'); if(_so && _so.classList.contains('active')) return;
+            if(/[?&]sim=/.test(location.search||'') || /[?&]sim=/.test(__q0||'') || localStorage.getItem('cortex_sim')) return;
+          }catch(e){}
+        }
         if(document.getElementById('cortex-demo')) return;
         try{ if(typeof gtag==='function' && localStorage.getItem('cortex_no_track')!=='1') gtag('event','demo_shown'); }catch(e){}
         var CARDS=[
