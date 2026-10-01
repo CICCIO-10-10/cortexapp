@@ -987,34 +987,52 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
     // quando lo storico cresce. Conserviamo solo somme e ultimi 10 pagamenti.
     const balanceObj = await stripe.balance.retrieve();
     let mrr = 0, activeSubscriptionCount = 0, successfulChargeCount = 0, totalRevenue = 0;
+    const revenueByCurrency = {};
     const recentPayments = [];
-    const subsByPlan = { student: 0, pro: 0, trialing: 0, canceled: 0, other: 0 };
+    const subsByPlan = { student: 0, pro: 0, other: 0 };
+    const subsByStatus = {
+      active: 0, trialing: 0, canceled: 0, past_due: 0,
+      incomplete: 0, incomplete_expired: 0, unpaid: 0, paused: 0, other: 0,
+    };
     for await (const s of stripe.subscriptions.list({ limit: 100, status: 'all', expand: ['data.items.data.price'] })) {
-      if (s.status === 'active' || s.status === 'trialing') {
+      if (Object.prototype.hasOwnProperty.call(subsByStatus, s.status)) subsByStatus[s.status]++;
+      else subsByStatus.other++;
+      if (s.status === 'active') {
         activeSubscriptionCount++;
-        const price = s.items.data[0]?.price;
-        if (price) {
-          const amount = (price.unit_amount || 0) / 100;
-          mrr += price.recurring?.interval === 'year' ? amount / 12 : amount;
+        // MRR includes only paid-active EUR recurring items. Normalize the
+        // interval, interval_count and quantity; a trial is not recognized revenue.
+        for (const item of (s.items?.data || [])) {
+          const price = item.price;
+          const recurring = price?.recurring;
+          if (!price || price.currency !== 'eur' || price.unit_amount == null || !recurring
+              || (price.billing_scheme && price.billing_scheme !== 'per_unit')
+              || recurring.usage_type === 'metered') continue;
+          const intervalCount = Math.max(1, Number(recurring.interval_count) || 1);
+          const monthlyFactor = recurring.interval === 'year' ? 1 / (12 * intervalCount)
+            : recurring.interval === 'week' ? 52 / (12 * intervalCount)
+            : recurring.interval === 'day' ? 365 / (12 * intervalCount)
+            : recurring.interval === 'month' ? 1 / intervalCount : 0;
+          const quantity = item.quantity == null ? 1 : Math.max(0, Number(item.quantity) || 0);
+          mrr += (price.unit_amount / 100) * quantity * monthlyFactor;
         }
-      }
-      if (s.status === 'canceled') subsByPlan.canceled++;
-      else if (s.status === 'trialing') subsByPlan.trialing++;
-      else {
-        const priceId = s.items.data[0]?.price?.id || '';
-        if (priceId === process.env.STRIPE_PRICE_STUDENT) subsByPlan.student++;
-        else if (priceId === process.env.STRIPE_PRICE_PRO) subsByPlan.pro++;
+        const priceIds = (s.items?.data || []).map(item => item.price?.id || '');
+        if (priceIds.includes(process.env.STRIPE_PRICE_STUDENT)) subsByPlan.student++;
+        else if (priceIds.includes(process.env.STRIPE_PRICE_PRO)) subsByPlan.pro++;
         else subsByPlan.other++;
       }
     }
     for await (const c of stripe.charges.list({ limit: 100 })) {
       if (c.paid) {
         successfulChargeCount++;
-        totalRevenue += Math.max(0, c.amount - (c.amount_refunded || 0)) / 100;
+        const currency = String(c.currency || 'eur').toLowerCase();
+        const netAmount = Math.max(0, c.amount - (c.amount_refunded || 0)) / 100;
+        revenueByCurrency[currency] = (revenueByCurrency[currency] || 0) + netAmount;
+        if (currency === 'eur') totalRevenue += netAmount;
       }
       if (recentPayments.length < 10) recentPayments.push({
         id: c.id, amount: c.amount / 100, currency: c.currency.toUpperCase(),
-        status: c.paid ? ((c.amount_refunded || 0) > 0 ? 'refunded' : 'paid') : 'failed',
+        status: c.paid ? ((c.amount_refunded || 0) >= c.amount ? 'refunded'
+          : ((c.amount_refunded || 0) > 0 ? 'partial_refund' : 'paid')) : 'failed',
         description: c.description || c.metadata?.plan || '—',
         date: c.created * 1000, email: c.billing_details?.email || '—',
       });
@@ -1040,6 +1058,7 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
 
     const ADMIN_UID = 'f8oLEt3LDpT7VN9zFOa10mVE2Cf2';  // account di Francesco: escluso dalle statistiche
     const usersByPlan = { free: 0, student: 0, pro: 0, other: 0 };
+    let usersPlanUnclassified = 0;
     const realUserIds = new Set();  // uid degli utenti REALI (doc in Firestore)
     let usersWithFCM = 0;
     let usersWithSparks = 0;
@@ -1051,16 +1070,17 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
       if (doc.id === ADMIN_UID) return;  // non contare l'admin tra gli utenti reali
       realUserIds.add(doc.id);
       const d = doc.data();
-      const plan = d.plan || 'free';
+      const plan = typeof d.plan === 'string' ? d.plan.trim().toLowerCase() : '';
       if (plan === 'free') usersByPlan.free++;
       else if (plan === 'student') usersByPlan.student++;
       else if (plan === 'pro') usersByPlan.pro++;
-      else usersByPlan.other++;
+      else if (plan) usersByPlan.other++;
+      else usersPlanUnclassified++;
 
-      if (d.fcmToken) usersWithFCM++;
-      if ((d.sparksBalance || 0) > 0) usersWithSparks++;
-      if (d.activation && d.activation.activated) usersActivated++;
-      if (!d.email) usersNoEmail++;
+      if (typeof d.fcmToken === 'string' && d.fcmToken.trim()) usersWithFCM++;
+      if (typeof d.sparksBalance === 'number' && Number.isFinite(d.sparksBalance) && d.sparksBalance > 0) usersWithSparks++;
+      if (d.activation && d.activation.activated === true) usersActivated++;
+      if (typeof d.email !== 'string' || !d.email.trim()) usersNoEmail++;
 
     });
 
@@ -1075,6 +1095,7 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
     let authAnonymousTotal = 0;
     let authDisabledTotal = 0;
     let authProfilesMissing = 0;
+    let authCreationTimeMissing = 0;
     let newUsersToday = null;
     const authAct = {};      // uid -> {lastActive, returned, active7d} per il dettaglio
     try {
@@ -1113,7 +1134,7 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
               }).formatToParts(new Date(created)).map(p => [p.type, p.value]));
               const month = `${monthParts.year}-${monthParts.month}`;
               registrationByMonth[month] = (registrationByMonth[month] || 0) + 1;
-            }
+            } else authCreationTimeMissing++;
           } else authAnonymousTotal++;
           if (!linkedAccount) return; // i guest anonimi non entrano nelle metriche account
           if (!realUserIds.has(u.uid)) authProfilesMissing++;
@@ -1123,7 +1144,9 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
           const returned = !!(lastAct && created && (lastAct - created) > 18 * 3600 * 1000);
           const active7d = lastAct >= sevenDaysAgo;
           authAct[u.uid] = {
-            lastActive: lastAct ? new Date(lastAct).toISOString().slice(0, 10) : null,
+            lastActive: lastAct ? new Intl.DateTimeFormat('it-IT', {
+              timeZone: 'Europe/Rome', year: 'numeric', month: '2-digit', day: '2-digit'
+            }).format(new Date(lastAct)) : null,
             returned, active7d,
             createdMs: created, email: u.email || null,
           };
@@ -1133,6 +1156,11 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
         });
         pageToken = list.pageToken;
       } while (pageToken);
+      if (authCreationTimeMissing > 0) {
+        newUsersToday = null;
+        usersReturned = null;
+        Object.keys(registrationByMonth).forEach(k => delete registrationByMonth[k]);
+      }
     } catch (e) {
       authMetricsAvailable = false;
       newUsersToday = null;
@@ -1142,39 +1170,69 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
 
     // ── Dettaglio per-utente: cosa fanno DAVVERO nell'app ──
     let usersDetail = [];
+    let usersDetailAvailable = false;
     try {
       usersDetail = await Promise.all(
         usersSnap.docs.filter(x => x.id !== ADMIN_UID).map(async (doc) => {
           const d = doc.data();
           const uid = doc.id;
-          let totalCalls = 0, daysActive = 0;
+          let totalCalls = 0, daysActive = 0, usageAvailable = true;
           try {
             const us = await db.collection('usage').doc(uid).collection('daily').get();
-            us.forEach(x => { totalCalls += (x.data().calls || 0); daysActive++; });
-          } catch (_) {}
-          let deckCount = 0, dueCount = 0;
+            us.forEach(x => {
+              const rawCalls = x.data().calls;
+              const calls = Number(rawCalls);
+              if (rawCalls == null || !Number.isFinite(calls) || calls < 0 || !Number.isInteger(calls)) {
+                usageAvailable = false;
+                return;
+              }
+              totalCalls += calls;
+              if (calls > 0) daysActive++;
+            });
+          } catch (_) { usageAvailable = false; }
+          let deckCount = 0, dueCount = 0, deckCountAvailable = true, dueCountAvailable = true;
           if (Array.isArray(d.decksMetadata)) {
             deckCount = d.decksMetadata.length;
-            dueCount = d.decksMetadata.reduce((s, x) => s + (x.dueCount || 0), 0);
+            const dueValues = d.decksMetadata.map(x => x && x.dueCount);
+            if (dueValues.some(x => x == null || !Number.isFinite(Number(x)) || Number(x) < 0)) {
+              dueCountAvailable = false;
+            } else dueCount = dueValues.reduce((s, x) => s + Number(x), 0);
+          } else if (Array.isArray(d.decks)) {
+            deckCount = d.decks.length;
+            dueCount = d.decks.reduce((sum, deck) => sum + ((deck.cards || []).filter(card => {
+              const due = card && card.nextReview ? new Date(card.nextReview).getTime() : NaN;
+              return Number.isFinite(due) && due <= Date.now();
+            }).length), 0);
+          } else if (d.migratedToSubcollections) {
+            // Mazzi migrati senza metadata: il conteggio sarebbe incompleto.
+            deckCountAvailable = false;
+            dueCountAvailable = false;
           }
-          const a = authAct[uid] || {};
+          const authDetailAvailable = authMetricsAvailable && Object.prototype.hasOwnProperty.call(authAct, uid);
+          const a = authDetailAvailable ? authAct[uid] : {};
           return {
             uid: uid.slice(0, 6),
             email: d.email || (authAct[uid] || {}).email || null,
             source: d.acquisitionSource || d.source || 'n/d',
             campaign: d.acquisitionCampaign || null,
-            plan: d.plan || 'free',
-            sparks: d.sparksBalance || 0,
+            plan: typeof d.plan === 'string' && d.plan.trim() ? d.plan.trim().toLowerCase() : null,
+            sparks: typeof d.sparksBalance === 'number' && Number.isFinite(d.sparksBalance) && d.sparksBalance >= 0 ? d.sparksBalance : null,
             created: a.createdMs ? new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome' }).format(new Date(a.createdMs)) : null,
             lastActive: a.lastActive || null,
-            returned: !!a.returned,
-            active7d: !!a.active7d,
-            totalCalls, daysActive, deckCount, dueCount,
+            returned: authDetailAvailable && a.createdMs ? !!a.returned : null,
+            authSignalAfter18h: authDetailAvailable && a.createdMs ? !!a.returned : null,
+            active7d: authDetailAvailable ? !!a.active7d : null,
+            totalCalls: usageAvailable ? totalCalls : null,
+            daysActive: usageAvailable ? daysActive : null,
+            deckCount: deckCountAvailable ? deckCount : null,
+            dueCount: dueCountAvailable ? dueCount : null,
+            usageAvailable,
           };
         })
       );
+      usersDetailAvailable = true;
       // ordina: prima chi usa di più (per capire subito attivi vs persi)
-      usersDetail.sort((x, y) => (y.totalCalls - x.totalCalls) || (y.daysActive - x.daysActive));
+      usersDetail.sort((x, y) => ((y.totalCalls ?? -1) - (x.totalCalls ?? -1)) || ((y.daysActive ?? -1) - (x.daysActive ?? -1)));
     } catch (e) {
       console.error('[adminDashboard] usersDetail error:', e);
     }
@@ -1193,10 +1251,13 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
 
     // Visite oggi
     const pvData = pageviewsDoc.exists ? pageviewsDoc.data() : {};
-    const visitesToday = { landing: pvData.landing || 0, app: pvData.app || 0 };
+    const validCount = value => typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : null;
+    const visitesToday = pageviewsDoc.exists
+      ? { landing: validCount(pvData.landing), app: validCount(pvData.app) }
+      : { landing: null, app: null };
     const sourceBreakdown = {};
     Object.entries(pvData).forEach(([k, v]) => {
-      if (k.startsWith('src_')) sourceBreakdown[k.replace('src_', '')] = v;
+      if (k.startsWith('src_') && validCount(v) != null) sourceBreakdown[k.replace('src_', '')] = v;
     });
 
     // Visite all-time: somma di tutti i documenti 'pageviews_<data>' in 'analytics'
@@ -1207,20 +1268,32 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
     let allTimeLanding = 0;
     let allTimeApp = 0;
     let trackedDays = 0;
+    let completeCounterDays = 0;
+    let sourceCountersComplete = true;
     const allTimeSourceBreakdown = {};
     analyticsAllSnap.docs.forEach(doc => {
       if (!doc.id.startsWith('pageviews_')) return;
-      if (doc.id.slice('pageviews_'.length) < ANALYTICS_RESET_DATE) return;
+      const day = doc.id.slice('pageviews_'.length);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || day < ANALYTICS_RESET_DATE || day > today) return;
       trackedDays++;
       const d = doc.data();
-      allTimeLanding += d.landing || 0;
-      allTimeApp += d.app || 0;
+      const dayLanding = validCount(d.landing), dayApp = validCount(d.app);
+      if (dayLanding == null || dayApp == null) return;
+      completeCounterDays++;
+      allTimeLanding += dayLanding;
+      allTimeApp += dayApp;
+      let daySourceTotal = 0;
       Object.entries(d).forEach(([k, v]) => {
         if (k.startsWith('src_')) {
+          if (validCount(v) == null) { sourceCountersComplete = false; return; }
+          daySourceTotal += v;
           const src = k.replace('src_', '');
           allTimeSourceBreakdown[src] = (allTimeSourceBreakdown[src] || 0) + v;
         }
       });
+      // A complete source split must reconcile with the page counters for that day.
+      // Older/partial days therefore stay unavailable instead of showing a partial list.
+      if (daySourceTotal !== dayLanding + dayApp) sourceCountersComplete = false;
     });
     // Normalizza sorgenti duplicate (ig → instagram, etc.)
     const SRC_ALIAS = { ig: 'instagram', 'ig.com': 'instagram', 't.co': 'twitter' };
@@ -1231,9 +1304,11 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
     }
 
     const visitesAllTime = {
-      landing: allTimeLanding,
-      app: allTimeApp,
-      total: allTimeLanding + allTimeApp,
+      landing: trackedDays > 0 && completeCounterDays === trackedDays ? allTimeLanding : null,
+      app: trackedDays > 0 && completeCounterDays === trackedDays ? allTimeApp : null,
+      total: trackedDays > 0 && completeCounterDays === trackedDays ? allTimeLanding + allTimeApp : null,
+      trackedDays,
+      completeCounterDays,
     };
 
     // ── JOURNEYS: percorso per-visitatore (guest inclusi), da collezione 'journeys' ──
@@ -1313,7 +1388,14 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
       const _romeNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Rome' }));
       const _msSinceMidnight = _romeNow.getHours() * 3600000 + _romeNow.getMinutes() * 60000 + _romeNow.getSeconds() * 1000 + _romeNow.getMilliseconds();
       const _todayStart = Date.now() - _msSinceMidnight;
-      journeys = rows.filter(r => (r.lastTs || 0) >= _todayStart).slice(0, 400);
+      const todayRows = rows.filter(r => (r.lastTs || 0) >= _todayStart);
+      journeyFunnel.todayTable = {
+        totalBrowsers: todayRows.length,
+        shownBrowsers: Math.min(todayRows.length, 400),
+        limit: 400,
+        limited: todayRows.length > 400,
+      };
+      journeys = todayRows.slice(0, 400);
     } catch (e) {
       journeyFunnel = { coverage: { status: 'unavailable' } };
       console.error('[adminDashboard] journeys error:', (e && e.message) || e);
@@ -1324,12 +1406,17 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
       journeys,
       journeyFunnel,
       usersDetail,
+      usersDetailAvailable,
       stripe: {
         mrr: Math.round(mrr * 100) / 100,
         totalRevenue: Math.round(totalRevenue * 100) / 100,
+        revenueByCurrency: Object.fromEntries(Object.entries(revenueByCurrency).map(([currency, amount]) => [currency, Math.round(amount * 100) / 100])),
         availableBalance: Math.round(availableBalance * 100) / 100,
         activeSubscriptions: activeSubscriptionCount,
         subsByPlan,
+        subsByStatus,
+        subscriptionsComplete: true,
+        chargesComplete: true,
         recentPayments,
         successfulChargeCount,
       },
@@ -1341,7 +1428,11 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
         authAnonymousTotal: authMetricsAvailable ? authAnonymousTotal : null,
         authDisabledTotal: authMetricsAvailable ? authDisabledTotal : null,
         authProfilesMissing: authMetricsAvailable ? authProfilesMissing : null,
+        authCreationTimeMissing: authMetricsAvailable ? authCreationTimeMissing : null,
         usersByPlan,
+        usersPlanUnclassified,
+        usersPlanComplete: Object.values(usersByPlan).reduce((sum, count) => sum + count, usersPlanUnclassified)
+          === usersSnap.docs.filter(x => x.id !== ADMIN_UID).length,
         usersWithFCM,
         usersWithSparks,
         usersActivated,
@@ -1358,8 +1449,9 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
         visitesToday,
         sourceBreakdown,
         visitesAllTime,
-        allTimeSourceBreakdown: normalizedSources,
+        allTimeSourceBreakdown: trackedDays > 0 && sourceCountersComplete ? normalizedSources : null,
         trackedDays,
+        completeCounterDays,
       },
     });
   } catch (err) {
