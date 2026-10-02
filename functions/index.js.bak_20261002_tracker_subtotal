@@ -1333,18 +1333,12 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
       normalizedSources[key] = (normalizedSources[key] || 0) + v;
     }
 
-    const hasVerifiedCounterSubtotal = completeCounterDays > 0;
-    const counterCoverageComplete = trackedDays > 0 && completeCounterDays === trackedDays;
     const visitesAllTime = {
-      // Somma esatta delle sole giornate con entrambi i contatori validi.
-      // Se la copertura è incompleta, il client la mostra come subtotale parziale,
-      // mai come totale storico completo.
-      landing: hasVerifiedCounterSubtotal ? allTimeLanding : null,
-      app: hasVerifiedCounterSubtotal ? allTimeApp : null,
-      total: hasVerifiedCounterSubtotal ? allTimeLanding + allTimeApp : null,
+      landing: trackedDays > 0 && completeCounterDays === trackedDays ? allTimeLanding : null,
+      app: trackedDays > 0 && completeCounterDays === trackedDays ? allTimeApp : null,
+      total: trackedDays > 0 && completeCounterDays === trackedDays ? allTimeLanding + allTimeApp : null,
       trackedDays,
       completeCounterDays,
-      complete: counterCoverageComplete,
     };
 
     // ── JOURNEYS: percorso per-visitatore (guest inclusi), da collezione 'journeys' ──
