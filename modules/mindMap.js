@@ -1,3 +1,5 @@
+import { escapeHTML } from '../js/utils.js';
+
 export function openMindMap(deckIdx) {
     // Physics Map rimosso — la funzionalità sarà sostituita in futuro
     const overlay = document.getElementById('mindmap-overlay');
@@ -25,7 +27,7 @@ export function drawMindMap(text, title) {
                 <defs><filter id="glow"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
                 <!-- Center node -->
                 <ellipse cx="${cx}" cy="${cy}" rx="80" ry="36" fill="#7c6af7" opacity="0.9" filter="url(#glow)"/>
-                <text x="${cx}" y="${cy + 5}" text-anchor="middle" font-family="Inter,sans-serif" font-size="13" font-weight="700" fill="white">${title.slice(0, 18)}</text>`;
+                <text x="${cx}" y="${cy + 5}" text-anchor="middle" font-family="Inter,sans-serif" font-size="13" font-weight="700" fill="white">${escapeHTML(String(title || '').slice(0, 18))}</text>`;
 
     top.forEach((word, i) => {
         const angle = (i / top.length) * 2 * Math.PI - Math.PI / 2;
@@ -37,7 +39,7 @@ export function drawMindMap(text, title) {
         svg += `
                     <line x1="${cx}" y1="${cy}" x2="${lx}" y2="${ly}" stroke="${col}" stroke-width="2" opacity="0.5"/>
                     <ellipse cx="${nx}" cy="${ny}" rx="60" ry="26" fill="${col}" opacity="0.85"/>
-                    <text x="${nx}" y="${ny + 5}" text-anchor="middle" font-family="Inter,sans-serif" font-size="12" font-weight="600" fill="white">${word}</text>`;
+                    <text x="${nx}" y="${ny + 5}" text-anchor="middle" font-family="Inter,sans-serif" font-size="12" font-weight="600" fill="white">${escapeHTML(word)}</text>`;
     });
     svg += '</svg>';
     canvas.innerHTML = svg;

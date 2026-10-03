@@ -200,11 +200,16 @@ describe('effectivePlan nei gate', () => {
   });
   it('i tre gate server usano effectivePlan (nessun calcolo del piano duplicato)', () => {
     const src = fs.readFileSync(new URL('../functions/index.js', import.meta.url), 'utf8');
-    for (const fn of ['exports.callGeminiHttp', 'async function requireDuelPlan', 'exports.textToSpeechHttp']) {
+    for (const fn of ['async function requireDuelPlan', 'exports.textToSpeechHttp']) {
       const body = src.slice(src.indexOf(fn), src.indexOf(fn) + 4000);
       expect(body).toContain('entitlements.effectivePlan(');
       expect(body).not.toMatch(/let plan = user(Data)?\.plan/);
     }
+    // Gemini: il piano passa da aiQuota.charge → aiQuota.classify → entitlements.effectivePlan
+    const gem = src.slice(src.indexOf('exports.callGeminiHttp'), src.indexOf('exports.callGeminiHttp') + 6000);
+    expect(gem).toContain('aiQuota.charge(');
+    expect(gem).not.toMatch(/let plan = user(Data)?\.plan/);
+    expect(fs.readFileSync(new URL('../functions/aiQuota.js', import.meta.url), 'utf8')).toContain('entitlements.effectivePlan(');
   });
 });
 

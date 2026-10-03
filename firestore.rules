@@ -61,21 +61,38 @@ service cloud.firestore {
       allow read, update, delete: if isAdmin();
     }
 
-    // 🧠 Profili Utente: Per la classifica pubblica.
-    // Read: Pubblico.
-    // Write: Solo l'utente autenticato può scrivere il proprio profilo.
-    // I campi XP sono validati come interi ≥0 per prevenire injection nella leaderboard.
+    // 🧠 Profili Utente: per la classifica pubblica (lettura pubblica).
+    // Audit 2026-10 (fase 1.4): gli XP sono calcolati sul dispositivo, quindi la
+    // classifica è INDICATIVA. Per limitare i falsi evidenti: alla creazione XP ≤ 1000,
+    // poi al massimo +1000 per aggiornamento e un aggiornamento XP ogni 60 secondi
+    // (lastSync = ora del server). Non rende la classifica verificata.
     match /userProfiles/{username} {
+      function xpOk(v, maxV) { return v is int && v >= 0 && v <= maxV; }
+      function prevXp() { return resource.data.get('xp', 0); }
+      function xpUpdateOk() {
+        return xpOk(request.resource.data.xp, prevXp() + 1000)
+          && request.resource.data.lastSync == request.time
+          && (!('lastSync' in resource.data) || !(resource.data.lastSync is timestamp)
+              || request.time > resource.data.lastSync + duration.value(60, 's'));
+      }
       allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == request.resource.data.uid && notDeleting(request.auth.uid) && (
-        isAdmin() || (
-          request.resource.data.uid == request.auth.uid &&
-          (!exists(/databases/$(database)/documents/userProfiles/$(username)) || resource.data.uid == request.auth.uid) &&
-          (!('xp' in request.resource.data) || (request.resource.data.xp is int && request.resource.data.xp >= 0 && request.resource.data.xp <= 100000000)) &&
-          (!('totalXP' in request.resource.data) || (request.resource.data.totalXP is int && request.resource.data.totalXP >= 0 && request.resource.data.totalXP <= 100000000)) &&
-          (!('weeklyXP' in request.resource.data) || (request.resource.data.weeklyXP is int && request.resource.data.weeklyXP >= 0 && request.resource.data.weeklyXP <= 10000000))
-        )
-      );
+      allow create: if request.auth != null && (isAdmin() || (
+        request.resource.data.uid == request.auth.uid
+        && notDeleting(request.auth.uid)
+        && (!('xp' in request.resource.data) || xpOk(request.resource.data.xp, 1000))
+        && (!('totalXP' in request.resource.data) || xpOk(request.resource.data.totalXP, 1000))
+        && (!('weeklyXP' in request.resource.data) || xpOk(request.resource.data.weeklyXP, 1000))
+        && (!('name' in request.resource.data) || isValidString(request.resource.data.name, 50))
+      ));
+      allow update: if request.auth != null && (isAdmin() || (
+        resource.data.uid == request.auth.uid
+        && request.resource.data.uid == request.auth.uid
+        && notDeleting(request.auth.uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name','xp','level','lastSync','neuralStats','lastUpdate','architectLevel'])
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['xp']) || xpUpdateOk())
+        && (!('name' in request.resource.data) || isValidString(request.resource.data.name, 50))
+      ));
+      allow delete: if request.auth != null && (isAdmin() || resource.data.uid == request.auth.uid);
     }
 
     // 👤 Dati Privati Utente (Cloud Sync): Solo il proprietario può accedere.
@@ -187,6 +204,11 @@ service cloud.firestore {
         && request.auth.uid == profileId
         && request.resource.data.uid == request.auth.uid
         && notDeleting(profileId)
+        // Contatori social: li mantengono i trigger server; alla creazione 0 o assenti
+        // (anche dopo delete + ricreazione del profilo). Audit 2026-10, fase 1.4.
+        && (!('followersCount' in request.resource.data) || request.resource.data.followersCount == 0)
+        && (!('followingCount' in request.resource.data) || request.resource.data.followingCount == 0)
+        && (!('friendsCount' in request.resource.data) || request.resource.data.friendsCount == 0)
         && validProfile();
       allow update: if request.auth != null
         && request.auth.uid == profileId

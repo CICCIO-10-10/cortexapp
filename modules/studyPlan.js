@@ -20,7 +20,7 @@ import { t } from '../core/i18n.js';
  */
 import { buildDeckObject } from './deckForm.js';
 import { callGemini } from '../services/firebase.js';
-import { handleAIError } from '../js/utils.js';
+import { handleAIError, escapeHTML } from '../js/utils.js';
 
 // ── Dependency injection ──────────────────────────────────────────────────────
 
@@ -224,13 +224,16 @@ export function generateStudyPlan(d, deckIdx) {
     const hasCards = d.cards && d.cards.length > 0;
     const studyBtn = hasCards
         ? `<button aria-label="Inizia sessione di studio con Spaced Repetition" class="btn btn-primary" data-fn="startStudy" data-params="[${deckIdx}]">▶ Inizia Spaced Repetition</button>`
-        : `<button aria-label="Aggiungi flashcard a ${d.name}" class="btn btn-outline" data-fn="editDeckAndScrollFlashcards" data-params="[${deckIdx}]">+ Aggiungi Flashcard a ${d.name}</button>`;
+        : `<button aria-label="Aggiungi flashcard a ${escapeHTML(d.name)}" class="btn btn-outline" data-fn="editDeckAndScrollFlashcards" data-params="[${deckIdx}]">+ Aggiungi Flashcard a ${escapeHTML(d.name)}</button>`;
     const attHtml = (d.attachments && d.attachments.length > 0) ? `
                 <div style="margin-top:16px; margin-bottom:16px;">
                     <h4 style="font-size:0.85rem;color:var(--accent2);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">📎 Allegati Esame</h4>
                     <div style="display:flex;gap:12px;flex-wrap:wrap;">
-                        ${d.attachments.map(a => {
-        const isImg = a.type && a.type.startsWith('image/');
+                        ${d.attachments.map(a0 => {
+        // Allegati possibilmente importati: solo URL data:/https: e attributi con escape (audit 2026-10).
+        const safeUrl = (typeof a0.data === 'string' && /^(data:|https:)/i.test(a0.data)) ? a0.data : '#';
+        const a = { ...a0, data: escapeHTML(safeUrl), name: escapeHTML(a0.name || 'allegato') };
+        const isImg = typeof a0.type === 'string' && a0.type.startsWith('image/');
         if (isImg) {
             return '<a href="' + a.data + '" target="_blank" rel="noopener noreferrer" style="display:block;border:1px solid var(--border);border-radius:8px;overflow:hidden;width:80px;height:80px;"><img src="' + a.data + '" style="width:100%;height:100%;object-fit:cover;" /></a>';
         } else {
@@ -242,7 +245,7 @@ export function generateStudyPlan(d, deckIdx) {
             ` : '';
 
     return `
-<div class="plan-header"><h2>${t('plan_title')} — ${d.name}</h2><p>${d.subject || ''}${topics ? ' · Focus: ' + topics : ''}</p></div>
+<div class="plan-header"><h2>${t('plan_title')} — ${escapeHTML(d.name)}</h2><p>${escapeHTML(d.subject || '')}${topics ? ' · Focus: ' + escapeHTML(topics) : ''}</p></div>
 <div class="exam-badge-row">${examBadges}</div>
 ${urgentWarn}
 <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px 20px;margin-bottom:24px;">

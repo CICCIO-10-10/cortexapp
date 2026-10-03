@@ -1,5 +1,6 @@
 import { t } from '../core/i18n.js';
 import { TRANSLATIONS } from '../data/translations.js';
+import { escapeHTML } from '../js/utils.js';
 const _t = () => TRANSLATIONS[localStorage.getItem('mm_lang')||'it'] || TRANSLATIONS.it;
 /**
  * modules/pao.js — Sistema P.A.O. (Persona-Azione-Oggetto) (Phase 10)
@@ -98,9 +99,9 @@ export function renderPAOTable() {
         const pao = getPAOForTwoDigits(num);
         html += `<tr>
             <td style="padding:10px; border-bottom:1px solid var(--surface3); font-weight:800; color:var(--accent);">${num}</td>
-            <td style="padding:10px; border-bottom:1px solid var(--surface3);">${pao.p}</td>
-            <td style="padding:10px; border-bottom:1px solid var(--surface3);">${pao.a}</td>
-            <td style="padding:10px; border-bottom:1px solid var(--surface3);">${pao.o}</td>
+            <td style="padding:10px; border-bottom:1px solid var(--surface3);">${escapeHTML(pao.p)}</td>
+            <td style="padding:10px; border-bottom:1px solid var(--surface3);">${escapeHTML(pao.a)}</td>
+            <td style="padding:10px; border-bottom:1px solid var(--surface3);">${escapeHTML(pao.o)}</td>
         </tr>`;
     }
     html += '</table>';

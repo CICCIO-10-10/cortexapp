@@ -30,10 +30,22 @@ export function daysDiff(a, b) {
  * Usato per rendere sicuro il testo prima di inserirlo in innerHTML.
  */
 export function escapeHTML(str) {
-    if (!str) return '';
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
+    // Audit 2026-10 (fase 1.4): sicuro sia nel testo sia negli attributi tra
+    // virgolette (prima " e ' non venivano convertiti). null/undefined → ''.
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+/** Copia profonda con tutte le stringhe passate per escapeHTML (per template HTML con dati AI/cloud). */
+export function escapeDeep(value) {
+    if (typeof value === 'string') return escapeHTML(value);
+    if (Array.isArray(value)) return value.map(escapeDeep);
+    if (value && typeof value === 'object') {
+        const out = {};
+        for (const [k, v] of Object.entries(value)) out[k] = escapeDeep(v);
+        return out;
+    }
+    return value;
 }
 
 /**

@@ -263,6 +263,12 @@ export async function loadLeaderboard() {
         `).join('');
         container.appendChild(leagueHeader);
 
+        // Classifica indicativa: gli XP sono calcolati sul dispositivo (audit 2026-10).
+        const leagueNote = document.createElement('p');
+        leagueNote.style.cssText = 'text-align:center; font-size:0.72rem; color:var(--text-muted); margin:-8px 0 14px;';
+        leagueNote.textContent = 'Classifica indicativa: gli XP sono calcolati sul dispositivo e aggiornati per gradi.';
+        container.appendChild(leagueNote);
+
         // Lista classificata
         entries.forEach((u, idx) => {
             const rank = idx + 1;
@@ -436,16 +442,30 @@ export function promptImportDeck() {
 }
 
 
+// Audit 2026-10 (fase 1.4): le regole accettano al massimo +1000 XP per
+// aggiornamento e un aggiornamento XP ogni 60s. Il client si adegua: sale per
+// gradi verso gli XP locali invece di farsi rifiutare la scrittura.
+const PROFILE_XP_STEP = 1000;
+const PROFILE_SYNC_MIN_MS = 65 * 1000;
+let _lastProfileSync = 0;
 export async function syncPublicProfile() {
     const db = _deps.getDB();
-    if (!_deps.state.username || !db) return;
+    if (!_deps.state.username || !db || !_deps.state.userId) return;
+    if (Date.now() - _lastProfileSync < PROFILE_SYNC_MIN_MS) return;
+    _lastProfileSync = Date.now();
     try {
         const gState  = _deps.getGState();
         const userRef = db.collection("userProfiles").doc(_deps.state.username);
+        const snap = await userRef.get();
+        const prev = snap.exists ? (snap.data() || {}) : null;
+        if (prev && prev.uid && prev.uid !== _deps.state.userId) return; // username di un altro utente
+        const localXp = Math.max(0, Math.floor(Number(gState.xp) || 0));
+        const prevXp = prev ? Math.max(0, Math.floor(Number(prev.xp) || 0)) : 0;
+        const xp = Math.min(localXp, prevXp + PROFILE_XP_STEP);
         await userRef.set({
             uid:      _deps.state.userId,
-            name:     _deps.state.username,
-            xp:       gState.xp || 0,
+            name:     String(_deps.state.username).slice(0, 50),
+            xp,
             level:    _deps.getLevel().name,
             lastSync: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true });

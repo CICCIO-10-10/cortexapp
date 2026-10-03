@@ -1,3 +1,4 @@
+import { escapeHTML } from '../js/utils.js';
 /**
  * referralLeaderboard.js — Cortex Referral Leaderboard
  *
@@ -329,12 +330,12 @@ export async function buildLeaderboardUI(containerEl) {
                             ${i < 3 ? medals[i] : `<span style="color:#6b7280;font-weight:700">${i + 1}</span>`}
                         </div>
                         ${e.photoURL
-                            ? `<img src="${e.photoURL}" style="width:36px;height:36px;border-radius:50%;object-fit:cover">`
-                            : `<div style="width:36px;height:36px;border-radius:50%;background:#4b3f72;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700">${e.displayName[0]}</div>`
+                            ? `<img src="${escapeHTML(e.photoURL)}" alt="" style="width:36px;height:36px;border-radius:50%;object-fit:cover">`
+                            : `<div style="width:36px;height:36px;border-radius:50%;background:#4b3f72;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700">${escapeHTML((e.displayName || "?")[0])}</div>`
                         }
                         <div style="flex:1">
                             <div style="color:var(--text);font-weight:600;font-size:0.95rem">
-                                ${e.displayName}${e.isCurrentUser ? ' <span style="color:#8b5cf6;font-size:0.75rem">(tu)</span>' : ''}
+                                ${escapeHTML(e.displayName)}${e.isCurrentUser ? ' <span style="color:#8b5cf6;font-size:0.75rem">(tu)</span>' : ''}
                             </div>
                             <div style="color:#9ca3af;font-size:0.78rem">${_getPrize(e.rank)?.label || ''}</div>
                         </div>

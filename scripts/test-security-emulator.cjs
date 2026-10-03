@@ -37,7 +37,8 @@ function value(v) {
 function fields(data){return Object.fromEntries(Object.entries(data).map(([k,v])=>[k,value(v)]));}
 async function request(method,path,data,token,expected,stamp=false) {
   const url=stamp?base+':commit':base+'/'+path;
-  const body=stamp?{writes:[{update:{name:root+'/'+path,fields:fields(data)},updateTransforms:[{fieldPath:'timestamp',setToServerValue:'REQUEST_TIME'}]}]}:data?{fields:fields(data)}:undefined;
+  const stampField=typeof stamp==='string'?stamp:'timestamp';
+  const body=stamp?{writes:[{update:{name:root+'/'+path,fields:fields(data)},updateTransforms:[{fieldPath:stampField,setToServerValue:'REQUEST_TIME'}]}]}:data?{fields:fields(data)}:undefined;
   const res=await fetch(url,{method:stamp?'POST':method,headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:body?JSON.stringify(body):undefined});
   const result=await res.json();
   assert.equal(res.status,expected,`${method} ${path}: ${JSON.stringify(result)}`);checks++;
@@ -76,6 +77,21 @@ async function main(){
   }
   await request('PATCH','userProfiles/'+run,{uid:a,xp:10},alice,200);
   await request('PATCH','userProfiles/'+run,{uid:b,xp:20},bob,403);
+  // Fase 1.4: XP — creazione ≤ 1000, poi +1000 al massimo e un aggiornamento ogni 60s.
+  const up='xp-'+run,upRef=db.doc('userProfiles/'+up);
+  await request('PATCH','userProfiles/xp-big-'+run,{uid:a,xp:5000},alice,403);
+  await request('PATCH','userProfiles/'+up,{uid:a,name:'Alice',xp:900},alice,200,'lastSync');
+  await request('PATCH','userProfiles/'+up,{uid:a,name:'Alice',xp:1500},alice,403,'lastSync'); // < 60s
+  await upRef.update({lastSync:Timestamp.fromMillis(Date.now()-120000)});
+  await request('PATCH','userProfiles/'+up,{uid:a,name:'Alice',xp:5000},alice,403,'lastSync'); // salto > 1000
+  await request('PATCH','userProfiles/'+up,{uid:a,name:'Alice',xp:1900},alice,200,'lastSync');
+  await upRef.update({lastSync:Timestamp.fromMillis(Date.now()-120000)});
+  await request('PATCH','userProfiles/'+up,{uid:a,name:'Alice',xp:2500},alice,403); // senza lastSync del server
+  await request('PATCH','userProfiles/'+up,{uid:b,name:'Bob',xp:1},bob,403); // profilo di un altro
+  // Fase 1.4: contatori social a zero alla creazione del profilo.
+  await request('PATCH','profiles/'+b,{uid:b,isPublic:true,followersCount:5},bob,403);
+  await request('PATCH','profiles/'+b,{uid:b,isPublic:true,followersCount:0,followingCount:0,friendsCount:0},bob,200);
+  await request('PATCH','profiles/'+b,{uid:b,isPublic:true,followersCount:500,followingCount:0,friendsCount:0},bob,403); // update: contatori non modificabili
 
   // purchase = oggetto normalizzato (security.normalizePlayProduct / normalizePlaySubscription)
   const input={db,admin,uid:a,sku:'cortex_sparks_50',purchaseToken:'test-receipt-'+run,purchase:security.normalizePlayProduct({purchaseState:0}),HttpsError};

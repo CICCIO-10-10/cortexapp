@@ -5,6 +5,7 @@ import { t } from '../core/i18n.js';
 
 import { TECHNIQUES } from '../data/techniques.js';
 import { callGemini } from '../services/firebase.js';
+import { escapeHTML } from '../js/utils.js';
 
 /**
  * Inizializza il modulo e bindEvents per data-fn nel registry.
@@ -145,7 +146,9 @@ export function getTechPageHTML() {
 // ─── Utility: mini markdown → HTML ───────────────────────────────────────────
 function _mdToHtml(text) {
     if (!text) return '';
-    return text
+    // Prima si neutralizza l'HTML (testo AI non attendibile), poi si applica il
+    // mini-markdown (audit 2026-10, fase 1.4).
+    return escapeHTML(String(text))
         // Bold **text** o __text__
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
         .replace(/__(.+?)__/g, '<strong>$1</strong>')

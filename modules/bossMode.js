@@ -159,7 +159,7 @@ async function evaluateBossAnswer(transcript, answer) {
     const gLang = _deps.getLang();
     const t     = TRANSLATIONS[gLang];
     if (result.match) {
-        resEl.innerHTML        = `🛡️ ${t.boss_parried} (${result.score}% precisione)<br><small style="color:var(--text-muted); opacity:0.8;">${sanitize(result.feedback)}</small>`;
+        resEl.innerHTML        = `🛡️ ${t.boss_parried} (${Number(result.score) || 0}% precisione)<br><small style="color:var(--text-muted); opacity:0.8;">${sanitize(result.feedback)}</small>`;
         resEl.style.color      = '#10b981';
         resEl.style.background = 'rgba(16,185,129,0.1)';
         awardXP(25, '⚔️ Difesa Epica');

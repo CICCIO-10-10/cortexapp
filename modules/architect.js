@@ -22,7 +22,7 @@ import { t } from '../core/i18n.js';
  *   fetchWithTimeout   ← js/utils.js
  */
 import { awardXP }          from './gamification.js';
-import { fetchWithTimeout, todayStr }  from '../js/utils.js';
+import { fetchWithTimeout, todayStr, escapeHTML, escapeDeep }  from '../js/utils.js';
 import { callGemini }        from '../services/firebase.js';
 import { track }             from '../core/analytics.js';
 
@@ -327,7 +327,7 @@ export function renderMaterialSection(deckId) {
             <button aria-label="Torna alla home" data-fn="renderHome" style="background:none; border:none; color:var(--accent); cursor:pointer; font-size:0.9rem; margin-bottom:20px; display:flex; align-items:center; gap:5px;">
                 ${t('arch_back')}
             </button>
-            <h2 style="color: var(--text-main); margin-bottom: 10px;">Gestione Fonti: ${deck.name}</h2>
+            <h2 style="color: var(--text-main); margin-bottom: 10px;">Gestione Fonti: ${escapeHTML(deck.name)}</h2>
             <p style="color: var(--text-sub); font-size: 0.9rem; margin-bottom: 30px;">
                 Seleziona i file che l'IA deve utilizzare come base per la tua conoscenza.
             </p>
@@ -360,7 +360,7 @@ function renderSourceRows(deck) {
         <div class="source-row" style="display: flex; align-items: center; justify-content: space-between; padding: 15px 20px; border-bottom: 1px solid var(--border-color); transition: 0.2s; ${source.isActive ? 'background: rgba(124, 58, 237, 0.05);' : 'opacity: 0.6;'}">
             <div style="display: flex; align-items: center; gap: 15px;">
                 <span style="font-size: 1.2rem;">${source.name.endsWith('.pdf') ? '📕' : '📄'}</span>
-                <span style="font-size: 0.95rem; color: var(--text-main); font-weight: ${source.isActive ? '600' : '400'};">${source.name}</span>
+                <span style="font-size: 0.95rem; color: var(--text-main); font-weight: ${source.isActive ? '600' : '400'};">${escapeHTML(source.name)}</span>
             </div>
             
             <div style="display: flex; align-items: center; gap: 20px;">
@@ -458,7 +458,7 @@ export function renderNeuralStrips() {
              style="display: flex; align-items: center; justify-content: space-between; padding: 20px 0; border-bottom: 1px solid rgba(255,255,255,0.03); cursor: pointer; transition: 0.3s;">
             <div style="display: flex; align-items: center; gap: 20px;">
                 <div class="status-dot" style="width: 6px; height: 6px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 12px var(--accent);"></div>
-                <span style="font-size: 1.1rem; font-weight: 400; letter-spacing: -0.5px; color:var(--text);">${deck.name}</span>
+                <span style="font-size: 1.1rem; font-weight: 400; letter-spacing: -0.5px; color:var(--text);">${escapeHTML(deck.name)}</span>
             </div>
             <div style="font-size: 0.75rem; font-family: monospace; opacity: 0.4; color:var(--text);">
                 ${deck.cards?.length || 0} UNITS
@@ -509,7 +509,7 @@ export function renderDeckGrid() {
     return (_deps.state.decks || []).map((d, index) => `
         <div class="deck-card" data-fn="openDeck" data-params="[${index}]" style="padding:20px; border-radius:16px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); text-align:center; cursor:pointer; transition:0.2s;">
             <div style="font-size:2rem; margin-bottom:10px;">📚</div>
-            <h4 style="font-size:1.1rem; color:var(--text); margin-bottom:5px;">${d.name}</h4>
+            <h4 style="font-size:1.1rem; color:var(--text); margin-bottom:5px;">${escapeHTML(d.name)}</h4>
             <div style="font-size:0.8rem; color:var(--text-muted);">${d.cards ? d.cards.length : 0} carte</div>
         </div>
     `).join('');
@@ -1179,13 +1179,13 @@ export function renderArchStep() {
                             <div style="width:${progress}%; height:100%; background:var(--accent); transition:width 0.3s ease;"></div>
                         </div>
                         <div data-i18n="arch_neural_diag" style="font-size:0.75rem; color:var(--accent); font-weight:800; text-transform:uppercase; letter-spacing:2px; margin-bottom:12px;">Diagnostica Neurale Adattiva: Modulo ${archStep + 1} di ${MAX_DYNAMIC_QUESTIONS}</div>
-                        <h2 style="font-size:1.8rem; font-weight:700; line-height:1.3; max-width:650px; margin:0 auto; color:var(--text);">${q.q}</h2>
+                        <h2 style="font-size:1.8rem; font-weight:700; line-height:1.3; max-width:650px; margin:0 auto; color:var(--text);">${escapeHTML(q.q)}</h2>
                     </div>
                     <div style="display:grid; grid-template-columns:1fr; gap:16px; max-width: 650px; margin: 0 auto;">
                         ${q.opts.map((o, i) => `
-                            <button aria-label="Opzione ${String.fromCharCode(65+i)}: ${o.substring(0,40).replace(/"/g,'&quot;')}" class="arch-option glass" data-fn="saveArchAnswer" data-params="[${i}]" style="text-align:left; padding:20px; border-radius:16px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.02); color:rgba(255,255,255,0.9); cursor:pointer; font-size:1rem; transition:all 0.2s; display:flex; align-items:center; gap:16px;">
+                            <button aria-label="Opzione ${String.fromCharCode(65+i)}: ${escapeHTML(String(o).substring(0,40))}" class="arch-option glass" data-fn="saveArchAnswer" data-params="[${i}]" style="text-align:left; padding:20px; border-radius:16px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.02); color:rgba(255,255,255,0.9); cursor:pointer; font-size:1rem; transition:all 0.2s; display:flex; align-items:center; gap:16px;">
                                 <div style="width:32px; height:32px; border-radius:50%; background:var(--accent-glow); border:1px solid var(--accent); display:flex; align-items:center; justify-content:center; font-size:0.8rem; font-weight:800; flex-shrink:0;">${String.fromCharCode(65 + i)}</div>
-                                <span>${o}</span>
+                                <span>${escapeHTML(o)}</span>
                             </button>
                         `).join('')}
 
@@ -1580,30 +1580,32 @@ export async function generateAuraPlan() {
 }
 
 export function renderAuraPlanDashboard(b) {
+    // Testi generati dall'AI: mai inseriti come HTML (audit 2026-10, fase 1.4).
+    const v = escapeDeep(b || {});
     const container = document.getElementById('arch-content');
 
     container.innerHTML = `
                 <div style="text-align:center; margin-bottom:40px;">
                     <div style="font-size:4rem; margin-bottom:16px;">💎</div>
-                    <h2 style="font-size:2.2rem; font-weight:800; color:var(--text); text-shadow:0 0 20px var(--accent-glow); margin-bottom:8px;">${b.title}</h2>
-                    <p style="color:var(--text-muted); font-size:1.1rem; max-width:600px; margin:0 auto; line-height:1.6;">${b.description}</p>
+                    <h2 style="font-size:2.2rem; font-weight:800; color:var(--text); text-shadow:0 0 20px var(--accent-glow); margin-bottom:8px;">${v.title}</h2>
+                    <p style="color:var(--text-muted); font-size:1.1rem; max-width:600px; margin:0 auto; line-height:1.6;">${v.description}</p>
                     
-                    ${b.dailyGoal ? `
+                    ${v.dailyGoal ? `
                     <div style="display:flex; justify-content:center; gap:12px; margin-top:24px; flex-wrap:wrap;">
                         <div class="glass" style="padding:10px 16px; border-radius:12px; text-align:left; border:1px solid rgba(255,255,255,0.05); background:rgba(255,255,255,0.02);">
                             <div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px;">🎯 Obiettivo</div>
-                            <div style="font-weight:800; color:var(--accent2); margin-top:4px;">${b.dailyGoal}</div>
+                            <div style="font-weight:800; color:var(--accent2); margin-top:4px;">${v.dailyGoal}</div>
                         </div>
                         <div class="glass" style="padding:10px 16px; border-radius:12px; text-align:left; border:1px solid rgba(255,255,255,0.05); background:rgba(255,255,255,0.02);">
                             <div style="font-size:0.65rem; color:var(--gold); text-transform:uppercase; letter-spacing:1px;">🧠 Tecnica</div>
-                            <div style="font-weight:800; color:var(--gold); margin-top:4px;">${b.suggestedTechnique}</div>
+                            <div style="font-weight:800; color:var(--gold); margin-top:4px;">${v.suggestedTechnique}</div>
                         </div>
                         <div class="glass" style="padding:10px 16px; border-radius:12px; text-align:left; border:1px solid rgba(255,255,255,0.05); background:rgba(255,255,255,0.02);">
                             <div style="font-size:0.65rem; color:var(--green); text-transform:uppercase; letter-spacing:1px;">📈 Rendimento</div>
-                            <div style="font-weight:800; color:var(--green); margin-top:4px;">${b.efficiencyScore}%</div>
+                            <div style="font-weight:800; color:var(--green); margin-top:4px;">${v.efficiencyScore}%</div>
                         </div>
                     </div>
-                    ${b.notes ? `<p style="margin-top:16px; font-size:0.9rem; color:var(--accent2); font-style:italic; max-width:500px; margin-left:auto; margin-right:auto;">💡 <strong>Nota:</strong> ${b.notes}</p>` : ''}
+                    ${v.notes ? `<p style="margin-top:16px; font-size:0.9rem; color:var(--accent2); font-style:italic; max-width:500px; margin-left:auto; margin-right:auto;">💡 <strong>Nota:</strong> ${v.notes}</p>` : ''}
                     ` : ''}
                 </div>
 
@@ -1611,7 +1613,7 @@ export function renderAuraPlanDashboard(b) {
                     <div class="glass" style="padding:32px; border-radius:32px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.02);">
                         <h4 style="color:var(--accent); font-size:0.8rem; text-transform:uppercase; letter-spacing:2px; margin-bottom:24px;"></h4>
                         <div style="display:flex; flex-direction:column; gap:20px;">
-                            ${b.strategies.map(s => `
+                            ${v.strategies.map(s => `
                                 <div style="display:flex; gap:16px; align-items:flex-start;">
                                     <div style="width:40px; height:40px; border-radius:12px; background:rgba(124,106,247,0.1); display:flex; align-items:center; justify-content:center; color:var(--accent); flex-shrink:0;">✨</div>
                                     <div>
@@ -1626,7 +1628,7 @@ export function renderAuraPlanDashboard(b) {
                     <div class="glass" style="padding:32px; border-radius:32px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.02);">
                         <h4 style="color:var(--gold); font-size:0.8rem; text-transform:uppercase; letter-spacing:2px; margin-bottom:24px;">Study Hacks Pro</h4>
                         <div style="display:flex; flex-direction:column; gap:12px;">
-                            ${b.hacks.map(h => `
+                            ${v.hacks.map(h => `
                                 <div style="padding:16px; border-radius:16px; background:rgba(245,158,11,0.05); border:1px solid rgba(245,158,11,0.1); font-size:0.9rem; color:rgba(255,255,255,0.9); font-weight:600;">⚡ ${h}</div>
                             `).join('')}
                         </div>
@@ -1649,8 +1651,8 @@ export function renderAuraPlanDashboard(b) {
                                 <div style="display:flex; flex-wrap:wrap; gap:10px;" id="applyDecksList">
                                     ${_deps.state.decks.map((deck, idx) => `
                                         <label style="display:flex; align-items:center; gap:8px; cursor:pointer; background:rgba(255,255,255,0.05); padding:6px 14px; border-radius:100px; border:1px solid rgba(255,255,255,0.1);">
-                                            <input type="checkbox" data-deck-idx="${idx}" aria-label="Applica a ${deck.name}" checked style="accent-color:var(--accent);">
-                                            <span style="font-size:0.85rem; color:var(--text);">${deck.name}</span>
+                                            <input type="checkbox" data-deck-idx="${idx}" aria-label="Applica a ${escapeHTML(deck.name)}" checked style="accent-color:var(--accent);">
+                                            <span style="font-size:0.85rem; color:var(--text);">${escapeHTML(deck.name)}</span>
                                         </label>
                                     `).join('')}
                                 </div>

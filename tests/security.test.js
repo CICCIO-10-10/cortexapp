@@ -32,7 +32,8 @@ it('does not call the paid provider when quota storage is unavailable',async()=>
   let providerCalls=0,status;
   const exports={};
   vm.runInNewContext(source.slice(start,end),{
-    exports,functions:{https:{onRequest:fn=>fn}},
+    exports,functions:{https:{onRequest:fn=>fn},runWith:()=>({https:{onRequest:fn=>fn}})},
+    aiQuota:require('../functions/aiQuota.js'),entitlements:require('../functions/entitlements.js'),observeAppCheck:async()=>'missing',
     admin:{auth:()=>({verifyIdToken:async()=>({uid:'ordinary-user'})})},
     db:{collection:()=>({doc:()=>({collection:()=>({doc:()=>({})})})}),runTransaction:async()=>{throw Error('unavailable');}},
     getClientIp:()=> '127.0.0.1',ipRateLimit:()=>true,

@@ -25,7 +25,7 @@ const _t = () => TRANSLATIONS[localStorage.getItem('mm_lang')||'it'] || TRANSLAT
  */
 import { awardXP }             from './gamification.js';
 import { renderDecks }         from './decks.js';
-import { todayStr, sanitizeHTML } from '../js/utils.js';
+import { todayStr, sanitizeHTML, escapeHTML } from '../js/utils.js';
 import { APP_CONFIG }          from '../js/config.js';
 import { track }               from '../core/analytics.js';
 
@@ -174,7 +174,7 @@ export function renderPendingAttachments() {
     if (!container) return;
     container.innerHTML = pendingExamAttachments.map((att, i) => `
                 <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:0.75rem;display:flex;align-items:center;gap:6px;">
-                    <span style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${att.name || 'Allegato'}</span>
+                    <span style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHTML(att.name || 'Allegato')}</span>
                     <button aria-label="Rimuovi questo allegato" data-fn="removeExamAttachment" data-params="[${i}]" style="background:none;border:none;color:var(--red);cursor:pointer;">✕</button>
                 </div>
             `).join('');

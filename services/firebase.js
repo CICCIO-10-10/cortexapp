@@ -124,6 +124,16 @@ export async function callGeminiProxy(payload) {
     let data = {};
     try { data = await res.json(); } catch (_) {}
     if (!res.ok) {
+        if (data.error === 'GUEST_LIMIT_REACHED') {
+            // Ospite (account anonimo) oltre la quota gratuita: è il momento di
+            // proporre l'accesso gratuito, non un errore (stesso gate di prima).
+            const g = new Error('GUEST_LOGIN_REQUIRED');
+            g.isGuestGate = true;
+            throw g;
+        }
+        if (data.error === 'AI_CAPACITY_REACHED') {
+            throw new Error('Il servizio AI gratuito ha raggiunto il limite di oggi. Riprova domani oppure passa a Student.');
+        }
         const msg = data.error === 'PAYWALL_LIMIT_REACHED'
             ? 'PAYWALL_LIMIT_REACHED'
             : (data.details || data.error || ('Errore AI (HTTP ' + res.status + ')'));

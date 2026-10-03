@@ -24,6 +24,7 @@ const entitlements = require("./entitlements");
 const accountDeletion = require("./accountDeletion");
 const referral = require("./referral");
 const stripeBilling = require("./stripeBilling");
+const aiQuota = require("./aiQuota");
 const crypto = require("node:crypto");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 // googleapis è enorme: caricarlo al top-level rallenta ogni cold start e può far sforare
@@ -76,7 +77,22 @@ function getStripe() {
  * 
  * callGeminiProxy({ model: string, contents: object, generationConfig: object })
  */
-exports.callGeminiHttp = functions.https.onRequest(async (req, res) => {
+// App Check in SOLA OSSERVAZIONE (audit 2026-10, fase 1.4): registra se le
+// richieste portano un token valido, senza bloccarle. L'enforcement si attiva
+// solo dopo aver configurato e verificato il client (reCAPTCHA Enterprise).
+async function observeAppCheck(req, endpoint) {
+  const header = req.headers['x-firebase-appcheck'];
+  let status = 'missing';
+  if (header) {
+    try { await require('firebase-admin/app-check').getAppCheck().verifyToken(String(header)); status = 'valid'; }
+    catch (_) { status = 'invalid'; }
+  }
+  console.log(JSON.stringify({ metric: 'appcheck_observe', endpoint, status }));
+  return status;
+}
+
+// maxInstances limita le chiamate AI contemporanee (1 richiesta per istanza in gen1).
+exports.callGeminiHttp = functions.runWith({ maxInstances: 20 }).https.onRequest(async (req, res) => {
   // ── CORS: accetta da cortexapp.it e cortex-app.web.app ──────────────────────
   const allowedOrigins = ['https://cortexapp.it', 'https://cortex-74a4e.web.app', 'https://cortex-74a4e.firebaseapp.com'];
   const origin = req.headers.origin || '';
@@ -112,9 +128,9 @@ exports.callGeminiHttp = functions.https.onRequest(async (req, res) => {
     res.status(401).json({ error: 'Unauthorized: missing token' });
     return;
   }
-  let uid;
+  let uid, decoded;
   try {
-    const decoded = await admin.auth().verifyIdToken(idToken);
+    decoded = await admin.auth().verifyIdToken(idToken);
     uid = decoded.uid;
   } catch (e) {
     res.status(401).json({ error: 'Unauthorized: invalid token' });
@@ -142,47 +158,26 @@ exports.callGeminiHttp = functions.https.onRequest(async (req, res) => {
   // Quota must be checked successfully before calling the paid AI provider.
   // Admin bypass: nessun limite per l'account amministratore
   const isAdmin = uid === 'f8oLEt3LDpT7VN9zFOa10mVE2Cf2';
-
-  const userRef = db.collection("users").doc(uid);
-  const today = new Date().toISOString().split('T')[0];
-  const usageRef = db.collection("usage").doc(uid).collection("daily").doc(today);
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 35);
-
-  if (!isAdmin) try {
-    await db.runTransaction(async (transaction) => {
-      const userDoc = await transaction.get(userRef);
-      const userData = userDoc.exists ? userDoc.data() : {};
-      // Diritti effettivi: piano pagato non scaduto (Play) > trial > free.
-      const plan = entitlements.effectivePlan(userData, Date.now()).plan;
-      const usageDoc = await transaction.get(usageRef);
-      const currentUsage = (usageDoc.exists ? usageDoc.data().calls : 0) || 0;
-      // Pro keeps effectively high fair-use headroom while protecting spend
-      // from scripted abuse. Can be tuned centrally without redeploying code.
-      const limits = { free: 25, student: 100, pro: Math.max(100, Number(process.env.GEMINI_PRO_DAILY_LIMIT) || 2000) };
-      const limit = limits[plan] || limits.free;
-      if (currentUsage >= limit) {
-        const sparksBalance = (userDoc.exists ? userDoc.data().sparksBalance : 0) || 0;
-        if (sparksBalance > 0) {
-          transaction.update(userRef, { sparksBalance: admin.firestore.FieldValue.increment(-1) });
-          transaction.set(usageRef, { calls: currentUsage + 1, lastUpdated: admin.firestore.FieldValue.serverTimestamp(), expiresAt }, { merge: true });
-          return;
-        }
-        res.status(429).json({ error: 'PAYWALL_LIMIT_REACHED' });
-        throw new Error('PAYWALL_SENT');
-      }
-      transaction.set(usageRef, { calls: currentUsage + 1, lastUpdated: admin.firestore.FieldValue.serverTimestamp(), expiresAt }, { merge: true });
-    });
+  const quotaLimits = aiQuota.limitsFromEnv(process.env);
+  let receipt;
+  try {
+    const result = await aiQuota.charge({ db, admin, uid, token: decoded, isAdmin, limits: quotaLimits, entitlements });
+    if (!result.ok) {
+      res.status(result.status).json({ error: result.error });
+      return;
+    }
+    receipt = result.receipt;
   } catch (err) {
-    if (err.message === 'PAYWALL_SENT') return;
     console.error("Quota check unavailable:", err.code || "unknown");
     res.status(503).json({ error: "Quota temporaneamente non verificabile. Riprova." });
     return;
   }
+  try { await observeAppCheck(req, 'gemini'); } catch (_) {}
 
   // ── Gemini API Call (direct REST, no SDK) ───────────────────────────────────
   const apiKey = process.env.GEMINI_KEY;
   if (!apiKey) {
+    try { await aiQuota.refund({ db, admin, uid, receipt }); } catch (_) {}
     res.status(500).json({ error: 'GEMINI_KEY non configurata' });
     return;
   }
@@ -194,9 +189,10 @@ exports.callGeminiHttp = functions.https.onRequest(async (req, res) => {
       normalizedConfig.temperature = Math.min(2, Math.max(0, Number(rawConfig.temperature)));
     }
     const requestedTokens = Number(rawConfig.maxOutputTokens);
+    const tokenCap = (receipt && receipt.maxOutputTokens) || 8192;
     normalizedConfig.maxOutputTokens = Number.isFinite(requestedTokens)
-      ? Math.min(8192, Math.max(1, Math.floor(requestedTokens)))
-      : 4096;
+      ? Math.min(tokenCap, Math.max(1, Math.floor(requestedTokens)))
+      : Math.min(4096, tokenCap);
     const mimeType = rawConfig.responseMimeType || rawConfig.response_mime_type;
     if (mimeType) normalizedConfig.responseMimeType = mimeType;
 
@@ -204,8 +200,9 @@ exports.callGeminiHttp = functions.https.onRequest(async (req, res) => {
 
     // Try v1 first (stable), then v1beta fallback
     const apis = [
-      `https://generativelanguage.googleapis.com/v1/models/${modelName}:generateContent?key=${apiKey}`,
-      `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
+      // Chiave nell'header x-goog-api-key, non nell'URL (non finisce in log/errori).
+      `https://generativelanguage.googleapis.com/v1/models/${modelName}:generateContent`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`,
     ];
 
     let text = null;
@@ -214,7 +211,7 @@ exports.callGeminiHttp = functions.https.onRequest(async (req, res) => {
     for (const url of apis) {
       const geminiRes = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
         body: JSON.stringify({ contents: normalizedContents, generationConfig: normalizedConfig }),
       });
       const geminiData = await geminiRes.json();
@@ -235,7 +232,9 @@ exports.callGeminiHttp = functions.https.onRequest(async (req, res) => {
     res.status(200).json({ candidates: [{ content: { parts: [{ text }] } }] });
   } catch (err) {
     console.error("Gemini Proxy Error:", err.message);
-    res.status(500).json({ error: 'Errore AI', details: (err.message || '').substring(0, 300) });
+    // Chiamata fallita: restituisce quota/Spark addebitati (una volta sola).
+    try { await aiQuota.refund({ db, admin, uid, receipt }); } catch (e) { console.error('Quota refund failed:', e.code || 'unknown'); }
+    res.status(500).json({ error: 'Errore AI', details: 'Il servizio AI non ha risposto. Non ti è stato scalato nulla: riprova.' });
   }
 });
 

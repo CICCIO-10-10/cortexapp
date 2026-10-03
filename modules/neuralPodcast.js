@@ -14,6 +14,7 @@
 import { SecurityManager, getFunctions, callGeminiProxy } from '../services/firebase.js';
 import { discoverGeminiModel }           from '../services/ai.js';
 import { t } from '../core/i18n.js';
+import { escapeHTML } from '../js/utils.js';
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 const OVERLAY_ID  = 'neural-podcast-overlay';
@@ -324,8 +325,8 @@ function _speakLine() {
                 color:var(--text);">
                 <span style="font-size:0.7rem;font-weight:700;
                     color:${isAura ? 'var(--accent)' : '#10b981'};
-                    display:block;margin-bottom:4px;">${line.speaker}</span>
-                ${line.text}
+                    display:block;margin-bottom:4px;">${escapeHTML(line.speaker)}</span>
+                ${escapeHTML(line.text)}
             </div>`;
         transcript.appendChild(bubble);
         transcript.scrollTop = transcript.scrollHeight;
