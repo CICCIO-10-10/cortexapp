@@ -3,6 +3,9 @@ import { initAnalytics, track, setUserProperty }           from './analytics.js'
 import { touchSeen }                                       from '../services/activation.js';
 import { APP_CONFIG }                                      from '../js/config.js';
 import { renderAccountState } from './account-state.js';
+import { currentScope, scopeForUser, canReloadForScope } from './accountScope.js';
+import { switchAccountScope, installScopeWatcher } from './scopeSwitch.js';
+import { rehydrateForScope } from './state.js';
 import { checkVersionUpdate, removeSplashScreen, showChangelogModal } from './boot.js';
 // Espone showChangelog globalmente (usato dal bottone "Novità" nelle impostazioni)
 window.showChangelog = () => showChangelogModal(null);
@@ -52,8 +55,28 @@ export function initApp(deps) {
     registerDuelsGlobals(deps.register);
 }
 
+let _scopeSwitching = false;
 export function onAuthStateChangedHandler(user, firebaseDeps = {}) {
     if (!appDeps) return;
+    // Fase 2.1 (audit 2026-10): ogni account usa il proprio spazio dati sul
+    // dispositivo. Se l'utente collegato non corrisponde allo spazio attivo, si
+    // cambia spazio e si ricarica la pagina PRIMA di mostrare o sincronizzare dati.
+    const desiredScope = scopeForUser(user);
+    if (desiredScope !== currentScope()) {
+        if (_scopeSwitching) return;
+        _scopeSwitching = true;
+        switchAccountScope(desiredScope).then(async () => {
+            if (canReloadForScope()) { location.reload(); return; }
+            await rehydrateForScope();
+            _scopeSwitching = false;
+            onAuthStateChangedHandler(user, firebaseDeps);
+        }).catch((err) => {
+            _scopeSwitching = false;
+            console.error('[Scope] cambio account non riuscito:', err);
+            try { window.showToast?.('Non riesco a preparare i dati di questo account sul dispositivo. Ricarica la pagina: i tuoi dati non sono stati toccati.', 'error'); } catch (_) {}
+        });
+        return;
+    }
     const deps = appDeps;
     renderAccountState(user, firebaseDeps.updateUserUI || (() => {}));
 
@@ -316,6 +339,7 @@ export function onAuthStateChangedHandler(user, firebaseDeps = {}) {
 }
 
 export function bootApp(deps) {
+    installScopeWatcher();
     // 0. Init Analytics (before any other work)
     initAnalytics();
     track('app_open', { version: String(APP_CONFIG.VERSION) });

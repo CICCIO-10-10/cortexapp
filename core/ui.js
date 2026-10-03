@@ -174,9 +174,13 @@ export function updateOnlineStatus() {
         if (wasOffline) {
             showToast(t('ui_reconnected'), "success");
             // Risincronizzo dal cloud dopo la riconnessione
+            // Fase 2.3: prima si inviano le modifiche fatte offline, poi si legge il cloud
+            // (che comunque non sovrascrive mai i mazzi modificati e non sincronizzati).
             setTimeout(() => {
                 if (typeof window._fbLoggedIn !== 'undefined' && window._fbLoggedIn) {
-                    if (typeof window.loadFromCloud === 'function') window.loadFromCloud();
+                    Promise.resolve(typeof window.syncToCloud === 'function' ? window.syncToCloud() : null)
+                        .catch(() => {})
+                        .finally(() => { if (typeof window.loadFromCloud === 'function') window.loadFromCloud(); });
                 }
             }, 1500);
         }

@@ -1,10 +1,15 @@
 import { APP_CONFIG } from '../js/config.js';
 import { SecurityManager as fbSecurityManager } from '../services/firebase.js';
 import { todayStr } from '../js/utils.js';
-import { loadDecks, loadSessions, loadRecordings, migrateFromLocalStorage } from './db.js';
+import { loadDecks, loadSessions, loadRecordings, migrateFromLocalStorage, migrateLegacyIDB } from './db.js';
 import { withoutDeletedDecks } from './deckDeletion.js';
+import { ensureScopeInitialized, mergeDecksById } from './accountScope.js';
 
 const KEYS = APP_CONFIG.STORAGE_KEYS;
+
+// Fase 2.1 (audit 2026-10): lo spazio dati dell'account va fissato PRIMA di
+// leggere qualsiasi dato di studio da localStorage.
+ensureScopeInitialized();
 
 export let state = {
     decks: withoutDeletedDecks(JSON.parse(localStorage.getItem(KEYS.DECKS_V1) || '[]')),
@@ -47,11 +52,23 @@ let hydrationPromise;
 export function hydrateFromIDB() {
     return hydrationPromise ||= hydrateStoredState();
 }
+
+/** Ricarica in memoria i dati del nuovo scope (usato solo se la ricarica pagina è bloccata). */
+export function rehydrateForScope() {
+    try { state.decks = withoutDeletedDecks(JSON.parse(localStorage.getItem(KEYS.DECKS_V1) || '[]')); } catch (_) { state.decks = []; }
+    try { state.sessions = JSON.parse(localStorage.getItem(KEYS.SESSIONS) || '[]'); } catch (_) { state.sessions = []; }
+    try { state.recordings = JSON.parse(localStorage.getItem('mm_recordings') || '[]'); } catch (_) { state.recordings = []; }
+    hydrationPromise = null;
+    return hydrateFromIDB();
+}
 async function hydrateStoredState() {
     const initialDecks = state.decks;
     try {
         // Prima esecuzione: migra i dati da localStorage → IDB
         await migrateFromLocalStorage(KEYS);
+        // Fase 2.1: la vecchia chiave globale 'all' passa allo scope del proprietario
+        // probabile (copia di sicurezza in 'legacy', 'all' non viene cancellata).
+        try { await migrateLegacyIDB(); } catch (e) { console.warn('[State] migrazione legacy rimandata:', e); }
 
         const [idbDecks, idbSessions, idbRecordings] = await Promise.all([
             loadDecks(),
@@ -64,7 +81,13 @@ async function hydrateStoredState() {
         if (Array.isArray(idbDecks)) {
             // An empty collection is valid. Do not overwrite a newer cloud/local update.
             if (state.decks === initialDecks) {
-                state.decks = withoutDeletedDecks(idbDecks);
+                if (localStorage.getItem('cortex_decks_unsaved') === '1') {
+                    // Fase 2.2: l'ultimo salvataggio in IndexedDB non era riuscito; la copia
+                    // di riserva è più recente e prevale (i mazzi solo in IndexedDB restano).
+                    state.decks = withoutDeletedDecks(mergeDecksById(initialDecks, idbDecks));
+                } else {
+                    state.decks = withoutDeletedDecks(idbDecks);
+                }
                 updated = true;
             }
         }

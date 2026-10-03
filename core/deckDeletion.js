@@ -1,7 +1,11 @@
+import { currentScope } from './accountScope.js';
 // Durable deletion journal: a mobile close must not undo a confirmed deletion.
 const KEY = 'cortex_deleted_decks';
+// Fase 2.1: il registro segue lo spazio dati della scheda (non l'ultimo account del
+// dispositivo): da ospite dopo un logout non si usa più il registro dell'account.
 function owner() {
-    return window._fbUserId || localStorage.getItem('mm_user_id') || 'guest';
+    const scope = currentScope();
+    return scope.startsWith('u:') ? scope.slice(2) : 'guest';
 }
 export function deletedDeckIds(uid = owner()) {
     try { return JSON.parse(localStorage.getItem(KEY) || '{}')[uid] || []; }

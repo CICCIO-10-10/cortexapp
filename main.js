@@ -4,6 +4,8 @@
  */
 
 // --- CORE LIBRARIES ---
+// Fase 2.1: lo spazio dati dell'account va fissato PRIMA di ogni altro modulo.
+import './core/scopeInit.js';
 import { APP_CONFIG }                                      from './js/config.js';
 import { state, hydrateFromIDB }                          from './core/state.js';
 import { bootApp }                                         from './core/appBoot.js';
@@ -235,7 +237,11 @@ window.showPaywall = showPaywall;
 
 // Fix 5: modal di conferma non bloccante — sostituisce confirm() nativo (che su mobile
 // alcuni browser bloccano quando l'app è in iframe o in modalità standalone PWA).
-window.showConfirmModal = (message, onConfirm, onCancel) => {
+// opts.confirmLabel / opts.danger (audit 2026-10): il messaggio è sempre testo, mai HTML.
+window.showConfirmModal = (message, onConfirm, onCancel, opts = {}) => {
+    const _esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const _label = _esc(opts.confirmLabel || 'Elimina');
+    const _bg = opts.danger === false ? 'linear-gradient(135deg,#8b5cf6,#6d28d9)' : 'linear-gradient(135deg,#ef4444,#b91c1c)';
     const existing = document.getElementById('cortex-confirm-modal');
     if (existing) existing.remove();
     const modal = document.createElement('div');
@@ -243,10 +249,10 @@ window.showConfirmModal = (message, onConfirm, onCancel) => {
     modal.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.72);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:24px;';
     modal.innerHTML = `
         <div style="background:rgba(20,20,28,0.98);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:32px;max-width:360px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,0.7);">
-            <p style="color:#fff;font-size:1rem;margin:0 0 24px;text-align:center;line-height:1.5;">${message}</p>
+            <p style="color:#fff;font-size:1rem;margin:0 0 24px;text-align:center;line-height:1.5;white-space:pre-line;">${_esc(message)}</p>
             <div style="display:flex;gap:12px;">
                 <button id="_cm-cancel" style="flex:1;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px;color:rgba(255,255,255,0.7);font-size:0.95rem;cursor:pointer;">Annulla</button>
-                <button id="_cm-ok" style="flex:1;background:linear-gradient(135deg,#ef4444,#b91c1c);border:none;border-radius:12px;padding:12px;color:#fff;font-size:0.95rem;font-weight:700;cursor:pointer;">Elimina</button>
+                <button id="_cm-ok" style="flex:1;background:${_bg};border:none;border-radius:12px;padding:12px;color:#fff;font-size:0.95rem;font-weight:700;cursor:pointer;">${_label}</button>
             </div>
         </div>`;
     document.body.appendChild(modal);

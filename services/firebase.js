@@ -8,7 +8,10 @@ import { t } from '../core/i18n.js';
 import { APP_CONFIG } from '../js/config.js';
 import { onAuthStateChangedHandler } from '../core/appBoot.js';
 import { state, hydrateFromIDB } from '../core/state.js';
-import { saveDecks } from '../core/db.js';
+import { saveDecks, saveSessions } from '../core/db.js';
+import { currentScope, isScopeStale, mergeListsUnique } from '../core/accountScope.js';
+import { switchAccountScope } from '../core/scopeSwitch.js';
+import { readMeta, mergeCloudIntoLocal, decksToUpload, uploadPrecondition, recordUploaded, resolveUploadConflict } from '../core/syncMerge.js';
 import { deletedDeckIds, rememberDeletedDecks, withoutDeletedDecks } from '../core/deckDeletion.js';
 
 const KEYS = APP_CONFIG.STORAGE_KEYS;
@@ -318,106 +321,149 @@ export async function syncToCloud(deckId = null) {
     }
 }
 
-async function _syncToCloudInner(deckId = null) {
-    const _db = firebase.app().firestore();
-    const batch = _db.batch();
-    const userRef = _db.collection('users').doc(window._fbUserId);
+const SYNC_META_KEY = 'cortex_sync_meta';
+const MAX_DECK_BYTES = 900 * 1024;      // limite Firestore 1 MiB per documento, con margine
+const MAX_ROOT_BYTES = 800 * 1024;
+const MAX_ROOT_SESSIONS = 300;
+function _loadSyncMeta() { return readMeta(localStorage.getItem(SYNC_META_KEY)); }
+function _saveSyncMeta(meta) { try { localStorage.setItem(SYNC_META_KEY, JSON.stringify(meta)); } catch (_) {} }
+function _syncAllowed(uid) {
+    // Fase 2.1: si sincronizza solo lo spazio dati dell'account collegato, e mai da
+    // una scheda rimasta indietro dopo un cambio account in un'altra scheda.
+    return !!uid && !isScopeStale() && currentScope() === 'u:' + uid;
+}
+let _lastSyncNotice = 0;
+function _syncNotice(msg, type = 'info') {
+    const now = Date.now();
+    if (now - _lastSyncNotice < 15000) return;
+    _lastSyncNotice = now;
+    try { if (window.showToast) window.showToast(msg, type); } catch (_) {}
+}
 
+/**
+ * Sync incrementale (audit 2026-10, fase 2.3) — vedi core/syncMerge.js.
+ * 1) un batch piccolo: cancellazioni + metadati nel documento utente;
+ * 2) solo i mazzi modificati, ciascuno in una transazione con precondizione
+ *    sulla revisione del server: se il cloud è cambiato si tengono entrambe le versioni.
+ * @returns {Promise<{uploaded:number, conflicts:number, failed:number, tooLarge:number}|undefined>}
+ */
+async function _syncToCloudInner(deckId = null) {
+    const uid = window._fbUserId;
+    if (!_syncAllowed(uid)) return;
+    const _db = firebase.app().firestore();
+    const userRef = _db.collection('users').doc(uid);
+    const legacyState = window._legacyState?.(); // hook per leggere lo state di main.js
+    if (!legacyState) return;
+    const result = { uploaded: 0, conflicts: 0, failed: 0, tooLarge: 0 };
+
+    // ── 1) Cancellazioni + documento utente (piccolo, un solo batch) ──────────
     try {
-        const legacyState = window._legacyState?.(); // hook per leggere lo state di main.js
-        const deleted = deletedDeckIds(window._fbUserId);
-        if (legacyState) legacyState.decks = withoutDeletedDecks(legacyState.decks, window._fbUserId);
-        const plan = localStorage.getItem('cortex_user_plan') || 'free';
-        
-        // Prepariamo i metadati (versione leggera dei mazzi per caricamento veloce)
+        const deleted = deletedDeckIds(uid);
+        legacyState.decks = withoutDeletedDecks(legacyState.decks, uid);
         const now = new Date();
-        const decksMetadata = (legacyState?.decks || []).map(d => {
-            // FIX: calcola dueCount dinamicamente dalle card invece di affidarsi
-            // a un campo che potrebbe non essere aggiornato
+        const decksMetadata = (legacyState.decks || []).map(d => {
             const cards = d.cards || [];
-            const computedDueCount = cards.filter(
-                c => !c.nextReview || new Date(c.nextReview) <= now
-            ).length;
             return {
                 id:          d.id || Date.now(),
-                // FIX 26/09: i mazzi demo hanno 'title' e non 'name' → name undefined → Firestore rifiuta tutto
                 name:        d.name || d.title || '',
                 subject:     d.subject || '',
                 examDate:    d.examDate || '',
                 studyMethod: d.studyMethod || 'cortex',
                 cardsCount:  cards.length,
-                dueCount:    computedDueCount,
-                // FIX 26/09/2026 (GRAVE): serverTimestamp() NON è ammesso dentro un array
-                // (decksMetadata è un array) → batch.set lanciava un errore e OGNI sync
-                // falliva in silenzio: nessun mazzo arrivava sul cloud (lastSync fermo a luglio).
+                dueCount:    cards.filter(c => !c.nextReview || new Date(c.nextReview) <= now).length,
                 updatedAt:   firebase.firestore.Timestamp.now()
             };
         });
-
         const rootData = {
-            decksMetadata: decksMetadata,
-            // FIX 26/09: copie "pulite" via JSON (un solo campo undefined fa rifiutare TUTTO il batch)
-            sessions:      _cleanForFs(legacyState?.sessions   || []),
-            recordings:    _cleanForFs(legacyState?.recordings || []),
-            gamification:  _cleanForFs(window.gState           || null),
-            // FIX 25/09/2026 (GRAVE): 'plan' NON va piu' scritto dal client.
-            // Le regole Firestore proteggono i campi di abbonamento: se il doc
-            // utente non ha gia' plan identico (i doc nati da touchSeen non ce
-            // l'hanno), l'update veniva RIFIUTATO e con lui l'intero batch →
-            // nessun mazzo arrivava mai sul cloud (dashboard: "0 mazzi" per tutti).
-            lastSync:      firebase.firestore.FieldValue.serverTimestamp(),
+            decksMetadata,
+            sessions:     _cleanForFs((legacyState.sessions || []).slice(-MAX_ROOT_SESSIONS)),
+            recordings:   _cleanForFs(legacyState.recordings || []),
+            gamification: _cleanForFs(window.gState || null),
             migratedToSubcollections: true
         };
-
+        // Il documento utente non deve crescere fino al limite di 1 MiB.
+        let approx = 0;
+        try { approx = JSON.stringify(rootData).length; } catch (_) {}
+        if (approx > MAX_ROOT_BYTES) {
+            delete rootData.sessions;
+            delete rootData.recordings;
+            console.warn('[Firebase] documento utente troppo grande: sessioni/registrazioni non inviate questa volta.');
+        }
+        rootData.lastSync = firebase.firestore.FieldValue.serverTimestamp();
+        const batch = _db.batch();
         batch.set(userRef, rootData, { merge: true });
         if (deleted.length) {
             batch.set(userRef, { deletedDeckIds: firebase.firestore.FieldValue.arrayUnion(...deleted) }, { merge: true });
-            for (const id of deleted) batch.delete(userRef.collection('decks').doc(id));
+            for (const id of deleted) batch.delete(userRef.collection('decks').doc(String(id)));
         }
-
-        // Se abbiamo un deckId specifico, aggiorniamo il suo documento nella sub-collection
-        if (deckId) {
-            const deck = (legacyState?.decks || []).find(d => d.id === deckId);
-            if (deck) {
-                const deckRef = userRef.collection('decks').doc(deckId.toString());
-                // FIX 26/09: copia "pulita" (via JSON) — un campo undefined faceva fallire il batch
-                let plainDeck = deck;
-                try { plainDeck = JSON.parse(JSON.stringify(deck)); } catch (_) {}
-                batch.set(deckRef, {
-                    ...plainDeck,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            }
-        } else {
-            // BUG FIX "mazzo sparito dopo reload": saveState() chiama syncToCloud()
-            // SENZA deckId, e prima di questo fix i deck non venivano MAI scritti
-            // nelle sub-collection. Al boot loadFromCloud legge le sub-collection:
-            // i mazzi nuovi (es. "Salva Mazzo" delle flashcard AI) svanivano.
-            // Ora senza deckId sincronizziamo TUTTI i deck.
-            for (const deck of (legacyState?.decks || [])) {
-                if (!deck.id) continue;
-                const deckRef = userRef.collection('decks').doc(deck.id.toString());
-                let plain;
-                try { plain = JSON.parse(JSON.stringify(deck)); } catch (_) { continue; }
-                batch.set(deckRef, {
-                    ...plain,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
-            }
-        }
-
         await batch.commit();
-        console.log(`[Firebase] syncToCloud completed (deckId: ${deckId || 'none'})`);
     } catch (e) {
-        console.error('[Firebase] syncToCloud failed:', e);
-        // 25/09/2026: rendiamo visibile il fallimento (prima era solo in console)
-        try { if (typeof window.clarity === 'function') window.clarity('event', 'cloud_sync_failed'); } catch (_) {}
-        // 26/09/2026: anche in dashboard (journeys) — il bug dei mazzi è rimasto invisibile 2 mesi
-        try {
-            const _reason = String((e && (e.code || e.message)) || 'unknown').replace(/users\/[A-Za-z0-9_-]+/g, 'users/…').slice(0, 80);
-            if (typeof window.__cxLogStep === 'function') window.__cxLogStep('cloud_sync_failed', { reason: _reason });
-        } catch (_) {}
+        _reportSyncFailure(e);
+        return result;
     }
+
+    // ── 2) Solo i mazzi modificati, uno per transazione ──────────────────────
+    let meta = _loadSyncMeta();
+    const pending = decksToUpload(legacyState.decks, meta);
+    let decksChanged = false;
+    for (const deck of pending) {
+        if (window._fbUserId !== uid || !_syncAllowed(uid)) return result;
+        let plain;
+        try { plain = JSON.parse(JSON.stringify(deck)); } catch (_) { result.failed++; continue; }
+        if (JSON.stringify(plain).length > MAX_DECK_BYTES) { result.tooLarge++; continue; }
+        const ref = userRef.collection('decks').doc(String(deck.id));
+        const stamp = firebase.firestore.Timestamp.now();
+        try {
+            const outcome = await _db.runTransaction(async (tx) => {
+                const snap = await tx.get(ref);
+                const cloudDoc = snap.exists ? snap.data() : null;
+                const pre = uploadPrecondition({ local: deck, cloudDoc, meta });
+                if (!pre.ok) return { conflict: true, cloudDoc };
+                const { rev, updatedAt, syncedAt, ...content } = plain;
+                const newRev = (cloudDoc ? (cloudDoc.rev || 0) : pre.baseRev) + 1;
+                tx.set(ref, { ...content, rev: newRev, updatedAt: stamp });
+                return { conflict: false, newRev };
+            });
+            if (outcome.conflict) {
+                // Il cloud è cambiato da un altro dispositivo: si tengono entrambe le versioni.
+                const r = resolveUploadConflict({ decks: legacyState.decks, deck, cloudDoc: outcome.cloudDoc, meta });
+                legacyState.decks = r.decks;
+                meta = r.meta;
+                result.conflicts++;
+                decksChanged = true;
+            } else {
+                deck.rev = outcome.newRev;
+                // Si registra come sincronizzata la copia INVIATA: se il mazzo è stato
+                // modificato durante la transazione resta "da sincronizzare".
+                meta = recordUploaded(meta, plain, stamp.toMillis());
+                result.uploaded++;
+                decksChanged = true;
+            }
+            _saveSyncMeta(meta);
+        } catch (e) {
+            result.failed++;   // offline o errore: il mazzo resta "da sincronizzare"
+            console.warn('[Firebase] upload mazzo rimandato:', deck.id, e && (e.code || e.message));
+        }
+    }
+    if (decksChanged) {
+        try { await saveDecks(legacyState.decks); } catch (e) { console.warn('[Firebase] salvataggio revisioni locale non riuscito:', e); }
+        if (result.conflicts) {
+            window.dispatchEvent(new Event('cortex:decks-changed'));
+            _syncNotice(`Un mazzo è stato modificato anche su un altro dispositivo: abbiamo tenuto entrambe le versioni.`, 'info');
+        }
+    }
+    if (result.tooLarge) _syncNotice('Un mazzo è troppo grande per il salvataggio online: resta su questo dispositivo.', 'error');
+    console.log(`[Firebase] sync: ${result.uploaded} caricati, ${result.conflicts} conflitti, ${result.failed} rimandati`);
+    return result;
+}
+
+function _reportSyncFailure(e) {
+    console.error('[Firebase] syncToCloud failed:', e);
+    try { if (typeof window.clarity === 'function') window.clarity('event', 'cloud_sync_failed'); } catch (_) {}
+    try {
+        const _reason = String((e && (e.code || e.message)) || 'unknown').replace(/users\/[A-Za-z0-9_-]+/g, 'users/…').slice(0, 80);
+        if (typeof window.__cxLogStep === 'function') window.__cxLogStep('cloud_sync_failed', { reason: _reason });
+    } catch (_) {}
 }
 
 export async function loadFromCloud() {
@@ -509,64 +555,44 @@ export async function loadFromCloud() {
                 return loadFromCloud();
             }
 
-            // 🔄 FIX: Carica i mazzi completi dalla sub-collection (non solo i metadati)
-            // Necessario per il cross-device sync: il root doc ha solo decksMetadata (leggero),
-            // mentre il contenuto completo (cards, nextReview ecc.) è nelle sub-collection.
+            // Fase 2.3 (audit 2026-10): i mazzi del cloud vengono UNITI a quelli locali
+            // (core/syncMerge.js): modifiche locali non sincronizzate mai sovrascritte,
+            // conflitti risolti tenendo entrambe le versioni, cancellazioni rispettate.
+            let cloudDecks = null;
             if (data.migratedToSubcollections) {
                 try {
                     const decksSnap = await _db
                         .collection('users').doc(window._fbUserId)
                         .collection('decks').get();
-                    const fullDecks = [];
-                    decksSnap.forEach(d => fullDecks.push({ ...d.data(), id: d.data().id ?? d.id }));
-
-                    // FIX 10/07/2026 — CONVERSIONE OSPITE→ACCOUNT ESISTENTE:
-                    // prima il cloud SOVRASCRIVEVA i mazzi creati da ospite (persi per sempre).
-                    // Ora i mazzi locali non presenti sul cloud vengono caricati e uniti.
-                    if (window._guestConversion) {
-                        try {
-                            const localDecks = window._legacyState?.()?.decks
-                                || JSON.parse(localStorage.getItem(KEYS.DECKS_V1) || '[]')
-                                || [];
-                            const cloudIds = new Set(fullDecks.map(d => String(d.id)));
-                            const userRef = _db.collection('users').doc(window._fbUserId);
-                            for (const ld of withoutDeletedDecks(localDecks, uid)) {
-                                if (!ld.id || cloudIds.has(String(ld.id))) continue;
-                                await userRef.collection('decks').doc(String(ld.id)).set({
-                                    ...JSON.parse(JSON.stringify(ld)),
-                                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                                }, { merge: true });
-                                fullDecks.push(ld);
-                            }
-                        } catch (mergeErr) {
-                            console.error('[Firebase] Merge mazzi ospite fallito:', mergeErr);
-                        }
-                        window._guestConversion = false;
-                    }
-
-                    if (window._fbUserId === uid) {
-                        state.decks = withoutDeletedDecks(fullDecks, uid);
-                        await saveDecks(state.decks);
-                        localStorage.removeItem(KEYS.DECKS_V1);
-                        if (window.__cortexDispatch) {
-                            window.__cortexDispatch({ type: 'HYDRATE_STATE', payload: { decks: state.decks } });
-                        }
-                        window.dispatchEvent(new Event('cortex:decks-changed'));
-                        if (deletedDeckIds(uid).length) void syncToCloud();
-                    }
+                    cloudDecks = [];
+                    decksSnap.forEach(d => cloudDecks.push({ ...d.data(), id: d.data().id ?? d.id }));
                 } catch (subErr) {
                     console.error('[Firebase] loadFromCloud: errore lettura sub-collection decks:', subErr);
-                    // Fallback ai metadati se la sub-collection non è leggibile
-                    // Keep the complete local cards on read failure; metadata cannot replace them.
+                    // In caso di errore si tengono i mazzi locali completi.
                 }
-            } else if (data.decksMetadata || data.decks) {
-                // Utenti non ancora migrati: usa il campo legacy
-                const decks = withoutDeletedDecks(data.decks || data.decksMetadata, uid);
-                state.decks = decks;
-                await saveDecks(decks);
-                localStorage.removeItem(KEYS.DECKS_V1);
-                if (window.__cortexDispatch) window.__cortexDispatch({ type: 'HYDRATE_STATE', payload: { decks } });
+            } else if (Array.isArray(data.decks)) {
+                cloudDecks = data.decks; // utenti non ancora migrati (i soli metadati non bastano)
+            }
+            if (cloudDecks && window._fbUserId === uid && _syncAllowed(uid)) {
+                const merged = mergeCloudIntoLocal({
+                    local: state.decks,
+                    cloud: cloudDecks,
+                    meta: _loadSyncMeta(),
+                    deleted: deletedDeckIds(uid),
+                });
+                state.decks = merged.decks;
+                try { await saveDecks(state.decks); }
+                catch (e) {
+                    try { localStorage.setItem(KEYS.DECKS_V1, JSON.stringify(state.decks)); } catch (_) {}
+                    console.warn('[Firebase] salvataggio locale dopo il caricamento non riuscito:', e);
+                }
+                _saveSyncMeta(merged.meta);
+                if (window.__cortexDispatch) window.__cortexDispatch({ type: 'HYDRATE_STATE', payload: { decks: state.decks } });
                 window.dispatchEvent(new Event('cortex:decks-changed'));
+                if (merged.conflicts.length) {
+                    _syncNotice(`${merged.conflicts.length === 1 ? 'Un mazzo è stato modificato' : merged.conflicts.length + ' mazzi sono stati modificati'} sia qui sia su un altro dispositivo: abbiamo tenuto entrambe le versioni.`, 'info');
+                }
+                if (merged.dirtyIds.length || deletedDeckIds(uid).length) void syncToCloud();
             }
 
             // Determina il piano effettivo: piano pagato > trial attivo > free
@@ -620,7 +646,13 @@ export async function loadFromCloud() {
             const sparksBalance = data.sparksBalance || 0;
             localStorage.setItem('cortex_sparks_balance', String(sparksBalance));
 
-            if (data.sessions) localStorage.setItem(KEYS.SESSIONS || 'mm_sessions', JSON.stringify(data.sessions));
+            // Fase 2.3: le sessioni del cloud entrano nello stato e in IndexedDB (prima
+            // aggiornavano solo localStorage e il salvataggio successivo le riscriveva vecchie).
+            if (Array.isArray(data.sessions) && window._fbUserId === uid) {
+                state.sessions = mergeListsUnique(state.sessions || [], data.sessions).slice(-1000);
+                try { await saveSessions(state.sessions); } catch (_) {}
+                try { localStorage.setItem(KEYS.SESSIONS || 'mm_sessions', JSON.stringify(state.sessions)); } catch (_) {}
+            }
             
             if (data.gamification && window.gState) {
                 // FIX "XP ballerina": il cloud (spesso stantio, si aggiornava solo
@@ -913,6 +945,10 @@ export async function logout() {
             return;
         }
     }
+    // Fase 2.1: i dati dell'account restano nel suo spazio sul dispositivo (anche
+    // quelli non ancora sincronizzati) ma non sono più visibili: si torna all'ospite.
+    try { await switchAccountScope('guest'); }
+    catch (e) { console.warn('[Logout] cambio spazio dati rimandato al prossimo avvio:', e); }
     ['mm_user_name', 'mm_user_avatar', 'mm_user_email', 'mm_is_logged_in',
         'cortex_uid', 'cortex_username', 'cortex_photo', 'cortex_guest',
         'cortex_redirect_pending', 'cortex_redirect_ts'].forEach(key => localStorage.removeItem(key));
@@ -924,40 +960,14 @@ export async function logout() {
 }
 
 // ─── Import / Export ─────────────────────────────────────────────────────────
+// Audit 2026-10 (fase 2.4): un solo percorso. Questi nomi restano per compatibilità
+// con i pulsanti esistenti e delegano a modules/gdpr.js (archivio reale, formato versionato).
 export function exportProgress() {
-    const data = {
-        decks:         localStorage.getItem(KEYS.DECKS_V1),
-        sessions:      localStorage.getItem(KEYS.SESSIONS || 'mm_sessions'),
-        gamification:  localStorage.getItem('mm_gamification'),
-        user:          localStorage.getItem('mm_user_name')
-    };
-    const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-    const url  = URL.createObjectURL(blob);
-    const a    = Object.assign(document.createElement('a'), { href: url, download: 'cortex-backup.json' });
-    a.click();
-    if (window.showToast) window.showToast('Backup scaricato!', 'success');
+    if (typeof window.exportUserData === 'function') return window.exportUserData();
 }
 
 export function importProgress() {
-    const input = Object.assign(document.createElement('input'), { type: 'file', accept: '.json' });
-    input.onchange = e => {
-        const reader = new FileReader();
-        reader.onload = () => {
-            try {
-                const data = JSON.parse(reader.result);
-                if (data.decks)        localStorage.setItem(KEYS.DECKS_V1, data.decks);
-                if (data.sessions)     localStorage.setItem(KEYS.SESSIONS || 'mm_sessions', data.sessions);
-                if (data.gamification) localStorage.setItem('mm_gamification', data.gamification);
-                if (data.user)         localStorage.setItem('mm_user_name', data.user);
-                if (window.showToast) window.showToast('Progressi caricati! Riavvio...', 'success');
-                setTimeout(() => window.location.reload(), 1500);
-            } catch (err) {
-                if (window.showToast) window.showToast('File backup non valido! ❌', 'error');
-            }
-        };
-        reader.readAsText(e.target.files[0]);
-    };
-    input.click();
+    if (typeof window.importUserData === 'function') return window.importUserData();
 }
 
 // ─── Admin ────────────────────────────────────────────────────────────────────

@@ -4,15 +4,20 @@
  * Sostituisce localStorage per i dati grandi (decks, sessions, recordings).
  * localStorage rimane per dati piccoli (settings, flags, contatori).
  *
+ * Fase 2 (audit 2026-10): ogni chiave è lo SCOPE dell'account ('guest' | 'u:<uid>'),
+ * vedi core/accountScope.js; le scritture propagano gli errori al chiamante.
+ *
  * API pubblica:
- *   saveDecks(decks)     — salva array mazzi su IDB
- *   loadDecks()          — carica array mazzi da IDB (null se vuoto)
+ *   saveDecks(decks, scope?)  — salva array mazzi su IDB (lancia in caso di errore)
+ *   loadDecks(scope?)         — carica array mazzi da IDB (null se vuoto/errore)
  *   saveSessions(list)   — salva storico sessioni
  *   loadSessions()       — carica storico sessioni
  *   saveRecordings(list) — salva registrazioni audio
  *   loadRecordings()     — carica registrazioni audio
  *   migrateFromLocalStorage(keys) — migrazione one-time da localStorage
  */
+
+import { currentScope, legacyScope, mergeDecksById, mergeListsUnique } from './accountScope.js';
 
 const DB_NAME    = 'cortex_db';
 const DB_VERSION = 1;
@@ -71,61 +76,70 @@ async function idbSet(store, key, value) {
     });
 }
 
-// ── Deck API ─────────────────────────────────────────────────────────────────
+// ── API per scope (audit 2026-10, fase 2) ────────────────────────────────────
+// Chiave IndexedDB = scope dell'account ('guest' | 'u:<uid>' | 'legacy').
+// Le SCRITTURE propagano gli errori: chi salva deve sapere se il dato è davvero
+// sul dispositivo (prima l'errore veniva solo scritto in console).
+// Le LETTURE restituiscono null in caso di errore (con avviso in console).
 
-export async function saveDecks(decks) {
-    try {
-        await idbSet('decks', 'all', decks);
-    } catch (e) {
-        console.warn('[IDB] saveDecks fallito:', e);
-    }
+async function readList(store, scope) {
+    try { return await idbGet(store, scope); }
+    catch (e) { console.warn(`[IDB] lettura ${store}/${scope} fallita:`, e); return null; }
 }
 
-export async function loadDecks() {
-    try {
-        return await idbGet('decks', 'all');
-    } catch (e) {
-        console.warn('[IDB] loadDecks fallito:', e);
-        return null;
-    }
+export async function saveDecks(decks, scope = currentScope()) {
+    await idbSet('decks', scope, decks);
+}
+export async function loadDecks(scope = currentScope()) {
+    return readList('decks', scope);
+}
+export async function saveSessions(sessions, scope = currentScope()) {
+    await idbSet('sessions', scope, sessions);
+}
+export async function loadSessions(scope = currentScope()) {
+    return readList('sessions', scope);
+}
+export async function saveRecordings(recordings, scope = currentScope()) {
+    await idbSet('recordings', scope, recordings);
+}
+export async function loadRecordings(scope = currentScope()) {
+    return readList('recordings', scope);
 }
 
-// ── Sessions API ──────────────────────────────────────────────────────────────
-
-export async function saveSessions(sessions) {
-    try {
-        await idbSet('sessions', 'all', sessions);
-    } catch (e) {
-        console.warn('[IDB] saveSessions fallito:', e);
-    }
+/** Cancella i dati IndexedDB di uno scope (solo dopo una migrazione confermata). */
+export async function deleteScopeData(scope) {
+    const db = await openDB();
+    await Promise.all(STORES.map(store => new Promise((resolve, reject) => {
+        const tx = db.transaction(store, 'readwrite');
+        tx.objectStore(store).delete(scope);
+        tx.oncomplete = () => resolve();
+        tx.onabort = () => reject(tx.error || new Error('IDB transaction aborted'));
+        tx.onerror = () => reject(tx.error);
+    })));
 }
 
-export async function loadSessions() {
-    try {
-        return await idbGet('sessions', 'all');
-    } catch (e) {
-        console.warn('[IDB] loadSessions fallito:', e);
-        return null;
+/**
+ * Migrazione una tantum della vecchia chiave globale 'all' (fase 2.1).
+ * - copia di sicurezza in 'legacy' (mai cancellata in questa fase);
+ * - unione nello scope del proprietario probabile (legacyScope());
+ * - la chiave 'all' NON viene cancellata.
+ */
+export async function migrateLegacyIDB() {
+    if (localStorage.getItem('cortex_idb_scoped') === '1') return false;
+    const target = legacyScope();
+    let moved = false;
+    for (const store of STORES) {
+        const old = await idbGet(store, 'all');
+        if (!Array.isArray(old)) continue;
+        const backup = await idbGet(store, 'legacy');
+        if (!Array.isArray(backup)) await idbSet(store, 'legacy', old);
+        const current = await idbGet(store, target);
+        const merged = store === 'decks' ? mergeDecksById(current, old) : mergeListsUnique(current, old);
+        await idbSet(store, target, merged);
+        moved = true;
     }
-}
-
-// ── Recordings API ────────────────────────────────────────────────────────────
-
-export async function saveRecordings(recordings) {
-    try {
-        await idbSet('recordings', 'all', recordings);
-    } catch (e) {
-        console.warn('[IDB] saveRecordings fallito:', e);
-    }
-}
-
-export async function loadRecordings() {
-    try {
-        return await idbGet('recordings', 'all');
-    } catch (e) {
-        console.warn('[IDB] loadRecordings fallito:', e);
-        return null;
-    }
+    localStorage.setItem('cortex_idb_scoped', '1');
+    return moved;
 }
 
 // ── Migrazione one-time da localStorage ──────────────────────────────────────

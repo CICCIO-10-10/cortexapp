@@ -12,6 +12,11 @@
 import { getFunctions } from '../services/firebase.js';
 import { TRANSLATIONS } from '../data/translations.js';
 import { t } from '../core/i18n.js';
+import { state, hydrateFromIDB } from '../core/state.js';
+import { saveState } from './deckUtils.js';
+import { mergeListsUnique, currentScope } from '../core/accountScope.js';
+import { buildBackup, parseBackup, planImport } from '../core/backup.js';
+import { APP_CONFIG } from '../js/config.js';
 const _t = () => (TRANSLATIONS[localStorage.getItem('mm_lang')||'it'] || TRANSLATIONS.it);
 
 const _getLang = () => localStorage.getItem('mm_lang') || 'it';
@@ -312,42 +317,92 @@ window.__gdprConfirmDelete = async function() {
 // ─── Data Export (GDPR Art. 20) ───────────────────────────────────────────────
 
 /**
- * Esporta tutti i dati dell'utente in un file JSON scaricabile.
- * Diritto alla portabilità dei dati (GDPR Art. 20).
+ * Esporta i dati di studio di QUESTO account dall'archivio reale (IndexedDB),
+ * in formato versionato (core/backup.js). GDPR Art. 20. Audit 2026-10, fase 2.4.
  */
-export function exportUserData() {
+export async function exportUserData() {
     try {
-        const data = {
-            exportDate:  new Date().toISOString(),
-            gdprNote:    'Esportazione dati personali ai sensi del GDPR Art. 20.',
-            decks:       JSON.parse(localStorage.getItem('mm_decks_v1') || '[]'),
-            sessions:    JSON.parse(localStorage.getItem('mm_sessions') || '[]'),
+        await hydrateFromIDB();
+        let gamification = null;
+        try { gamification = JSON.parse(localStorage.getItem('mm_gstate') || 'null'); } catch (_) {}
+        const scope = currentScope();
+        const backup = buildBackup({
+            decks: state.decks, sessions: state.sessions, recordings: state.recordings, gamification,
             settings: {
-                theme:       localStorage.getItem('mm_theme'),
-                lang:        localStorage.getItem('mm_lang'),
-                zenMode:     localStorage.getItem('mm_zen'),
-                readability: localStorage.getItem('mm_readability'),
+                theme: localStorage.getItem('mm_theme'), lang: localStorage.getItem('mm_lang'),
+                zenMode: localStorage.getItem('mm_zen_mode'), readability: localStorage.getItem('mm_high_readability'),
             },
-            gamification: {
-                xp:       localStorage.getItem('cortex_xp'),
-                badges:   localStorage.getItem('cortex_badges'),
-                streak:   localStorage.getItem('cortex_streak'),
-            }
-        };
-
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            account: scope.startsWith('u:') ? { type: 'account', email: window._cortexUserEmail || localStorage.getItem('mm_user_email') || null } : null,
+            appVersion: APP_CONFIG.VERSION,
+        });
+        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
         const url  = URL.createObjectURL(blob);
         const a    = document.createElement('a');
         a.href     = url;
-        a.download = `cortex-dati-${new Date().toISOString().split('T')[0]}.json`;
+        a.download = `cortex-backup-${new Date().toISOString().split('T')[0]}.json`;
         a.click();
-        URL.revokeObjectURL(url);
-
-        if (window.showToast) window.showToast('📦 Dati esportati correttamente!', 'success');
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        const n = backup.decks.length;
+        if (window.showToast) window.showToast(`📦 Backup scaricato: ${n} ${n === 1 ? 'mazzo' : 'mazzi'}, ${backup.sessions.length} sessioni. Le registrazioni audio non sono incluse.`, 'success');
+        return backup;
     } catch (err) {
         console.error('[GDPR] Export error:', err);
-        if (window.showToast) window.showToast('❌ Errore durante l\'esportazione.', 'error');
+        if (window.showToast) window.showToast('❌ Errore durante l\'esportazione: nessun file creato.', 'error');
+        return null;
     }
+}
+
+/**
+ * Importa un backup: validazione, anteprima, nessuna sovrascrittura (duplicati
+ * saltati, versioni diverse importate come copia). Esito reale del salvataggio.
+ * @param {string} [text] contenuto del file (se assente apre la scelta file)
+ */
+export async function importUserData(text) {
+    if (typeof text !== 'string') {
+        const input = Object.assign(document.createElement('input'), { type: 'file', accept: '.json,application/json' });
+        input.onchange = () => {
+            const file = input.files && input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => { importUserData(String(reader.result || '')); };
+            reader.onerror = () => window.showToast?.('File non leggibile.', 'error');
+            reader.readAsText(file);
+        };
+        input.click();
+        return null;
+    }
+    const parsed = parseBackup(text);
+    if (!parsed.ok) { window.showToast?.(parsed.error, 'error'); return { ok: false, error: parsed.error }; }
+    await hydrateFromIDB();
+    const plan = planImport(state.decks, parsed.decks);
+    if (plan.added + plan.copies === 0 && parsed.sessions.length === 0) {
+        window.showToast?.(parsed.warnings[0] || 'Niente da importare: tutti i mazzi sono già presenti.', 'info');
+        return { ok: true, plan, applied: false };
+    }
+    const lines = [
+        `Importare questo backup?`,
+        `${plan.added} mazzi nuovi`,
+        plan.copies ? `${plan.copies} mazzi già presenti ma diversi (importati come copia, nulla viene sovrascritto)` : '',
+        plan.skipped ? `${plan.skipped} mazzi identici saltati` : '',
+        parsed.sessions.length ? `${parsed.sessions.length} sessioni di studio` : '',
+        ...parsed.warnings.slice(0, 3),
+    ].filter(Boolean);
+    const confirmed = await new Promise(resolve => {
+        if (typeof window.showConfirmModal === 'function') {
+            window.showConfirmModal(lines.join('\n'), () => resolve(true), () => resolve(false), { confirmLabel: 'Importa', danger: false });
+        } else resolve(false);
+    });
+    if (!confirmed) return { ok: true, plan, applied: false };
+    state.decks = plan.decks;
+    state.sessions = mergeListsUnique(state.sessions || [], parsed.sessions);
+    const saved = await saveState({ immediate: true });
+    if (typeof window.renderDecks === 'function') window.renderDecks();
+    if (saved && saved.ok) {
+        window.showToast?.(`✅ Importati ${plan.added + plan.copies} mazzi.`, 'success');
+    } else {
+        window.showToast?.('Importazione caricata ma NON salvata sul dispositivo: non chiudere l’app e libera spazio.', 'error');
+    }
+    return { ok: !!(saved && saved.ok), plan, applied: true };
 }
 
 // ─── Stripe Customer Portal ───────────────────────────────────────────────────
@@ -374,5 +429,8 @@ export async function openStripePortal() {
 export function registerGDPRGlobals(registry) {
     registry('openDeleteAccountModal', openDeleteAccountModal);
     registry('exportUserData',         exportUserData);
+    registry('importUserData',         importUserData);
+    window.exportUserData = exportUserData;
+    window.importUserData = importUserData;
     registry('openStripePortal',       openStripePortal);
 }
