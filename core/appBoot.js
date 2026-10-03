@@ -187,27 +187,12 @@ export function onAuthStateChangedHandler(user, firebaseDeps = {}) {
             firebaseDeps.setupPushNotifications(user.uid);
         }
 
-        // ── Referral tracking: salva codice ref in Firestore se presente ────────
-        // Il codice ?ref=XXXXXXXX viene catturato al primo caricamento e
-        // scritto su users/{uid}.referredBy solo una volta (flag cortex_ref_tracked).
-        try {
-            const pendingRef = localStorage.getItem('cortex_pending_ref');
-            const alreadyTracked = localStorage.getItem('cortex_ref_tracked') === '1';
-            if (pendingRef && !alreadyTracked) {
-                const db = typeof firebase !== 'undefined' && firebase.apps?.length
-                    ? firebase.app().firestore()
-                    : null;
-                if (db) {
-                    db.collection('users').doc(user.uid).set(
-                        { referredBy: pendingRef, referredAt: Date.now() },
-                        { merge: true }
-                    ).then(() => {
-                        localStorage.setItem('cortex_ref_tracked', '1');
-                        localStorage.removeItem('cortex_pending_ref');
-                    }).catch(() => {});
-                }
-            }
-        } catch (_) {}
+        // ── Referral: attribuzione SOLO lato server (claimReferral) ──────────────
+        // Il codice ?ref=XXXXXXXX è salvato da index.html/app.html (cortex_ref) e da
+        // main.js (cortex_pending_ref). Il server verifica account nuovo, email
+        // verificata, un solo invito per account, niente auto-invito; il client non
+        // scrive più referredBy (audit 2026-10, fase 1.3).
+        setTimeout(() => { claimPendingReferral(user).catch(() => {}); }, 3000);
 
         const isTutorialOver = localStorage.getItem('cortex_onboarded') === '1';
         if (!isTutorialOver) {
@@ -395,4 +380,31 @@ function _checkUpgradeSuccess() {
     setTimeout(() => {
         if (typeof window.showPage === 'function') window.showPage('settings');
     }, 500);
+}
+
+
+const REFERRAL_KEYS = ['cortex_pending_ref', 'cortex_ref'];
+/** Esiti definitivi: il codice non va più ripresentato. Gli altri (rete, server) si riprovano. */
+const REFERRAL_FINAL_REASONS = new Set(['invalid_code', 'unknown_code', 'ambiguous_code', 'self_referral', 'mutual_referral', 'not_new_account', 'anonymous', 'account_deleting']);
+export async function claimPendingReferral(user) {
+    if (!user || user.isAnonymous) return null;
+    let code = null;
+    try {
+        if (localStorage.getItem('cortex_ref_tracked') === '1') return null;
+        code = REFERRAL_KEYS.map(k => localStorage.getItem(k)).find(Boolean) || null;
+    } catch (_) { return null; }
+    if (!code || typeof firebase === 'undefined' || !firebase.functions) return null;
+    const done = () => { try { localStorage.setItem('cortex_ref_tracked', '1'); REFERRAL_KEYS.forEach(k => localStorage.removeItem(k)); } catch (_) {} };
+    try {
+        const { data } = await firebase.functions().httpsCallable('claimReferral')({ code: String(code).slice(0, 20) });
+        done();
+        if (data && data.status === 'rewarded' && typeof window.showToast === 'function') {
+            window.showToast('🎁 Invito attivato: 7 giorni di Student gratis!', 'success');
+        }
+        return data || null;
+    } catch (err) {
+        const reason = err && err.details && err.details.reason;
+        if (REFERRAL_FINAL_REASONS.has(reason)) done();
+        return { status: 'error', reason: reason || 'unavailable' };
+    }
 }

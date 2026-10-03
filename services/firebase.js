@@ -467,8 +467,8 @@ export async function loadFromCloud() {
                 // protetto dalle regole Firestore e farebbe fallire TUTTA la scrittura
                 // (causa vera dei doc senza createdAt/email dal 12/09).
                 if (!_ex.plan && !doc.exists) _init.plan = 'free';
-                if (!_ex.refCode)    _init.refCode    = uid.slice(0, 8);
-                if (!_ex.referredBy) _init.referredBy = (function(){try{return localStorage.getItem('cortex_ref')||null;}catch(e){return null;}})();
+                // refCode/referredBy non si scrivono più: gli inviti li attribuisce
+                // solo il server (claimReferral, chiamato da core/appBoot.js).
                 await _db.collection('users').doc(uid).set(_init, { merge: true });
                 if (!_ex.plan) localStorage.setItem('cortex_user_plan', 'free');
                 window._cortexPlanVerified = true;
@@ -596,14 +596,6 @@ export async function loadFromCloud() {
             }
             // Segnala che il piano è stato verificato dal cloud — isPremium() può fidarsi
             window._cortexPlanVerified = true;
-
-            // Salva refCode se non è ancora presente nel doc (primo sync)
-            if (uid && !data.refCode) {
-                _db.collection('users').doc(uid).set(
-                    { refCode: uid.slice(0, 8) },
-                    { merge: true }
-                ).catch(() => {});
-            }
 
             // Win-back: mostra banner se l'utente ha cancellato e non ha già visto il messaggio
             if (data.winbackEligible && !data.winbackShownAt && effectivePlan === 'free') {

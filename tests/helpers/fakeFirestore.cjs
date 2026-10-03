@@ -3,6 +3,7 @@
 // Supporta: collection/doc, get/set(merge)/update/delete, where(==, !=)+select,
 // runTransaction (letture/scritture applicate al commit), sentinel
 // increment / arrayUnion / serverTimestamp / delete, Timestamp.fromMillis.
+const DOC_ID = '__name__';
 const INC = Symbol('inc'), UNION = Symbol('union'), DEL = Symbol('del'), TS = Symbol('ts');
 class Timestamp {
   constructor(ms) { this._ms = ms; }
@@ -62,11 +63,18 @@ function createFakeFirestore({ now = () => Date.now() } = {}) {
     const run = async () => {
       const docs = [...rows.entries()]
         .filter(([p]) => p.startsWith(prefix + '/') && !p.slice(prefix.length + 1).includes('/'))
-        .filter(([, d]) => filters.every(([f, op, v]) => { const x = getPath(d, f); return op === '==' ? x === v : op === '!=' ? x !== v && x !== undefined : false; }))
+        .filter(([p, d]) => filters.every(([f, op, v]) => {
+          const x = f === DOC_ID ? p.split('/').at(-1) : getPath(d, f);
+          if (op === '==') return x === v;
+          if (op === '!=') return x !== v && x !== undefined;
+          if (op === '>=') return x !== undefined && x >= v;
+          if (op === '<') return x !== undefined && x < v;
+          return false;
+        }))
         .map(([p]) => snap(p.split('/').at(-1), p));
       return { docs, empty: !docs.length, size: docs.length, forEach: fn => docs.forEach(fn) };
     };
-    return { where: (f, op, v) => query(prefix, [...filters, [f, op, v]]), select: () => ({ get: run }), limit: () => ({ get: run }), get: run };
+    return { where: (f, op, v) => query(prefix, [...filters, [f, op, v]]), select: () => ({ get: run }), limit: n => ({ get: async () => { const r = await run(); const docs = r.docs.slice(0, n); return { docs, empty: !docs.length, size: docs.length, forEach: fn => docs.forEach(fn) }; } }), get: run };
   }
   function collection(name) { return { doc: id => ref(name + '/' + id), ...query(name, []) }; }
   async function runTransaction(fn) {
@@ -87,7 +95,8 @@ function createFakeFirestore({ now = () => Date.now() } = {}) {
     for (const p of [...rows.keys()]) if (p === r.path || p.startsWith(r.path + '/')) rows.delete(p);
   }
   const db = { collection, runTransaction, recursiveDelete, failNextRecursiveDelete: false, batch: () => { const ops = []; return { set: (r, d, o) => ops.push(() => write(r.path, d, o)), update: (r, d) => ops.push(() => write(r.path, d, { merge: true })), delete: r => ops.push(() => rows.delete(r.path)), commit: async () => ops.forEach(f => f()) }; } };
-  const admin = { firestore: Object.assign(() => db, { FieldValue, Timestamp }) };
+  const FieldPath = { documentId: () => DOC_ID };
+  const admin = { firestore: Object.assign(() => db, { FieldValue, Timestamp, FieldPath }) };
   return { db, admin, rows, stats, Timestamp, FieldValue };
 }
 module.exports = { createFakeFirestore, Timestamp, FieldValue };

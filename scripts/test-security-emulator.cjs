@@ -51,6 +51,12 @@ async function main(){
   await request('GET','users/'+a,null,alice,200);
   for(const data of [{plan:'pro'},{sparksBalance:999},{googlePlayPurchases:[]}])await request('PATCH','users/'+a,data,alice,403);
   await request('DELETE','users/'+a,null,alice,403);
+  // Fase 1.3: premi referral e id abbonamento li scrive solo il server.
+  for(const data of [{referralProcessed:false},{referralProcessed:true},{referralCount:50},{referralDaysEarned:999},{referralRewardAt:1},{stripeSubscriptionId:'sub_fake'},{trialPlan:'pro'},{trialExpiresAt:9999999999999}])await request('PATCH','users/'+a,data,alice,403);
+  await request('PATCH','users/'+a,{plan:'free',sparksBalance:0,name:'Alice',referredBy:'ABCDEFGH',refCode:'whatever'},alice,200); // inerti: il server li ignora
+  const n='newbie-'+run;
+  await request('PATCH','users/'+n,{plan:'free',referralProcessed:false},jwt(n),403); // nemmeno alla creazione
+  for(const path of ['_referralClaims/'+n,'_referralStats/'+n])await request('PATCH',path,{x:1},jwt(n),403);
   await request('PATCH',`users/${a}/decks/one`,{name:'My deck'},alice,200);
   await request('GET',`users/${a}/decks/one`,null,bob,403);
   const deck='publicDecks/'+run,valid={ownerId:a,name:'Deck',cardsCount:2};

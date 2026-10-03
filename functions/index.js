@@ -10,18 +10,20 @@ const functions = require("firebase-functions/v1");
 // Firebase Admin v14 removed the legacy namespaced API. Keep this tiny local
 // adapter so the existing handlers share one initialized modular SDK instance.
 const { initializeApp } = require("firebase-admin/app");
-const { getFirestore, FieldValue, Timestamp } = require("firebase-admin/firestore");
+const { getFirestore, FieldValue, Timestamp, FieldPath } = require("firebase-admin/firestore");
 const { getAuth } = require("firebase-admin/auth");
 const { getMessaging } = require("firebase-admin/messaging");
 const admin = {
   initializeApp,
-  firestore: Object.assign(() => getFirestore(), { FieldValue, Timestamp }),
+  firestore: Object.assign(() => getFirestore(), { FieldValue, Timestamp, FieldPath }),
   auth: () => getAuth(),
   messaging: () => getMessaging(),
 };
 const security = require("./security");
 const entitlements = require("./entitlements");
 const accountDeletion = require("./accountDeletion");
+const referral = require("./referral");
+const stripeBilling = require("./stripeBilling");
 const crypto = require("node:crypto");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 // googleapis è enorme: caricarlo al top-level rallenta ogni cold start e può far sforare
@@ -400,29 +402,28 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
 
   const session = event.data.object;
 
-  // A. Checkout Completato -> Attiva Piano
+  // A. Checkout Completato -> Attiva Piano (solo sessioni di ABBONAMENTO valide).
+  // Questo endpoint riceve anche i checkout Sparks: senza filtro un acquisto
+  // Sparks attivava Student senza scadenza (audit 2026-10, fase 1.3).
   if (event.type === 'checkout.session.completed') {
-    const { uid, plan } = session.metadata;
-    const customerId = session.customer;
-
-    // Mapping Customer -> UID per gestire disdette future
-    await db.collection('stripeCustomers').doc(customerId).set({ uid });
-
-    // Normalizza: student_monthly e student_yearly sono entrambi 'student'
-    const normalizedPlan = (plan || 'student').replace('_monthly', '').replace('_yearly', '');
-    const isYearly = plan === 'student_yearly';
-
-    await db.collection('users').doc(uid).set({
-      plan: normalizedPlan,
-      // planSource esplicito: la scadenza Play (planExpiresAt) si applica solo ai
-      // piani con planSource 'google_play' (functions/entitlements.js).
-      planSource: 'stripe',
-      planCycle: isYearly ? 'yearly' : 'monthly',
-      planUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      stripeCustomerId: customerId
-    }, { merge: true });
-
-    console.log(`[Stripe] User ${uid} upgraded to ${normalizedPlan} (${isYearly ? 'yearly' : 'monthly'})`);
+    const grant = stripeBilling.subscriptionCheckoutGrant(session);
+    if (!grant.grant) {
+      console.log(`[Stripe] checkout ${session.id || '?'} ignorato: ${grant.reason}`);
+    } else {
+      // Mapping Customer -> UID per gestire disdette future
+      await db.collection('stripeCustomers').doc(grant.customerId).set({ uid: grant.uid }, { merge: true });
+      await db.collection('users').doc(grant.uid).set({
+        plan: grant.plan,
+        // planSource esplicito: la scadenza Play (planExpiresAt) si applica solo ai
+        // piani con planSource 'google_play' (functions/entitlements.js).
+        planSource: 'stripe',
+        planCycle: grant.cycle,
+        planUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        stripeCustomerId: grant.customerId,
+        stripeSubscriptionId: grant.subscriptionId,
+      }, { merge: true });
+      console.log(`[Stripe] User ${grant.uid} upgraded to ${grant.plan} (${grant.cycle})`);
+    }
   }
 
   // B. Pagamento Fallito -> Downgrade a Free (carta scaduta, fondi insufficienti, ecc.)
@@ -916,89 +917,32 @@ exports.submitNeuralDuelAnswer = functions.https.onCall(async (data, context) =>
   });
 });
 
+// Audit 2026-10 (fase 1.3): il vecchio trigger premiava ogni volta che il client
+// riscriveva referredBy/referralProcessed (premi ripetibili). Resta esportato come
+// NO-OP solo per sovrascrivere la versione pubblicata al prossimo deploy; poi va
+// eliminato con `firebase functions:delete processReferral`.
 exports.processReferral = functions.firestore
   .document('users/{uid}')
-  .onWrite(async (change, context) => {
-    const uid = context.params.uid;
-    const after = change.after.exists ? change.after.data() : null;
-    if (!after) return null;
+  .onWrite(async () => null);
 
-    // Solo se referredBy è appena stato impostato e non ancora processato
-    if (!after.referredBy || after.referralProcessed) return null;
-
-    // Non eseguire su update che non aggiungono referredBy per la prima volta
-    const before = change.before.exists ? change.before.data() : {};
-    if (before.referredBy) return null; // era già presente → skip
-
-    const refCode = after.referredBy;
-    console.log(`[Referral] User ${uid} referredBy code: ${refCode}`);
-
-    try {
-      // Trova il referrer: il suo UID inizia con il refCode (8 chars)
-      // Usiamo una query su Firestore: l'UID è l'ID del documento, non un campo,
-      // quindi cerchiamo tramite un campo `refCode` che salviamo al momento della registrazione.
-      // Fallback: cerca tra tutti gli utenti il cui UID inizia con refCode.
-      const referrerSnap = await db.collection('users')
-        .where('refCode', '==', refCode)
-        .limit(1)
-        .get();
-
-      if (referrerSnap.empty) {
-        console.warn(`[Referral] No referrer found for code: ${refCode}`);
-        // Marca come processato comunque per non ritentare
-        await db.collection('users').doc(uid).update({ referralProcessed: true });
-        return null;
-      }
-
-      const referrerDoc = referrerSnap.docs[0];
-      const referrerId  = referrerDoc.id;
-
-      if (referrerId === uid) {
-        console.warn(`[Referral] Self-referral attempt by ${uid} — ignored`);
-        await db.collection('users').doc(uid).update({ referralProcessed: true });
-        return null;
-      }
-
-      const REWARD_DAYS = 7;
-      const now = Date.now();
-      const rewardMs = REWARD_DAYS * 24 * 60 * 60 * 1000;
-
-      // Calcola data di scadenza del trial per referred user
-      const referredTrialExpiry = now + rewardMs;
-
-      // Per il referrer: estendi da oggi (o dalla scadenza esistente se è ancora attiva)
-      const referrerData = referrerDoc.data();
-      const existingExpiry = referrerData.trialExpiresAt || 0;
-      const referrerBase   = Math.max(now, existingExpiry);
-      const referrerExpiry = referrerBase + rewardMs;
-
-      const batch = db.batch();
-
-      // Aggiorna referred user
-      batch.update(db.collection('users').doc(uid), {
-        referralProcessed: true,
-        trialPlan: 'student',
-        trialExpiresAt: referredTrialExpiry,
-        referralRewardAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
-
-      // Aggiorna referrer
-      batch.update(db.collection('users').doc(referrerId), {
-        referralCount: admin.firestore.FieldValue.increment(1),
-        referralDaysEarned: admin.firestore.FieldValue.increment(REWARD_DAYS),
-        trialPlan: 'student',
-        trialExpiresAt: referrerExpiry,
-      });
-
-      await batch.commit();
-      console.log(`[Referral] Reward granted: ${uid} ← ${referrerId} (${REWARD_DAYS} days each)`);
-      return null;
-
-    } catch (err) {
-      console.error('[Referral] processReferral error:', err);
-      return null;
-    }
-  });
+/**
+ * claimReferral({code}) — unica attribuzione di un invito (vedi functions/referral.js).
+ * referredBy/refCode nel documento utente restano solo informativi: il server li ignora.
+ */
+exports.claimReferral = functions.https.onCall(async (data, context) => {
+  if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Accesso richiesto.');
+  const uid = context.auth.uid;
+  try {
+    let authCreatedMs = NaN;
+    try { authCreatedMs = Date.parse((await admin.auth().getUser(uid)).metadata.creationTime); } catch (_) {}
+    return await referral.claimReferral({ uid, code: data && data.code, token: context.auth.token, authCreatedMs, deps: { db, admin } });
+  } catch (err) {
+    if (err instanceof referral.ReferralError) throw new functions.https.HttpsError(err.code, err.message, { reason: err.reason });
+    if (err && /already exists|ALREADY_EXISTS/i.test(String(err.message || err.code))) return { status: 'already_claimed' };
+    console.error('[Referral] claim failed:', err && (err.code || err.message));
+    throw new functions.https.HttpsError('unavailable', 'Invito non registrato, riprova più tardi.', { reason: 'unavailable' });
+  }
+});
 
 /**
  * adminDashboard — Endpoint privato per il pannello admin di Cortex.
