@@ -159,6 +159,16 @@ export function onAuthStateChangedHandler(user, firebaseDeps = {}) {
             firebaseDeps.loadFromCloud();
         }
 
+        // Solo TWA Android: ripresenta al server gli acquisti Play non ancora
+        // verificati/confermati (vedi js/googlePlayBilling.js). Nessun pagamento.
+        if ('getDigitalGoodsService' in window) {
+            setTimeout(() => {
+                import('../js/googlePlayBilling.js')
+                    .then(m => m.reconcileGooglePlayPurchases())
+                    .catch(() => {});
+            }, 4000);
+        }
+
         // ── Post-payment: gestisci success e cancel da Stripe ──
         _checkUpgradeSuccess();
 

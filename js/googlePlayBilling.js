@@ -113,6 +113,48 @@ export async function verifyAndActivateGooglePlayPurchase(purchaseToken, sku, pl
     return data;
 }
 
+const SPARKS_SKUS = new Set([PLAY_SKUS.sparks_s, PLAY_SKUS.sparks_m, PLAY_SKUS.sparks_l]);
+const KNOWN_SKUS = new Set(Object.values(PLAY_SKUS));
+let _reconcileRunning = false;
+
+/**
+ * Recupero (audit 2026-10): all'avvio, nella TWA, ripresenta al server gli
+ * acquisti Play ancora posseduti. Copre: verifica fallita dopo il pagamento,
+ * acknowledgement fallito (Play rimborsa gli acquisti non confermati entro 3
+ * giorni) e consume Sparks non riuscito. Il server è idempotente: nessun doppio
+ * accredito. Non mostra errori all'utente; non avvia pagamenti.
+ * @returns {Promise<{checked:number, failed:number}>}
+ */
+export async function reconcileGooglePlayPurchases() {
+    if (_reconcileRunning) return { checked: 0, failed: 0 };
+    _reconcileRunning = true;
+    let checked = 0, failed = 0;
+    try {
+        if (!window.firebase || !window.firebase.auth?.().currentUser) return { checked, failed };
+        if (!_digitalGoodsService && !(await isGooglePlayAvailable())) return { checked, failed };
+        if (typeof _digitalGoodsService.listPurchases !== 'function') return { checked, failed };
+        const purchases = await _digitalGoodsService.listPurchases();
+        for (const p of (purchases || [])) {
+            const sku = p && p.itemId, token = p && p.purchaseToken;
+            if (!KNOWN_SKUS.has(sku) || typeof token !== 'string' || !token) continue;
+            checked++;
+            try {
+                const data = await verifyAndActivateGooglePlayPurchase(token, sku, null);
+                if (SPARKS_SKUS.has(sku) && data && data.success && typeof _digitalGoodsService.consume === 'function') {
+                    try { await _digitalGoodsService.consume(token); } catch (_) { /* riprovato al prossimo avvio */ }
+                }
+            } catch (_) {
+                failed++; // es. abbonamento scaduto o servizio non raggiungibile: riprovato al prossimo avvio
+            }
+        }
+    } catch (e) {
+        console.warn('[GooglePlay] riconciliazione non riuscita:', e && e.message);
+    } finally {
+        _reconcileRunning = false;
+    }
+    return { checked, failed };
+}
+
 /**
  * Flusso completo: acquisto + verifica backend + attivazione.
  * Chiamato da settings.js quando siamo in TWA.
@@ -156,6 +198,8 @@ export async function handleGooglePlayCheckout(plan) {
             if (window.openSettings) window.openSettings();
         }, 1500);
     } catch (e) {
-        if (window.showToast) window.showToast('Errore verifica: ' + e.message, 'error');
+        // Il pagamento è già avvenuto su Play: la verifica verrà ripetuta al
+        // prossimo avvio da reconcileGooglePlayPurchases().
+        if (window.showToast) window.showToast('Pagamento ricevuto, attivazione non ancora completata: riapri l’app tra poco. Non serve pagare di nuovo.', 'error');
     }
 }

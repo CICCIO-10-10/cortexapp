@@ -24,11 +24,50 @@ function adminCredential(req, secret) {
   return cookie;
 }
 const PRODUCTS = Object.freeze({cortex_student_monthly:{plan:'student'},cortex_pro_monthly:{plan:'pro'},cortex_sparks_50:{sparks:50},cortex_sparks_150:{sparks:150},cortex_sparks_500:{sparks:500}});
+
+// Google Play subscriptionsv2 (SubscriptionPurchaseV2). Stati che danno diritto
+// al servizio fino a expiryTime: ACTIVE, CANCELED (disdetto ma non ancora scaduto)
+// e IN_GRACE_PERIOD (pagamento in recupero: Google raccomanda di mantenere l'accesso).
+// PENDING, ON_HOLD, PAUSED, EXPIRED, PENDING_PURCHASE_CANCELED: nessun diritto.
+const PLAY_ENTITLED_STATES = new Set(['SUBSCRIPTION_STATE_ACTIVE', 'SUBSCRIPTION_STATE_CANCELED', 'SUBSCRIPTION_STATE_IN_GRACE_PERIOD']);
+const GRACE_RECHECK_MS = 6 * 60 * 60e3;
+function normalizePlaySubscription(purchase, sku, now = Date.now()) {
+  const p = purchase && typeof purchase === 'object' ? purchase : {};
+  const state = typeof p.subscriptionState === 'string' ? p.subscriptionState : 'SUBSCRIPTION_STATE_UNSPECIFIED';
+  const item = (Array.isArray(p.lineItems) ? p.lineItems : []).find(li => li && li.productId === sku) || null;
+  let expiryMs = item ? Date.parse(item.expiryTime) : NaN;
+  if (!Number.isFinite(expiryMs)) expiryMs = null;
+  const inGrace = state === 'SUBSCRIPTION_STATE_IN_GRACE_PERIOD';
+  // In grace period non si conosce una nuova scadenza: si concede una finestra
+  // breve e si forza una nuova verifica (non è una data fornita da Google).
+  if (inGrace && item) expiryMs = Math.max(expiryMs || 0, now + GRACE_RECHECK_MS);
+  const entitled = !!item && PLAY_ENTITLED_STATES.has(state) && expiryMs !== null && expiryMs > now;
+  return {
+    entitled, state, productMatches: !!item, expiryMs, inGrace,
+    acknowledged: p.acknowledgementState === 'ACKNOWLEDGEMENT_STATE_ACKNOWLEDGED',
+    orderId: (item && item.latestSuccessfulOrderId) || '',
+    autoRenewing: !!(item && item.autoRenewingPlan && item.autoRenewingPlan.autoRenewEnabled),
+    linkedPurchaseToken: typeof p.linkedPurchaseToken === 'string' ? p.linkedPurchaseToken : '',
+    testPurchase: !!p.testPurchase,
+  };
+}
+// purchases.products (Sparks): purchaseState 0 = acquistato, acknowledgementState 1 = confermato.
+function normalizePlayProduct(purchase) {
+  const p = purchase && typeof purchase === 'object' ? purchase : {};
+  return { entitled: p.purchaseState === 0, acknowledged: p.acknowledgementState === 1, orderId: p.orderId || '', testPurchase: p.purchaseType === 0 };
+}
+
+/**
+ * Attribuisce un acquisto Play all'utente in una transazione: claim esclusivo
+ * della ricevuta + accredito. Va chiamata PRIMA dell'acknowledgement, così un
+ * errore di conferma è recuperabile con un nuovo tentativo senza doppio accredito.
+ * @param purchase  oggetto normalizzato (normalizePlaySubscription / normalizePlayProduct)
+ */
 async function applyPurchase({db, admin, uid, sku, purchaseToken, purchase, HttpsError, now = Date.now()}) {
   const product = Object.hasOwn(PRODUCTS, sku || '') ? PRODUCTS[sku] : null;
   if (!product) throw new HttpsError('invalid-argument', 'Prodotto non valido.');
-  const expiry = Number(purchase.expiryTimeMillis);
-  if (product.plan ? (![1,2].includes(purchase.paymentState) || !Number.isFinite(expiry) || expiry <= now) : purchase.purchaseState !== 0) throw new HttpsError('failed-precondition', 'Acquisto non attivo.');
+  const expiry = Number(purchase && purchase.expiryMs);
+  if (!purchase || !purchase.entitled || (product.plan && (!Number.isFinite(expiry) || expiry <= now))) throw new HttpsError('failed-precondition', 'Acquisto non attivo.');
   const userRef = db.collection('users').doc(uid), receiptRef = db.collection('_purchaseReceipts').doc(hash(purchaseToken));
   // Migration: legacy receipts lived in users/*. Check every owner, including another account.
   const legacy = product.plan
@@ -45,12 +84,14 @@ async function applyPurchase({db, admin, uid, sku, purchaseToken, purchase, Http
       return {success: true, alreadyProcessed: true};
     }
     if (product.plan) {
-      tx.set(userRef, {plan: product.plan, planSource: 'google_play', planExpiresAt: admin.firestore.Timestamp.fromMillis(expiry), googlePlaySubscription: {sku, purchaseToken, expiresAt: admin.firestore.Timestamp.fromMillis(expiry), orderId: purchase.orderId || '', autoRenewing: !!purchase.autoRenewing, activatedAt: admin.firestore.FieldValue.serverTimestamp()}}, {merge:true});
+      tx.set(userRef, {plan: product.plan, planSource: 'google_play', planExpiresAt: admin.firestore.Timestamp.fromMillis(expiry), googlePlaySubscription: {sku, purchaseToken, expiresAt: admin.firestore.Timestamp.fromMillis(expiry), orderId: purchase.orderId || '', autoRenewing: !!purchase.autoRenewing, state: purchase.state || '', activatedAt: admin.firestore.FieldValue.serverTimestamp()}}, {merge:true});
     } else {
-      tx.set(userRef, {sparksBalance: admin.firestore.FieldValue.increment(product.sparks), googlePlayPurchases: admin.firestore.FieldValue.arrayUnion({sku, purchaseToken, orderId: purchase.orderId || '', purchasedAt: new Date(now).toISOString()}), planSource:'google_play'}, {merge:true});
+      // NB: niente planSource qui — un acquisto Sparks non deve cambiare l'origine
+      // di un abbonamento esistente (es. Stripe) né attivarne la scadenza Play.
+      tx.set(userRef, {sparksBalance: admin.firestore.FieldValue.increment(product.sparks), googlePlayPurchases: admin.firestore.FieldValue.arrayUnion({sku, purchaseToken, orderId: purchase.orderId || '', purchasedAt: new Date(now).toISOString()})}, {merge:true});
     }
-    tx.set(receiptRef, {uid, sku, updatedAt:admin.firestore.FieldValue.serverTimestamp()}, {merge:true});
-    return {success:true, ...(product.plan ? {plan:product.plan} : {sparks:product.sparks})};
+    tx.set(receiptRef, {uid, sku, ackState: purchase.acknowledged ? 'acknowledged' : 'pending', updatedAt:admin.firestore.FieldValue.serverTimestamp()}, {merge:true});
+    return {success:true, ...(product.plan ? {plan:product.plan, expiresAt: expiry} : {sparks:product.sparks})};
   });
 }
 async function retainLegacyReceipts(db, uid) {
@@ -72,4 +113,8 @@ async function consumeOAuthState(db, state, credentialHash, now = Date.now()) {
     tx.delete(ref);
   });
 }
-module.exports = {hash, equal, signSession, verifySession, adminCredential, SESSION_COOKIE, ORIGINS, PRODUCTS, applyPurchase, retainLegacyReceipts, consumeOAuthState};
+/** Registra l'esito dell'acknowledgement sulla ricevuta (recupero/riconciliazione). */
+async function markReceiptAck(db, admin, purchaseToken, acknowledged, errorCode = '') {
+  await db.collection('_purchaseReceipts').doc(hash(purchaseToken)).set({ackState: acknowledged ? 'acknowledged' : 'pending', ackError: acknowledged ? '' : String(errorCode).slice(0, 80), ackUpdatedAt: admin.firestore.FieldValue.serverTimestamp()}, {merge: true});
+}
+module.exports = {hash, equal, signSession, verifySession, adminCredential, SESSION_COOKIE, ORIGINS, PRODUCTS, PLAY_ENTITLED_STATES, normalizePlaySubscription, normalizePlayProduct, applyPurchase, markReceiptAck, retainLegacyReceipts, consumeOAuthState};

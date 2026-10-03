@@ -20,6 +20,8 @@ const admin = {
   messaging: () => getMessaging(),
 };
 const security = require("./security");
+const entitlements = require("./entitlements");
+const accountDeletion = require("./accountDeletion");
 const crypto = require("node:crypto");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 // googleapis è enorme: caricarlo al top-level rallenta ogni cold start e può far sforare
@@ -149,10 +151,8 @@ exports.callGeminiHttp = functions.https.onRequest(async (req, res) => {
     await db.runTransaction(async (transaction) => {
       const userDoc = await transaction.get(userRef);
       const userData = userDoc.exists ? userDoc.data() : {};
-      let plan = userData.plan || "free";
-      if (plan === 'free' && userData.trialPlan && userData.trialExpiresAt) {
-        if (userData.trialExpiresAt > Date.now()) plan = userData.trialPlan || 'student';
-      }
+      // Diritti effettivi: piano pagato non scaduto (Play) > trial > free.
+      const plan = entitlements.effectivePlan(userData, Date.now()).plan;
       const usageDoc = await transaction.get(usageRef);
       const currentUsage = (usageDoc.exists ? usageDoc.data().calls : 0) || 0;
       // Pro keeps effectively high fair-use headroom while protecting spend
@@ -414,6 +414,9 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
 
     await db.collection('users').doc(uid).set({
       plan: normalizedPlan,
+      // planSource esplicito: la scadenza Play (planExpiresAt) si applica solo ai
+      // piani con planSource 'google_play' (functions/entitlements.js).
+      planSource: 'stripe',
       planCycle: isYearly ? 'yearly' : 'monthly',
       planUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
       stripeCustomerId: customerId
@@ -608,93 +611,131 @@ exports.createPortalSession = functions.https.onCall(async (data, context) => {
  *   GOOGLE_PLAY_PACKAGE_NAME=app.web.cortex_app.twa
  *   GOOGLE_PLAY_SERVICE_ACCOUNT_JSON={"type":"service_account","project_id":...}
  */
+// ── Google Play Developer API ────────────────────────────────────────────────
+// Audit 2026-10: purchases.subscriptions.get è deprecata (21/05/2025, spegnimento
+// 31/08/2027) e NON esiste più in googleapis 182.0.0 (versione del lockfile).
+// Lettura abbonamenti → purchases.subscriptionsv2.get; conferma →
+// purchases.subscriptions.acknowledge (non deprecata). Sparks → purchases.products.*.
+const PLAY_PACKAGE_NAME = () => process.env.GOOGLE_PLAY_PACKAGE_NAME || 'app.web.cortex_app.twa';
+let _playApi = null;
+function getPlayApi() {
+  if (_playApi) return _playApi;
+  if (!process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON) throw new Error('Missing Play configuration');
+  const google = getGoogle();
+  const auth = new google.auth.GoogleAuth({credentials:JSON.parse(process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON), scopes:['https://www.googleapis.com/auth/androidpublisher']});
+  _playApi = google.androidpublisher({version:'v3', auth});
+  return _playApi;
+}
+/** Legge e normalizza un acquisto Play. Nessuna scrittura. */
+async function readPlayPurchase(api, sku, purchaseToken, now = Date.now()) {
+  const product = security.PRODUCTS[sku];
+  const packageName = PLAY_PACKAGE_NAME();
+  if (product.plan) {
+    const raw = (await api.purchases.subscriptionsv2.get({packageName, token: purchaseToken})).data;
+    return security.normalizePlaySubscription(raw, sku, now);
+  }
+  const raw = (await api.purchases.products.get({packageName, productId: sku, token: purchaseToken})).data;
+  return security.normalizePlayProduct(raw);
+}
+/** Conferma l'acquisto su Play; l'esito viene registrato sulla ricevuta. Non lancia. */
+async function acknowledgePlayPurchase(api, sku, purchaseToken) {
+  const product = security.PRODUCTS[sku];
+  const packageName = PLAY_PACKAGE_NAME();
+  try {
+    if (product.plan) await api.purchases.subscriptions.acknowledge({packageName, subscriptionId: sku, token: purchaseToken, requestBody: {}});
+    else await api.purchases.products.acknowledge({packageName, productId: sku, token: purchaseToken, requestBody: {}});
+    await security.markReceiptAck(db, admin, purchaseToken, true);
+    return true;
+  } catch (err) {
+    console.error('[GooglePlay] acknowledge failed:', err.code || 'internal');
+    try { await security.markReceiptAck(db, admin, purchaseToken, false, err.code || 'internal'); } catch (_) {}
+    return false;
+  }
+}
+
 exports.verifyGooglePlayPurchase = functions.https.onCall(async (data, context) => {
   if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Accesso richiesto.');
   const {purchaseToken, sku} = data || {};
   const product = Object.hasOwn(security.PRODUCTS, sku || '') ? security.PRODUCTS[sku] : null;
   if (!product || typeof purchaseToken !== 'string' || !purchaseToken || purchaseToken.length > 4096) throw new functions.https.HttpsError('invalid-argument', 'Prodotto o ricevuta non validi.');
-  const packageName = process.env.GOOGLE_PLAY_PACKAGE_NAME || 'app.web.cortex_app.twa';
   try {
-    if (!process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON) throw new Error('Missing Play configuration');
-    const google = getGoogle();
-    const auth = new google.auth.GoogleAuth({credentials:JSON.parse(process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON), scopes:['https://www.googleapis.com/auth/androidpublisher']});
-    const api = google.androidpublisher({version:'v3', auth});
-    const endpoint = product.plan ? api.purchases.subscriptions : api.purchases.products;
-    const request = {packageName, token:purchaseToken, [product.plan ? 'subscriptionId' : 'productId']:sku};
-    const purchase = (await endpoint.get(request)).data;
-    // Claim receipt and credit in one transaction before acknowledge; retry is safe.
+    const api = getPlayApi();
+    const purchase = await readPlayPurchase(api, sku, purchaseToken);
+    // 1) attribuzione + accredito in transazione (idempotente) PRIMA della conferma;
+    // 2) conferma su Play; se fallisce la ricevuta resta "pending" e un nuovo
+    //    tentativo (stesso token) la riprova senza accreditare due volte.
     const result = await security.applyPurchase({db, admin, uid:context.auth.uid, sku, purchaseToken, purchase, HttpsError:functions.https.HttpsError});
-    if (!purchase.acknowledgementState) await endpoint.acknowledge(request);
-    return result;
+    const acknowledged = purchase.acknowledged ? true : await acknowledgePlayPurchase(api, sku, purchaseToken);
+    return {...result, acknowledged};
   } catch (err) {
     if (err instanceof functions.https.HttpsError) throw err;
     console.error('[GooglePlay] verification failed:', err.code || 'internal');
-    throw new functions.https.HttpsError('internal', 'Verifica acquisto temporaneamente non disponibile.');
+    throw new functions.https.HttpsError('unavailable', 'Verifica acquisto temporaneamente non disponibile. Riprova: l’acquisto non va perso.');
   }
+});
+
+/**
+ * Rilegge su Play un abbonamento salvato come scaduto e, se Play lo dà ancora
+ * attivo (rinnovo), aggiorna la scadenza. Non revoca e non cancella nulla.
+ * Tampone fino a RTDN + riconciliazione (fase 4).
+ */
+async function refreshPlaySubscriptionIfExpired(uid, user, now = Date.now()) {
+  const sub = user && user.googlePlaySubscription;
+  const ep = entitlements.effectivePlan(user, now);
+  if (!ep.paidExpired || !sub || typeof sub.purchaseToken !== 'string' || !security.PRODUCTS[sub.sku]?.plan) return false;
+  const receipt = await db.collection('_purchaseReceipts').doc(security.hash(sub.purchaseToken)).get();
+  if (receipt.exists && receipt.data().uid !== uid) return false;
+  const purchase = await readPlayPurchase(getPlayApi(), sub.sku, sub.purchaseToken, now);
+  if (!purchase.entitled) return false;
+  await security.applyPurchase({db, admin, uid, sku: sub.sku, purchaseToken: sub.purchaseToken, purchase, HttpsError: functions.https.HttpsError, now});
+  return true;
+}
+
+/** Diritti effettivi per la UI (il client non decide l'autorizzazione). */
+exports.getEntitlements = functions.https.onCall(async (data, context) => {
+  if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Accesso richiesto.');
+  const uid = context.auth.uid;
+  const ref = db.collection('users').doc(uid);
+  let user = (await ref.get()).data() || {};
+  try {
+    if (await refreshPlaySubscriptionIfExpired(uid, user)) user = (await ref.get()).data() || {};
+  } catch (err) {
+    console.error('[Entitlements] Play refresh failed:', err.code || 'internal');
+  }
+  const ep = entitlements.effectivePlan(user, Date.now());
+  return {plan: ep.plan, source: ep.source, expiresAt: ep.expiresAt, paidExpired: ep.paidExpired, trial: ep.trial, trialExpiresAt: ep.trialExpiresAt};
 });
 
 
 /**
- * deleteUserAccount — GDPR Right to Erasure
- * Cancella tutti i dati dell'utente da Firestore e disabilita l'account Firebase Auth.
- * Chiamata solo dall'utente autenticato per cancellare sé stesso.
+ * deleteUserAccount — GDPR Right to Erasure (CONTENIMENTO, non ancora completo)
+ * Unico ingresso per l'eliminazione: gestisce gli abbonamenti, elimina i dati
+ * principali, disabilita l'accesso e restituisce un esito veritiero con l'elenco
+ * dei dati non ancora coperti. Dettagli: functions/accountDeletion.js.
  */
 exports.deleteUserAccount = functions.https.onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'Accesso richiesto.');
   }
-  const uid = context.auth.uid;
-
+  // Contenimento F01 (audit 2026-10): logica in functions/accountDeletion.js.
   try {
-    // 1. Cancella sub-collections (decks, memory)
-    const deleteCollection = async (collPath) => {
-      const snap = await db.collection(collPath).get();
-      const batch = db.batch();
-      snap.docs.forEach(d => batch.delete(d.ref));
-      if (snap.docs.length > 0) await batch.commit();
-    };
-
-    await deleteCollection(`users/${uid}/decks`);
-    await deleteCollection(`users/${uid}/memory`);
-
-    // Preserve consumed legacy receipts before removing the only old purchase record.
-    await security.retainLegacyReceipts(db, uid);
-    // 2. Cancella document principale utente
-    await db.collection('users').doc(uid).delete();
-
-    // 3. Cancella profilo pubblico (leaderboard)
-    const profileSnap = await db.collection('userProfiles')
-      .where('uid', '==', uid).limit(1).get();
-    if (!profileSnap.empty) {
-      await profileSnap.docs[0].ref.delete();
-    }
-
-    // 4. Cancella mazzi pubblici condivisi
-    const publicDecksSnap = await db.collection('publicDecks')
-      .where('ownerId', '==', uid).get();
-    const batch2 = db.batch();
-    publicDecksSnap.docs.forEach(d => batch2.delete(d.ref));
-    if (!publicDecksSnap.empty) await batch2.commit();
-
-    // 5. Cancella stripeCustomers mapping
-    const stripeDoc = await db.collection('users').doc(uid).get();
-    const customerId = stripeDoc.data()?.stripeCustomerId;
-    if (customerId) {
-      await db.collection('stripeCustomers').doc(customerId).delete();
-    }
-
-    // 6. Disabilita (non cancella subito) l'utente Firebase Auth
-    // La cancellazione definitiva avviene dopo 30 giorni per sicurezza
-    await admin.auth().updateUser(uid, { disabled: true });
-
-    console.log(`[GDPR] Account ${uid} cancellato su richiesta dell'utente.`);
-    return { success: true };
-
+    return await accountDeletion.runAccountDeletion({
+      uid: context.auth.uid,
+      authTime: Number(context.auth.token && context.auth.token.auth_time),
+      deps: {
+        db, admin, security, entitlements, getStripe,
+        readPlaySubscription: (sku, token) => readPlayPurchase(getPlayApi(), sku, token),
+      },
+    });
   } catch (err) {
-    console.error('[GDPR] deleteUserAccount error:', err);
-    throw new functions.https.HttpsError('internal', 'Errore durante la cancellazione: ' + err.message);
+    if (err instanceof accountDeletion.DeletionError) {
+      throw new functions.https.HttpsError(err.code, err.message, { reason: err.reason });
+    }
+    console.error('[GDPR] deleteUserAccount error:', err && (err.code || err.message));
+    throw new functions.https.HttpsError('internal', 'Eliminazione non riuscita. Riprova; se il problema continua scrivi a info@cortexapp.it.', { reason: 'unexpected' });
   }
 });
+
 
 
 /**
@@ -765,8 +806,7 @@ function duelQuestion(index) {
 async function requireDuelPlan(uid) {
   const userDoc = await db.collection('users').doc(uid).get();
   const user = userDoc.exists ? userDoc.data() : {};
-  let plan = user.plan || 'free';
-  if (plan === 'free' && user.trialPlan && Number(user.trialExpiresAt) > Date.now()) plan = user.trialPlan;
+  const plan = entitlements.effectivePlan(user, Date.now()).plan;
   if (plan !== 'student' && plan !== 'pro' && uid !== 'f8oLEt3LDpT7VN9zFOa10mVE2Cf2') {
     throw new functions.https.HttpsError('permission-denied', 'Neural Duels richiede il piano Student o Pro.');
   }
@@ -1855,10 +1895,7 @@ exports.textToSpeechHttp = functions.https.onRequest(async (req, res) => {
   if (!isAdmin) {
     const userDoc = await db.collection('users').doc(uid).get();
     const userData = userDoc.exists ? userDoc.data() : {};
-    let plan = userData.plan || 'free';
-    if (plan === 'free' && userData.trialPlan && userData.trialExpiresAt > Date.now()) {
-      plan = userData.trialPlan || 'student';
-    }
+    const plan = entitlements.effectivePlan(userData, Date.now()).plan;
     if (plan !== 'student' && plan !== 'pro') {
       res.status(403).json({ error: 'PREMIUM_REQUIRED', message: 'Cloud TTS richiede piano Student o Pro' });
       return;

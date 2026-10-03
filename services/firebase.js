@@ -560,7 +560,26 @@ export async function loadFromCloud() {
             }
 
             // Determina il piano effettivo: piano pagato > trial attivo > free
+            // (stessa regola del server, functions/entitlements.js: il server resta
+            // l'unica autorità per i gate; qui serve solo a mostrare la UI corretta).
             let effectivePlan = data.plan || 'free';
+            const _playExpiry = data.planSource === 'google_play' && data.planExpiresAt
+                ? (typeof data.planExpiresAt.toMillis === 'function' ? data.planExpiresAt.toMillis() : Number(data.planExpiresAt))
+                : null;
+            if (effectivePlan !== 'free' && Number.isFinite(_playExpiry) && _playExpiry <= Date.now()) {
+                effectivePlan = 'free';
+                // Possibile rinnovo non ancora recepito (niente RTDN fino alla fase 4):
+                // chiede al server di ricontrollare Play e aggiorna la UI se attivo.
+                try {
+                    firebase.functions().httpsCallable('getEntitlements')().then(res => {
+                        const p = res && res.data && res.data.plan;
+                        if ((p === 'student' || p === 'pro') && window._fbUserId === uid) {
+                            localStorage.setItem('cortex_user_plan', p);
+                            window.dispatchEvent(new Event('cortex:plan-changed'));
+                        }
+                    }).catch(() => {});
+                } catch (_) {}
+            }
             if (effectivePlan === 'free' && data.trialPlan && data.trialExpiresAt) {
                 const trialActive = data.trialExpiresAt > Date.now();
                 if (trialActive) {

@@ -175,14 +175,20 @@ export function openDeleteAccountModal() {
                 </h2>
                 <p style="font-size:0.85rem; color:var(--text-muted); line-height:1.6; margin-bottom:8px;">
                     Questa azione è <strong style="color:rgb(239,68,68);">irreversibile</strong>.
-                    Verranno eliminati permanentemente:
+                    Verranno eliminati:
                 </p>
-                <ul style="text-align:left; font-size:0.82rem; color:var(--text-muted); margin:12px 0 20px; padding-left:20px; line-height:2;">
-                    <li>Il tuo profilo e tutti i mazzi</li>
-                    <li>Il tuo storico di studio e XP</li>
-                    <li>Le tue sessioni cloud sincronizzate</li>
-                    <li>I tuoi acquisti Neural Sparks</li>
+                <ul style="text-align:left; font-size:0.82rem; color:var(--text-muted); margin:12px 0 12px; padding-left:20px; line-height:1.8;">
+                    <li>il profilo, i mazzi e lo storico di studio salvati sul cloud</li>
+                    <li>i mazzi pubblici che hai condiviso</li>
+                    <li>i dati salvati su questo dispositivo</li>
+                    <li>gli Sparks non ancora usati</li>
                 </ul>
+                <p style="text-align:left; font-size:0.78rem; color:var(--text-muted); line-height:1.6; margin-bottom:20px;">
+                    Un abbonamento Stripe attivo viene annullato (nessun nuovo addebito).
+                    Un abbonamento Google Play va annullato prima dal Play Store.
+                    Alla fine ti mostriamo l’esito e cosa resta ancora da rimuovere.
+                </p>
+                <div id="gdpr-delete-status" role="status" aria-live="polite" style="font-size:0.82rem; line-height:1.6; margin-bottom:12px; display:none;"></div>
                 <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:24px;">
                     Scrivi <strong style="color:var(--text);">ELIMINA</strong> per confermare:
                 </p>
@@ -211,6 +217,70 @@ export function openDeleteAccountModal() {
     document.body.appendChild(modal);
 }
 
+/** Cancella i dati locali di Cortex su questo dispositivo (solo dopo esito positivo del server). */
+async function clearLocalCortexData() {
+    try { localStorage.clear(); } catch (_) {}
+    try { sessionStorage.clear(); } catch (_) {}
+    for (const name of ['cortex_db', 'cortex-audio', 'cortex_lessons']) {
+        try {
+            await new Promise((resolve) => {
+                const req = indexedDB.deleteDatabase(name);
+                req.onsuccess = req.onerror = req.onblocked = () => resolve();
+            });
+        } catch (_) {}
+    }
+}
+
+const _escDel = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+/**
+ * Unico percorso di eliminazione account (contenimento F01, audit 2026-10).
+ * Il browser NON cancella più dati né l'identità: chiama deleteUserAccount sul
+ * server e mostra l'esito reale. In caso di errore non tocca i dati locali.
+ * @returns {Promise<{ok:boolean, result?:object, reason?:string, message?:string}>}
+ */
+export async function requestAccountDeletion() {
+    const fb = window.firebase;
+    const user = fb?.auth?.()?.currentUser;
+    if (!user || user.isAnonymous) {
+        return { ok: false, reason: 'not_signed_in', message: 'Accedi con il tuo account per eliminarlo.' };
+    }
+    try {
+        const call = fb.functions().httpsCallable('deleteUserAccount');
+        const { data } = await call({});
+        if (!data || data.status !== 'core_deleted') {
+            return { ok: false, reason: 'unexpected', message: 'Risposta inattesa dal server: nessun dato locale è stato rimosso. Riprova.' };
+        }
+        await clearLocalCortexData();
+        try { await fb.auth().signOut(); } catch (_) {}
+        return { ok: true, result: data };
+    } catch (err) {
+        const reason = err?.details?.reason || String(err?.code || '').replace('functions/', '') || 'unknown';
+        return { ok: false, reason, message: err?.message || 'Eliminazione non riuscita. Riprova.' };
+    }
+}
+
+function renderDeletionOutcome(statusEl, outcome) {
+    if (!statusEl) return;
+    statusEl.style.display = 'block';
+    if (!outcome.ok) {
+        statusEl.style.color = 'rgb(239,68,68)';
+        statusEl.innerHTML = _escDel(outcome.message);
+        return;
+    }
+    const r = outcome.result || {};
+    const sub = r.subscription || {};
+    const lines = ['✅ Profilo, mazzi e storico sul cloud eliminati; accesso disattivato; dati di questo dispositivo rimossi.'];
+    if (sub.stripe === 'canceled') lines.push('Abbonamento Stripe annullato: non ci saranno nuovi addebiti.');
+    if (sub.play === 'not_renewing') lines.push('Il tuo abbonamento Google Play era già senza rinnovo.');
+    if (Array.isArray(r.pending) && r.pending.length) {
+        lines.push('Ancora da rimuovere (richiesta registrata): ' + r.pending.join('; ') + '.');
+    }
+    lines.push('Per domande: info@cortexapp.it');
+    statusEl.style.color = 'var(--text)';
+    statusEl.innerHTML = lines.map(l => '<p style="margin:0 0 6px;">' + _escDel(l) + '</p>').join('');
+}
+
 window.__gdprConfirmDelete = async function() {
     const val = document.getElementById('delete-confirm-input')?.value?.trim();
     if (val !== 'ELIMINA') {
@@ -219,42 +289,24 @@ window.__gdprConfirmDelete = async function() {
     }
 
     const btn = document.getElementById('delete-confirm-btn');
+    const statusEl = document.getElementById('gdpr-delete-status');
     if (btn) { btn.disabled = true; btn.textContent = (_t().deleting||'Eliminazione...'); }
 
-    try {
-        // 1. Cancella dati Firestore tramite Firebase Auth + Cloud Function
-        const user = window.firebase?.auth?.()?.currentUser
-                  || window._firebaseUser
-                  || null;
+    const outcome = await requestAccountDeletion();
+    renderDeletionOutcome(statusEl, outcome);
 
-        if (user) {
-            // Prova a eliminare il documento utente da Firestore
-            const db = window.firebase?.firestore?.();
-            if (db) {
-                await db.collection('users').doc(user.uid).delete().catch(() => {});
-                await db.collection('usage').doc(user.uid).delete().catch(() => {});
-            }
-            // Elimina account Auth
-            await user.delete();
+    if (outcome.ok) {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Chiudi';
+            btn.onclick = () => { window.location.href = '/'; };
         }
-
-        // 2. Pulisci localStorage
-        localStorage.clear();
-        sessionStorage.clear();
-
-        // 3. Feedback e reload
-        document.getElementById('gdpr-delete-modal')?.remove();
-        alert(t('gdpr_deleted'));
-        window.location.href = '/';
-    } catch (err) {
-        console.error('[GDPR] Delete error:', err);
-        if (err.code === 'auth/requires-recent-login') {
-            if (window.showToast) window.showToast('⚠️ Per sicurezza, esci e rientra prima di eliminare l\'account.', 'error');
-        } else {
-            if (window.showToast) window.showToast(t('gdpr_err_delete'), 'error');
-        }
-        if (btn) { btn.disabled = false; btn.textContent = '🗑️ Elimina'; }
+        return;
     }
+    if (outcome.reason === 'requires_recent_login' && window.showToast) {
+        window.showToast('⚠️ Per sicurezza, esci e rientra prima di eliminare l\'account.', 'error');
+    }
+    if (btn) { btn.disabled = false; btn.textContent = '🗑️ Elimina'; }
 };
 
 // ─── Data Export (GDPR Art. 20) ───────────────────────────────────────────────

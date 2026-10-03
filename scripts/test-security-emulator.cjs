@@ -71,14 +71,17 @@ async function main(){
   await request('PATCH','userProfiles/'+run,{uid:a,xp:10},alice,200);
   await request('PATCH','userProfiles/'+run,{uid:b,xp:20},bob,403);
 
-  const input={db,admin,uid:a,sku:'cortex_sparks_50',purchaseToken:'test-receipt-'+run,purchase:{purchaseState:0},HttpsError};
+  // purchase = oggetto normalizzato (security.normalizePlayProduct / normalizePlaySubscription)
+  const input={db,admin,uid:a,sku:'cortex_sparks_50',purchaseToken:'test-receipt-'+run,purchase:security.normalizePlayProduct({purchaseState:0}),HttpsError};
   await Promise.all([security.applyPurchase(input),security.applyPurchase(input)]);
   assert.equal((await db.doc('users/'+a).get()).data().sparksBalance,50);checks++;
   assert.equal((await security.applyPurchase(input)).alreadyProcessed,true);checks++;
   await assert.rejects(security.applyPurchase({...input,uid:b}),{code:'permission-denied'});checks++;
-  await assert.rejects(security.applyPurchase({...input,purchase:{purchaseState:1}}),{code:'failed-precondition'});checks++;
+  await assert.rejects(security.applyPurchase({...input,purchase:security.normalizePlayProduct({purchaseState:1})}),{code:'failed-precondition'});checks++;
   await assert.rejects(security.applyPurchase({...input,sku:'__proto__'}),{code:'invalid-argument'});checks++;
-  await assert.rejects(security.applyPurchase({...input,sku:'cortex_pro_monthly',purchase:{paymentState:1,expiryTimeMillis:Date.now()-1000}}),{code:'failed-precondition'});checks++;
+  await assert.rejects(security.applyPurchase({...input,sku:'cortex_pro_monthly',purchase:security.normalizePlaySubscription({subscriptionState:'SUBSCRIPTION_STATE_ACTIVE',lineItems:[{productId:'cortex_pro_monthly',expiryTime:new Date(Date.now()-1000).toISOString()}]},'cortex_pro_monthly')}),{code:'failed-precondition'});checks++;
+  // Campi legacy v1 (paymentState/expiryTimeMillis) non bastano più a concedere un piano.
+  await assert.rejects(security.applyPurchase({...input,sku:'cortex_pro_monthly',purchaseToken:'v1-'+run,purchase:{paymentState:1,expiryTimeMillis:Date.now()+86400000}}),{code:'failed-precondition'});checks++;
   const legacyToken='legacy-'+run;
   await db.doc('users/'+a).set({googlePlayPurchases:[{purchaseToken:legacyToken,sku:'cortex_sparks_50'}]},{merge:true});
   await assert.rejects(security.applyPurchase({...input,uid:b,purchaseToken:legacyToken}),{code:'permission-denied'});checks++;
@@ -87,6 +90,19 @@ async function main(){
   await db.doc('users/'+a).set({googlePlayPurchases:[{purchaseToken:tombstone,sku:'cortex_sparks_50'}]},{merge:true});
   await security.retainLegacyReceipts(db,a);await db.doc('users/'+a).delete();
   await assert.rejects(security.applyPurchase({...input,uid:b,purchaseToken:tombstone}),{code:'permission-denied'});checks++;
+
+  // Contenimento F01: con _deletionLocks/{uid} nessun client ricrea dati per quell'uid.
+  const c='carol-'+run,carol=jwt(c);
+  await request('PATCH','users/'+c,{plan:'free',name:'Carol'},carol,200);
+  await request('PATCH','_deletionLocks/'+c,{lockedAt:1},carol,403); // il client non può creare/rimuovere il lucchetto
+  await db.doc('_deletionLocks/'+c).set({lockedAt:Date.now()});
+  await request('PATCH','users/'+c,{name:'Carol again'},carol,403);
+  await request('PATCH',`users/${c}/decks/resurrected`,{name:'Deck'},carol,403);
+  await request('PATCH','profiles/'+c,{uid:c,isPublic:false},carol,403);
+  await request('PATCH','userProfiles/carol-'+run,{uid:c,xp:1},carol,403);
+  await request('PATCH','publicDecks/carol-'+run,{ownerId:c,name:'Deck',cardsCount:1},carol,403);
+  await request('GET','users/'+c,null,carol,200); // la lettura resta possibile (nessun dato nascosto all'utente)
+  await request('PATCH',`users/${a}/decks/two`,{name:'Other user unaffected'},alice,200);
 
   const state='a'.repeat(64),ref=db.doc('_oauthStates/'+security.hash(state));
   await ref.set({credentialHash:'session',expiresAt:Date.now()+60000});

@@ -259,33 +259,10 @@ window.showConfirmModal = (message, onConfirm, onCancel) => {
 window._getFunctions = () => getFunctions();
 window.handleAIError = (err, ctx) => handleAIError(err, ctx, showToast);
 
-// GDPR: cancella account e tutti i dati
-window._deleteAccount = async () => {
-    const confirmed = window.confirm(
-        '⚠️ Sei sicuro di voler eliminare il tuo account?\n\nQuesta azione è IRREVERSIBILE:\n• Tutti i tuoi mazzi verranno eliminati\n• Il tuo progresso e gli XP verranno persi\n• Il tuo abbonamento verrà annullato\n\nDigita "ELIMINA" nella prossima finestra per confermare.'
-    );
-    if (!confirmed) return;
-    const typed = window.prompt('Scrivi ELIMINA per confermare la cancellazione definitiva:');
-    if (typed?.trim().toUpperCase() !== 'ELIMINA') {
-        showToast('Cancellazione annullata.', 'info');
-        return;
-    }
-    const btn = document.getElementById('btn-delete-account');
-    if (btn) { btn.disabled = true; btn.textContent = t('main_deleting'); }
-    try {
-        const fns = getFunctions();
-        const deleteAccount = fns.httpsCallable('deleteUserAccount');
-        await deleteAccount({});
-        // Pulizia locale
-        localStorage.clear();
-        showToast(t('main_account_deleted'), 'success');
-        setTimeout(() => { window.location.href = '/'; }, 2000);
-    } catch (e) {
-        if (btn) { btn.disabled = false; btn.textContent = t('main_delete_account_btn'); }
-        showToast(t('main_err_delete'), 'error');
-        console.error('[GDPR] delete error:', e);
-    }
-};
+// GDPR: percorso legacy unificato sull'unico flusso (modules/gdpr.js, contenimento F01).
+// Prima chiamava il server ma prometteva l'annullamento dell'abbonamento e
+// mostrava successo senza controllare l'esito.
+window._deleteAccount = () => openDeleteAccountModal();
 // Helper: controlla se l'utente ha il piano Student
 // Se il cloud sync non ha ancora verificato il piano, assume il piano dal localStorage
 // ma non blocca mai un utente pagante: in caso di dubbio aspetta fino a 3s

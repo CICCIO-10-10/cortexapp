@@ -17,6 +17,13 @@ service cloud.firestore {
       return str is string && str.size() <= maxLength;
     }
 
+    // Contenimento F01 (audit 2026-10): durante/dopo l'eliminazione account il
+    // server crea _deletionLocks/{uid}; da quel momento nessun client (anche con
+    // un token ancora valido in un'altra scheda) può ricreare dati per quell'uid.
+    function notDeleting(uid) {
+      return !exists(/databases/$(database)/documents/_deletionLocks/$(uid));
+    }
+
     // NOTA sicurezza (22/07/2026): le regole Firestore NON supportano query/count(),
     // quindi il rate-limit "max N mazzi pubblici al giorno" va fatto in una Cloud Function
     // (o con un doc contatore per-utente aggiornato via transazione). Qui restano solo i
@@ -32,6 +39,7 @@ service cloud.firestore {
       allow read: if true;
       allow create: if request.auth != null
         && request.resource.data.ownerId == request.auth.uid
+        && notDeleting(request.auth.uid)
         && isValidString(request.resource.data.name, 200)
         && (!('description' in request.resource.data) || isValidString(request.resource.data.description, 1000))
         && (!('cardsCount' in request.resource.data) || (request.resource.data.cardsCount is int && request.resource.data.cardsCount >= 0 && request.resource.data.cardsCount <= 200))
@@ -59,7 +67,7 @@ service cloud.firestore {
     // I campi XP sono validati come interi ≥0 per prevenire injection nella leaderboard.
     match /userProfiles/{username} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == request.resource.data.uid && (
+      allow write: if request.auth != null && request.auth.uid == request.resource.data.uid && notDeleting(request.auth.uid) && (
         isAdmin() || (
           request.resource.data.uid == request.auth.uid &&
           (!exists(/databases/$(database)/documents/userProfiles/$(username)) || resource.data.uid == request.auth.uid) &&
@@ -88,24 +96,28 @@ service cloud.firestore {
         ];
       }
       allow create: if request.auth != null && request.auth.uid == userId
+        && notDeleting(userId)
         && (!('plan' in request.resource.data) || request.resource.data.plan == 'free')
         && (!('sparksBalance' in request.resource.data) || request.resource.data.sparksBalance == 0)
         && !request.resource.data.keys().hasAny([
              'planCycle','planSource','planUpdatedAt','planExpiresAt',
              'trialPlan','trialExpiresAt','stripeCustomerId','googlePlaySubscription','googlePlayPurchases']);
       allow update: if request.auth != null && request.auth.uid == userId
+        && notDeleting(userId)
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(_billingProtetti());
       // Account deletion must preserve server receipt tombstones before removing user data.
       allow delete: if false; // deleteUserAccount (Admin SDK)
 
       // 📚 Sub-collection per i mazzi
       match /decks/{deckId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if request.auth != null && request.auth.uid == userId && notDeleting(userId);
       }
 
       // 🧠 Sub-collection per la memoria (Coach AI)
       match /memory/{memoryId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if request.auth != null && request.auth.uid == userId && notDeleting(userId);
       }
     }
 
@@ -168,9 +180,11 @@ service cloud.firestore {
       allow create: if request.auth != null
         && request.auth.uid == profileId
         && request.resource.data.uid == request.auth.uid
+        && notDeleting(profileId)
         && validProfile();
       allow update: if request.auth != null
         && request.auth.uid == profileId
+        && notDeleting(profileId)
         && resource.data.uid == request.auth.uid
         && request.resource.data.uid == resource.data.uid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
