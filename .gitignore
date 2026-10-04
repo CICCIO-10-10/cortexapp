@@ -96,3 +96,4 @@ cookies.txt
 
 # backup locali delle modifiche
 _backup_*/
+__pycache__/
