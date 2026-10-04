@@ -23,6 +23,11 @@ async function run(scenario) {
     if (BLOCK.some(r => r.test(u))) { out.blocked++; return route.abort(); }
     return route.continue();
   });
+  if (scenario === 'twa') {
+    // TWA: il referrer android-app:// c'è solo al primo caricamento della sessione (Chromium non lo
+    // accetta come Referer HTTP, quindi lo simuliamo su document.referrer).
+    await ctx.addInitScript(() => { try { if (!sessionStorage.getItem('__twa_seen')) { sessionStorage.setItem('__twa_seen', '1'); Object.defineProperty(document, 'referrer', { get: () => 'android-app://app.web.cortex_app.twa/' }); } } catch (_) {} });
+  }
   await ctx.addInitScript(({ account }) => {
     try {
       if (!sessionStorage.getItem('__repro_init')) {
@@ -46,8 +51,7 @@ async function run(scenario) {
     if (t.startsWith('REJ ')) { out.rejections.push(t.slice(4)); return; }
     if (m.type() === 'error') out.consoleErrors.push(t.slice(0, 200));
   });
-  const referer = scenario === 'twa' ? 'android-app://app.web.cortex_app.twa/' : undefined;
-  await page.goto(BASE + '/app?sim=tolc-i', { waitUntil: 'load', referer });
+  await page.goto(BASE + '/app?sim=tolc-i', { waitUntil: 'load' });
   await page.waitForTimeout(2500);
   const hasSim = await page.$('#tolc-sim-overlay');
   out.notes.push('overlay simulatore: ' + !!hasSim + ', firebase definito: ' + await page.evaluate(() => typeof firebase !== 'undefined'));
@@ -126,6 +130,13 @@ async function run(scenario) {
   }
   await page.waitForTimeout(3500);
   out.notes.push('prompt salvataggio: ' + !!(await page.$('#tolc-save-prompt')));
+  if (scenario === 'twa') {
+    // Navigazione nella stessa scheda senza referrer android-app:// (come dopo il ritorno dal login).
+    const before = out.events.length;
+    await page.goto(BASE + '/app', { waitUntil: 'load' });
+    await page.waitForTimeout(2500);
+    out.notes.push('piattaforma dopo la navigazione: ' + JSON.stringify(Array.from(new Set(out.events.slice(before).map(e => e.meta && e.meta.platform)))));
+  }
   await finish();
   return out;
   async function finish() { await browser.close(); }

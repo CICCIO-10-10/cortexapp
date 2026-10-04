@@ -137,8 +137,11 @@ export function closeOnboarding() {
 
 // ── TRIGGER OVERLAY (prima visita) ───────────────────────────────────────────
 
+let _obTriggered = false;   // 04/10/2026: chiamata da più punti (auth, redirect): una volta per pagina
 export function triggerOnboardingOverlay() {
     if (localStorage.getItem('cortex_onboarded') === '1') return;
+    if (_obTriggered) return;
+    _obTriggered = true;
 
     // Rileva traffico da Instagram
     const urlParams = new URLSearchParams(window.location.search);
@@ -218,6 +221,8 @@ export function triggerOnboardingOverlay() {
     };
     const _showOverlay = () => {
         if (localStorage.getItem('cortex_onboarded') === '1') return;
+        const onboardingEl = document.getElementById('onboarding-overlay');
+        if (onboardingEl && onboardingEl.style.display === 'flex') return;   // già visibile: niente doppio conteggio
         const authOverlay = document.getElementById('auth-overlay');
         const onboarding  = document.getElementById('onboarding-overlay');
         if (!authOverlay || authOverlay.classList.contains('hidden') || authOverlay.style.display === 'none') {

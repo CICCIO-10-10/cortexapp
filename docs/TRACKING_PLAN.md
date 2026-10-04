@@ -86,3 +86,33 @@ Test automatico su produzione (visitatore `TEST_…`, escluso dalla dashboard): 
 - **Segmenti:** annotare `android_twa`, `android_web`, `mobile_web`, `tablet_web`, `desktop_web` sugli eventi da ora in avanti. Il referrer del TWA identifica l’ambiente app, non la campagna che ha portato all’installazione: l’acquisizione Store resta attribuita solo ai report Play Console. I dati storici senza piattaforma restano non classificati.
 - **Clarity:** mantenere i custom event storici e aggiungere gli eventi Android TWA con suffisso `_android_twa`; impostare in Clarity funnel per eventi, non un passaggio basato sulla sola URL della landing. Confrontare screenshot/replay Clarity con il funnel ordinato Firestore; non usare Clarity come conteggio delle installazioni Play.
 - **Baseline:** i numeri del funnel v3 dal 25/09 precedono il rilascio di produzione del 30/09. Separare il confronto pre/post lancio e annotare date e denominatore.
+
+## Aggiornamento 04/10/2026 — TOLC → ripasso, avvio senza SDK, misure di studio
+Branch `fix/tolc-ripasso-2026-10` (sopra `fix/audit-2026-10`). Nulla di questo è attivo finché non si pubblicano hosting **e** Functions (`telemetry`, `adminDashboard`).
+
+**Cause confermate (riprodotte in locale, prima/dopo in `scripts/tolc-ripasso-2026-10/`):**
+- `firebase is not defined` / `Can't find variable: firebase`: `firebase?.apps` lancia ReferenceError se lo script SDK non si carica. In più i moduli (studio, mazzi, creazione) si inizializzavano solo nel callback di autenticazione → senza SDK il mazzo errori veniva creato ma lo studio non si apriva (blocco reale). Ora: guardie `typeof` + modalità solo locale (`firebase_sdk_unavailable`).
+- Home dell'app su `/` = landing (`index.html`): ricarica o ritorno dal login Google (redirect) portavano fuori dall'app; il risultato TOLC (solo in memoria) si perdeva. Ora Home su `/app`, rewrite per `/materiale` `/tecniche` `/community` `/lezioni`, e `index.html` rimanda in `/app` se un login o una ripresa sono in corso.
+- L'onboarding si apriva sopra la prima sessione di ripasso degli errori TOLC.
+- Percorso `tolc` ordinato parte dal selettore: chi arriva da `?sim=tolc-…` salta selettore e intro e non viene contato. Nuovo percorso `tolcAttempt` (avvio reale → consegna).
+- La telemetria scartava meta già inviati (`test`, `pct`, `variant`, `last_step`, …): ora ammessi (solo codici e numeri).
+- Nella TWA il referrer `android-app://` c'è solo al primo caricamento: dopo una navigazione gli eventi risultavano `android_web`. Ora la piattaforma resta nella sessione.
+
+**Eventi nuovi**
+| Evento | Quando | Meta |
+|---|---|---|
+| `review_first_completed` | prima sessione di ripasso arrivata in fondo con ≥1 carta valutata, su questo dispositivo (una volta) | count, type (guest/account), flow (tolc_errors/deck/demo) |
+| `study_returned_next_day` | prima carta valutata in un giorno di calendario successivo a quello del primo ripasso completato (una volta) | days_after, type, flow |
+| `study_session_abandoned` | studio chiuso prima della fine | count (valutate), total, type, flow |
+| `tolc_result_login_click` | "Salva il risultato nel tuo account Google" (errori e riepilogo salvati prima del login) | count, success |
+| `tolc_resume_shown` / `_click` / `_dismiss` | al ritorno, proposta "Ripassa i tuoi errori" (una volta) | count, type, flow |
+| `tolc_error_deck_failed` | il mazzo errori non si è potuto creare/aprire | reason |
+| `guest_login_not_completed` | accesso partito da ospite ma non completato: si torna ospite | — |
+| `onboarding_bypassed` | onboarding non mostrato: arrivo per il TOLC o mazzi già presenti | reason |
+| `firebase_sdk_unavailable` | SDK Firebase non caricato: modalità solo locale | reason (offline/not_loaded), type |
+
+Ogni evento del registro percorso porta `account_type` (guest/account) e `platform`. `onboarding_finished/skipped` portano `variant: single_screen` (prima del 29/09: senza variant).
+
+**Attivazione:** definizione invariata (≥3 generate + ≥3 studiate + 1 voto). Le tappe di studio sono **in più**, non la sostituiscono. Per gli account, `users/{uid}.activation` registra anche `firstReviewCompletedAt/firstReviewDay`, `lastStudyDay`, `studyReturnedAt/studyReturnedDay` (solo carte valutate e sessioni concluse). `adminDashboard` espone `usersFirstReview` e `usersStudyReturned`; `usersReturned`/`usersActive7d`/`lastActive` vengono da Firebase Auth (login e **refresh del token**) e **non** sono prova di utilizzo.
+
+**Dashboard (`journey-summary.cjs`):** percorsi nuovi `tolcAttempt`, `review`, `tolcResume`; rami nuovi; `breakdown.tolc_quit_then_completed` vs `tolc_quit_not_completed` (`tolc_test_quit` scatta anche quando l'app va in background); `breakdown.onboarding_variant`; errori `firebase_sdk_unavailable` e `tolc_error_deck_failed`. Nessun evento storico ricostruito: i nuovi conteggi partono dal rilascio. La dashboard locale (AUTOMAZIONI) va aggiornata per mostrarli.
