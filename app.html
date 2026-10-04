@@ -242,9 +242,9 @@ if(localStorage.getItem('mm_is_logged_in')==='true')return;
 if(!(localStorage.getItem('cortex_guest')==='1'||p.get('guest')==='1'||p.get('sim')||p.get('area')))return;
 var b=document.createElement('div');b.id='guest-banner';b.setAttribute('data-early','1');
 b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:15000;display:flex;align-items:center;justify-content:center;gap:12px;padding:8px 14px;font-family:Inter,system-ui,sans-serif;font-size:0.86rem;color:#fff;background:linear-gradient(90deg,rgba(139,92,246,0.96),rgba(217,70,239,0.96));box-shadow:0 4px 20px rgba(0,0,0,0.3);';
-b.innerHTML='<span>👤 Stai usando Cortex come <b>ospite</b> — i progressi non sono salvati.</span>'+
+b.innerHTML='<span>👤 Sei <b>ospite</b>: i progressi restano solo su questo dispositivo.</span>'+
 '<button id="guest-demo-btn" style="background:rgba(255,255,255,0.18);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-weight:800;font-size:0.82rem;cursor:pointer;">▶ Esempio</button>'+
-'<button id="guest-save-btn" style="background:#fff;color:#7c3aed;border:none;border-radius:8px;padding:6px 14px;font-weight:800;font-size:0.82rem;cursor:pointer;">Salva i progressi</button>'+
+'<button id="guest-save-btn" style="background:#fff;color:#7c3aed;border:none;border-radius:8px;padding:6px 14px;font-weight:800;font-size:0.82rem;cursor:pointer;">Salva con Google</button>'+
 '<button id="guest-dismiss-btn" aria-label="Chiudi" style="background:transparent;border:none;color:rgba(255,255,255,0.85);font-size:1.1rem;cursor:pointer;line-height:1;">×</button>';
 document.body.prepend(b);setTimeout(function(){try{var e=document.getElementById('guest-banner');if(!e||!e.getAttribute('data-early'))return;if(localStorage.getItem('cortex_guest')==='1'&&localStorage.getItem('mm_is_logged_in')!=='true'&&window._fbLoggedIn!==true&&typeof window.__initGuestMode==='function'){window.__initGuestMode();}else{e.remove();}}catch(_){}},6000);}catch(e){}})();</script>
     <!-- SPLASH TOLC (23/09/2026): chi arriva con ?sim vede SUBITO "Preparo la simulazione TOLC",
@@ -2008,12 +2008,20 @@ document.body.prepend(b);setTimeout(function(){try{var e=document.getElementById
             '<button id="glg-dismiss" style="display:block;width:100%;background:none;border:none;color:rgba(255,255,255,0.4);font-size:0.85rem;margin-top:14px;cursor:pointer;font-family:inherit;">Non ora</button>'+
           '</div>';
         document.body.appendChild(m);
+        try{ if(window.__cxLogStep) window.__cxLogStep('guest_ai_gate_shown',{flow:String(context||'')}); }catch(e){}
         document.getElementById('glg-login').onclick=function(){
           try{ if(typeof gtag==='function' && localStorage.getItem('cortex_no_track')!=='1') gtag('event','guest_ai_gate_login',{context:String(context||'')}); }catch(e){}
+          try{ if(window.__cxLogStep) window.__cxLogStep('guest_ai_gate_login',{flow:String(context||'')}); }catch(e){}
           m.remove(); window.__guestLogin();
         };
         document.getElementById('glg-dismiss').onclick=function(){
           try{ if(typeof gtag==='function' && localStorage.getItem('cortex_no_track')!=='1') gtag('event','guest_ai_gate_dismiss',{context:String(context||'')}); }catch(e){}
+          // 04/10/2026 (Clarity 1i87vpw: "Non ora" cliccato più volte): "Non ora" vale per tutta la
+          // sessione. La richiesta AI in sospeso viene lasciata cadere, così il riquadro non si
+          // riapre da solo al prossimo avvio; un nuovo clic su un'azione AI lo mostra di nuovo.
+          try{ sessionStorage.setItem('cx_glg_dismissed','1'); }catch(e){}
+          try{ localStorage.removeItem('cortex_pending_ai'); }catch(e){}
+          try{ if(window.__cxLogStep) window.__cxLogStep('guest_ai_gate_dismiss',{flow:String(context||'')}); }catch(e){}
           m.remove();
         };
       };
@@ -2027,13 +2035,18 @@ document.body.prepend(b);setTimeout(function(){try{var e=document.getElementById
         var b=document.createElement('div');
         b.id='guest-banner';
         b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:15000;display:flex;align-items:center;justify-content:center;gap:12px;padding:8px 14px;font-family:Inter,system-ui,sans-serif;font-size:0.86rem;color:#fff;background:linear-gradient(90deg,rgba(139,92,246,0.96),rgba(217,70,239,0.96));box-shadow:0 4px 20px rgba(0,0,0,0.3);';
-        b.innerHTML='<span>👤 Stai usando Cortex come <b>ospite</b> — i progressi non sono salvati.</span>'+
+        b.innerHTML='<span>👤 Sei <b>ospite</b>: i progressi restano solo su questo dispositivo.</span>'+
           '<button id="guest-demo-btn" style="background:rgba(255,255,255,0.18);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-weight:800;font-size:0.82rem;cursor:pointer;">▶ Esempio</button>'+
-          '<button id="guest-save-btn" style="background:#fff;color:#7c3aed;border:none;border-radius:8px;padding:6px 14px;font-weight:800;font-size:0.82rem;cursor:pointer;">Salva i progressi</button>'+
+          '<button id="guest-save-btn" style="background:#fff;color:#7c3aed;border:none;border-radius:8px;padding:6px 14px;font-weight:800;font-size:0.82rem;cursor:pointer;">Salva con Google</button>'+
           '<button id="guest-dismiss-btn" aria-label="Chiudi" style="background:transparent;border:none;color:rgba(255,255,255,0.85);font-size:1.1rem;cursor:pointer;line-height:1;">×</button>';
         document.body.prepend(b); }
         document.body.style.paddingTop='';
-        document.getElementById('guest-save-btn').onclick=window.__guestLogin;
+        // 04/10/2026: destinazione chiara ("Salva con Google"); i mazzi da ospite vengono uniti
+        // all'account e, se l'accesso non si completa, si torna ospite (core/appBoot.js).
+        document.getElementById('guest-save-btn').onclick=function(){
+          try{ if(window.__cxLogStep) window.__cxLogStep('guest_save_click',{flow:'banner'}); }catch(e){}
+          window.__guestLogin();
+        };
         var _gd=document.getElementById('guest-demo-btn'); if(_gd) _gd.onclick=function(){ window.__cortexDemo(true); };
         document.getElementById('guest-dismiss-btn').onclick=function(){
           b.remove(); document.body.style.paddingTop='';

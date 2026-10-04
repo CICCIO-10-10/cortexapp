@@ -242,7 +242,8 @@ export function onAuthStateChangedHandler(user, firebaseDeps = {}) {
 
         // Ospite arrivato per generare (pending AI dagli errori TOLC): mostra il
         // gate di login; dopo l'accesso il resume genera le flashcard.
-        try { if (localStorage.getItem('cortex_pending_ai')) { setTimeout(function(){ try { if (localStorage.getItem('cortex_pending_ai') && typeof window.showGuestLoginGate === 'function') window.showGuestLoginGate('tolc_errors'); } catch (_) {} }, 1000); } } catch (_) {}
+        // 04/10/2026: non se l'ospite ha già detto "Non ora" in questa sessione.
+        try { if (localStorage.getItem('cortex_pending_ai') && sessionStorage.getItem('cx_glg_dismissed') !== '1') { setTimeout(function(){ try { if (localStorage.getItem('cortex_pending_ai') && sessionStorage.getItem('cx_glg_dismissed') !== '1' && typeof window.showGuestLoginGate === 'function') window.showGuestLoginGate('tolc_errors'); } catch (_) {} }, 1000); } } catch (_) {}
         
         const redirectPending = localStorage.getItem('cortex_redirect_pending') === '1';
 

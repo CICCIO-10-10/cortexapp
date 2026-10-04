@@ -115,13 +115,15 @@ export async function startStudy(deckIndex) {
     const run = ++studyRun;
     const { state, showToast, setCurrentDeckIndex } = _deps;
     const deck = state.decks[deckIndex];
-    if (!deck) { showToast(t('study_deck_not_found'), 'error'); return; }
+    if (!deck) { showToast(t('study_deck_not_found'), 'error'); try { track('study_start_failed', { reason: 'deck_not_found' }); } catch (_) {} return; }
 
     // 🔄 Lazy Loading: se mancano le carte, scarichiamole dalla sub-collection
+    let _loadFailed = false;
     if (!deck.cards || deck.cards.length === 0) {
         if (window.loadDeckFromSubcollection) {
             showToast(t('study_loading'), 'info');
             const fullDeck = await window.loadDeckFromSubcollection(deck.id);
+            if (!fullDeck) _loadFailed = true;
             if (run !== studyRun || !state.decks.includes(deck)) return;
             if (fullDeck && fullDeck.cards) {
                 deck.cards = fullDeck.cards;
@@ -134,8 +136,13 @@ export async function startStudy(deckIndex) {
         }
     }
 
+    // 04/10/2026 (Clarity a9ahvb: "Ripassa ora" senza studio): ogni mancato avvio ha un
+    // messaggio che dice cosa fare e un evento con il motivo.
     if (!deck.cards || deck.cards.length === 0) {
-        showToast(t('study_no_cards'), 'info'); return;
+        if (_loadFailed) showToast('Non riesco a scaricare le carte di questo mazzo adesso. Controlla la connessione e riprova.', 'error');
+        else showToast(t('study_no_cards'), 'info');
+        try { track('study_start_failed', { reason: _loadFailed ? 'load_failed' : 'no_cards', flow: _studyFlow(deck) }); } catch (_) {}
+        return;
     }
 
     // FIX: slice(0,10) gestisce sia "2026-05-03" che "2026-05-03T14:30:00.000Z"
@@ -143,7 +150,11 @@ export async function startStudy(deckIndex) {
     const today = todayStr();
     const dueCards = deck.cards.filter(c => !c.nextReview || (c.nextReview || '').slice(0, 10) <= today);
     if (dueCards.length === 0) {
-        showToast(t('study_no_cards_today'), 'success'); return;
+        showToast(t('study_no_cards_today'), 'success');
+        try { track('study_start_failed', { reason: 'nothing_due', flow: _studyFlow(deck) }); } catch (_) {}
+        // L'etichetta "Ripassa ora" poteva basarsi su un conteggio vecchio: lo si riallinea.
+        try { if (typeof _deps.refreshDueCounts === 'function') _deps.refreshDueCounts(); if (typeof window.renderHome === 'function') window.renderHome(); } catch (_) {}
+        return;
     }
 
     // Nascondi FAB durante lo studio

@@ -10,7 +10,9 @@ Prerequisito: aver già lanciato importa_scuole_miur.py (genera public/scuole/*.
 Uso: python genera_landing_province.py
 Output: public/scuole-superiori-<provincia>.html
 """
-import json, re
+import json
+import re
+from urllib.parse import urlencode
 from pathlib import Path
 import genera_landing_scuola as gls  # riusa CSS e FX (stesso design delle TOLC)
 
@@ -47,7 +49,7 @@ def footer(regione, prov_correnti, prov_regione):
       '<div><h4>Cortex</h4><a href="/scuola">Trova la tua scuola</a><a href="/simulazione-tolc?sim=tolc">Simulazione TOLC</a><a href="/app">Apri l\'app</a><a href="/privacy">Privacy</a></div>'
       '</div><p style="text-align:center;color:var(--muted2);margin-top:36px;font-size:.8rem">© 2026 Cortex — cortexapp.it · Elenco scuole da anagrafe ufficiale MIUR (open data).</p></footer>')
 
-def build(regione, prov, schools, prov_regione):
+def build(regione, prov, schools, prov_regione, reg_slug=None):
     n = len(schools)
     title = f"Scuole superiori a {prov}: elenco, indirizzi e programmi | Cortex"
     desc  = f"Elenco delle {n} scuole superiori della provincia di {prov}: licei, istituti tecnici e professionali con i loro indirizzi. Trova la tua e ripassa il programma con Cortex, gratis."
@@ -62,7 +64,11 @@ def build(regione, prov, schools, prov_regione):
     for lab in sorted(labels):
         sl = IND_LINK.get(lab)
         if sl: chips += f'<a href="/{sl}" class="chip">{esc(lab)}</a>'
-        else:  chips += f'<span class="chip">{esc(lab)}</span>'
+        else:
+            # 04/10/2026 (Clarity: clic a vuoto su "Istituto Tecnico" ad Aosta): ogni chip è un link.
+            # Senza una landing dedicata porta al tool /scuola già filtrato su provincia e indirizzo.
+            q = esc(urlencode({"reg": reg_slug or slug(regione), "prov": prov, "tipo": lab}))
+            chips += f'<a href="/scuola?{q}" class="chip" title="Trova le scuole di {esc(prov)} con questo indirizzo">{esc(lab)}</a>'
 
     # elenco scuole
     rows = ""
@@ -155,7 +161,7 @@ def main():
         province = sorted(data.keys())
         for prov in province:
             (OUT / f"scuole-superiori-{slug(prov)}.html").write_text(
-                build(reg["nome"], prov, data[prov], province), encoding="utf-8")
+                build(reg["nome"], prov, data[prov], province, reg["slug"]), encoding="utf-8")
             tot += 1
         print(f"OK  {reg['nome']}: {len(province)} province")
     print(f"\n{tot} landing provincia generate in {OUT}")

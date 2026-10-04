@@ -70,10 +70,10 @@ export function ensureTolcErrorDeck(st, fmt) {
     state.decks.push(deck);
     saveState();
     const guest = _isGuest();
-    _write({ deckId: deck.id, ts: Date.now(), guest, steps: {} });
+    _write({ deckId: deck.id, attempt: st.attemptId, ts: Date.now(), guest, steps: {} });
     // Riusa l'evento esistente "ingresso nella sessione di studio" (study.js).
     try { localStorage.setItem('cortex_tolc_error_study_pending', JSON.stringify({ ts: Date.now(), deckId: deck.id })); } catch (_) {}
-    try { track('tolc_error_deck_created', { count: deck.cards.length, mode: 'local', type: guest ? 'guest' : 'account' }); } catch (_) {}
+    try { track('tolc_error_deck_created', { count: deck.cards.length, mode: 'local', type: guest ? 'guest' : 'account', attempt: st.attemptId }); } catch (_) {}
     return { ok: true, deck, created: true };
 }
 
@@ -140,7 +140,7 @@ export function saveTolcResultAndLogin(st, fmt, summary) {
         correct: summary && summary.correct, total: summary && summary.total, nWrong: summary && summary.nWrong,
         reason: 'result_login',
     }));
-    try { track('tolc_result_login_click', { count: (summary && summary.nWrong) || 0, success: saved }); } catch (_) {}
+    try { track('tolc_result_login_click', { count: (summary && summary.nWrong) || 0, success: saved, attempt: st && st.attemptId }); } catch (_) {}
     _startLogin();
     return { ok: true, deckId };
 }
@@ -192,10 +192,10 @@ export function maybeShowTolcResume(attempt = 0) {
         box.append(title, body, go, later);
         document.body.appendChild(box);
         const type = window._fbLoggedIn ? 'account' : 'guest';
-        try { track('tolc_resume_shown', { count: due, type, flow: rec.reason }); } catch (_) {}
+        try { track('tolc_resume_shown', { count: due, type, flow: rec.reason, attempt: rec.attemptId }); } catch (_) {}
         const close = () => { try { box.remove(); } catch (_) {} };
         go.onclick = () => {
-            try { track('tolc_resume_click', { count: due, type, flow: rec.reason }); } catch (_) {}
+            try { track('tolc_resume_click', { count: due, type, flow: rec.reason, attempt: rec.attemptId }); } catch (_) {}
             close();
             startStudyById(deck.id);
         };
@@ -212,9 +212,9 @@ function _onStudyEvent(step, deck, extra) {
     try {
         if (!isTolcErrorDeck(deck)) return;
         if (step === 'first_rate' && markTolcErrorStep(deck.id, 'rated')) {
-            track('tolc_error_first_card_rated');
+            track('tolc_error_first_card_rated', { attempt: deck.sourceAttempt });
         } else if (step === 'completed') {
-            if (markTolcErrorStep(deck.id, 'completed')) track('tolc_error_session_completed', { count: (extra && extra.count) || 0 });
+            if (markTolcErrorStep(deck.id, 'completed')) track('tolc_error_session_completed', { count: (extra && extra.count) || 0, attempt: deck.sourceAttempt });
             // Aspetta che finiscano le celebrazioni (livello/obiettivo) per non sovrapporsi;
             // se la persona chiude prima, la proposta compare alla chiusura ('closed').
             let tries = 0;
@@ -236,7 +236,7 @@ function _onLoginCompleted() {
     try {
         const f = _read();
         if (!f || !f.guest) return;
-        if (markTolcErrorStep(f.deckId, 'login')) track('tolc_error_deck_login_completed');
+        if (markTolcErrorStep(f.deckId, 'login')) track('tolc_error_deck_login_completed', { attempt: f.attempt });
     } catch (_) {}
 }
 
@@ -264,24 +264,24 @@ export function showTolcSavePrompt(deck) {
             '<button id="tsp-ai" style="width:100%;padding:11px;margin-top:8px;border-radius:10px;border:1px solid rgba(168,85,247,.5);background:rgba(168,85,247,.12);color:#e9d5ff;font-weight:700;cursor:pointer;">Spiegami gli errori con l’AI' + (guest ? ' (richiede l’accesso)' : '') + '</button>' +
             '<button id="tsp-later" style="width:100%;padding:10px;margin-top:6px;border:none;background:transparent;color:rgba(255,255,255,.5);font-weight:600;cursor:pointer;">' + (guest ? 'Continua come ospite' : 'Non ora') + '</button>';
         document.body.appendChild(box);
-        try { track('tolc_error_save_prompt_shown', { type: guest ? 'guest' : 'account' }); } catch (_) {}
+        try { track('tolc_error_save_prompt_shown', { type: guest ? 'guest' : 'account', attempt: deck.sourceAttempt }); } catch (_) {}
         // Stessa richiesta del modale generico "salva i progressi" (app.html): non riproporlo.
         if (guest) { try { localStorage.setItem('cortex_guest_prompted', '1'); } catch (_) {} }
         const close = () => { try { box.remove(); } catch (_) {} };
         const login = box.querySelector('#tsp-login');
         if (login) login.onclick = () => {
-            try { track('tolc_error_save_prompt_login_click'); } catch (_) {}
+            try { track('tolc_error_save_prompt_login_click', { attempt: deck.sourceAttempt }); } catch (_) {}
             close();
             _saveResume(buildResumeRecord({ attemptId: deck.sourceAttempt || deck.id, deckId: deck.id, testName: deck.subject, nWrong: (deck.cards || []).length, reason: 'save_prompt' }));
             _startLogin();
         };
         box.querySelector('#tsp-ai').onclick = () => {
-            try { track('tolc_error_save_prompt_ai_click', { type: guest ? 'guest' : 'account' }); } catch (_) {}
+            try { track('tolc_error_save_prompt_ai_click', { type: guest ? 'guest' : 'account', attempt: deck.sourceAttempt }); } catch (_) {}
             close();
             requestAiExplanation(deck);
         };
         box.querySelector('#tsp-later').onclick = () => {
-            try { track('tolc_error_save_prompt_dismiss'); } catch (_) {}
+            try { track('tolc_error_save_prompt_dismiss', { attempt: deck.sourceAttempt }); } catch (_) {}
             close();
         };
     } catch (_) {}

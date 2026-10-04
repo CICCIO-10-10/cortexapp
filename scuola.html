@@ -340,14 +340,18 @@ function openRegione(r){
     b.innerHTML='<span class="nm" style="font-size:13px">'+p+'</span>';
     b.onclick=()=>openProvincia(p); gp.appendChild(b);
   });
-  fetch('/scuole/'+slugReg(r)+'.json').then(res=>res.ok?res.json():null).then(d=>{scuoleData=d;}).catch(()=>{scuoleData=null;});
+  _scuoleLoad=fetch('/scuole/'+slugReg(r)+'.json').then(res=>res.ok?res.json():null).then(d=>{scuoleData=d;}).catch(()=>{scuoleData=null;});
   goTo('s-provincia',1);
 }
+let _scuoleLoad=Promise.resolve(), curTipo=null;
 function openProvincia(p){
   curProv=p;
   if(scuoleData && scuoleData[p] && scuoleData[p].length){
     scuoleProv=scuoleData[p];
-    document.getElementById('sub-scuola').textContent=p+' · '+scuoleProv.length+' scuole';
+    // 04/10/2026: arrivo da una pagina provincia con l'indirizzo scelto (?tipo=): solo le scuole che lo hanno
+    var _all=scuoleProv, _tipo=curTipo; curTipo=null;
+    if(_tipo){ var _f=_all.filter(function(s){ return (s.indirizzi||[]).some(function(it){ return it.label===_tipo; }); }); if(_f.length) scuoleProv=_f; else _tipo=null; }
+    document.getElementById('sub-scuola').textContent=p+(_tipo?' · '+_tipo:'')+' · '+scuoleProv.length+' scuole';
     document.getElementById('search-scuola').value='';
     renderScuole(scuoleProv); goTo('s-scuola',2);
   } else { toIndirizzo(); }
@@ -400,6 +404,20 @@ function renderIndirizziScuola(list){
   });
 }
 buildGenericIndirizzi();
+
+// 04/10/2026: link dalle pagine "Scuole superiori a <provincia>" (?reg=<slug>&prov=<nome>&tipo=<indirizzo>):
+// si arriva già su regione e provincia scelte, con l'elenco filtrato sull'indirizzo.
+(function(){
+  try{
+    var q=new URLSearchParams(location.search), rs=q.get('reg'), p=q.get('prov'), tipo=q.get('tipo');
+    if(!rs) return;
+    var r=Object.keys(REG).find(function(k){ return slugReg(k)===rs; });
+    if(!r) return;
+    openRegione(r);
+    if(!p) return;
+    _scuoleLoad.then(function(){ if(curReg!==r) return; curTipo=tipo||null; openProvincia(p); });
+  }catch(e){}
+})();
 
 let current=null;
 function openIndirizzo(k){

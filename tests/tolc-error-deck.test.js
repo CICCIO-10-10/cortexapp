@@ -92,7 +92,7 @@ describe('tolcErrorDeck (salvataggio e studio)', () => {
         expect(again).toMatchObject({ ok: true, created: false });
         expect(ctx.state.decks).toHaveLength(1);
         expect(studied).toEqual(['tolc-err-tolc-i-xyz', 'tolc-err-tolc-i-xyz']);
-        expect(tracked.filter(([n]) => n === 'tolc_error_deck_created')).toEqual([['tolc_error_deck_created', { count: 2, mode: 'local', type: 'guest' }]]);
+        expect(tracked.filter(([n]) => n === 'tolc_error_deck_created')).toEqual([['tolc_error_deck_created', { count: 2, mode: 'local', type: 'guest', attempt: 'tolc-i-xyz' }]]);
         expect(JSON.stringify(tracked)).not.toMatch(/Radice|past of go/);
     });
 

@@ -111,8 +111,8 @@ export function closeOnboarding() {
     const overlay = document.getElementById('onboarding-overlay');
     if (overlay) overlay.style.display = 'none';
     localStorage.setItem('cortex_onboarded', '1');
-    track('onboarding_complete', { goal: localStorage.getItem('cortex_user_goal') || 'skipped' });
-    // v3 25/09: onboarding_complete scatta anche per chi salta → separiamo i due casi
+    // 04/10/2026: tolto il vecchio 'onboarding_complete', che scattava anche per chi salta
+    // (Clarity: "completato" e "saltato" sulla stessa azione). Restano solo i due casi separati.
     try {
         // 29/09/2026: "finito" = obiettivo toccato ORA (Instagram pre-imposta il goal: non conta come finito)
         // 04/10/2026: variant distingue la schermata unica (dal 29/09) dalle versioni a più slide.

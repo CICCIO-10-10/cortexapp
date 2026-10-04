@@ -33,7 +33,9 @@ function safeEventParams(input) {
     return output;
 }
 // Only action names, never documents, answers, email addresses or event metadata.
-const CLARITY_STEPS = new Set(['app_open', 'onboarding_start', 'onboarding_shown', 'onboarding_complete',
+// 04/10/2026: 'onboarding_complete' (vecchio, scattava anche per chi salta) tolto da Clarity:
+// lì comparivano completato e saltato sulla stessa azione. Restano onboarding_finished / _skipped.
+const CLARITY_STEPS = new Set(['app_open', 'onboarding_start', 'onboarding_shown',
     'cards_generated', 'cards_saved', 'generated_cards_saved', 'study_session_start',
     'study_session_completed', 'activated', 'tolc_sim_open', 'tolc_test_start', 'tolc_first_answer', 'tolc_sim_complete',
     'onboarding_finished', 'onboarding_skipped',
@@ -48,6 +50,7 @@ const CLARITY_STEPS = new Set(['app_open', 'onboarding_start', 'onboarding_shown
     'tolc_error_save_prompt_shown', 'tolc_error_save_prompt_login_click', 'tolc_error_save_prompt_ai_click', 'tolc_error_save_prompt_dismiss',
     // 25/09/2026 tracking v3 (tracking plan: docs/TRACKING_PLAN.md)
     'tolc_selector_viewed', 'tolc_type_picked', 'tolc_intro_viewed', 'tolc_selector_closed', 'tolc_test_quit',
+    'tolc_test_hidden', 'tolc_test_resumed', 'tolc_result_login_click', 'tolc_resume_click', 'review_first_completed', 'study_returned_next_day',
     'onboarding_step_viewed', 'onboarding_finished', 'onboarding_skipped', 'onboarding_goal_selected',
     'cards_generation_started', 'cards_generation_failed', 'generated_cards_discarded', 'cloud_sync_failed',
     'material_first_answer', 'material_practice_completed']);

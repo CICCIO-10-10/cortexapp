@@ -193,7 +193,7 @@ function _start(key) {
   const attemptId = key + '-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7);
   _state = { key: key, test: t, qs: qs, i: 0, answers: new Array(qs.length).fill(null), checked: new Array(qs.length).fill(false), left: secs, running: true, attemptId: attemptId };
   _renderQ();
-  track('tolc_test_start', { test: key });   // avvio REALE della prova (1a domanda mostrata), distinto da tolc_sim_open (= apertura selettore)
+  track('tolc_test_start', { test: key, attempt: attemptId });   // avvio REALE della prova (1a domanda mostrata), distinto da tolc_sim_open (= apertura selettore)
   _clearTimer();
   _timer = setInterval(function () {
     if (!_state) return;
@@ -342,7 +342,7 @@ function _finish() {
   if (!st.scoreMode) st.scoreMode = 'cisia';
   var correct = _sectionStats(st).reduce(function (a, g) { return a + g.ok; }, 0);
   var pct = Math.max(0, Math.round(correct / (st.qs.length || 1) * 100));
-  track('tolc_sim_complete', { test: st.key, correct: correct, pct: pct });
+  track('tolc_sim_complete', { test: st.key, correct: correct, pct: pct, attempt: st.attemptId });
   try { if (window.addXP) window.addXP(correct * 5); } catch (e) {}
   _renderResult();
 }
@@ -540,7 +540,7 @@ document.addEventListener('click', function (e) {
     // v3 25/09: distingue chi chiude prima di iniziare (selettore/intro) da chi abbandona la prova a meta'
     try {
       if (!_state) track('tolc_selector_closed', { stage: ov.querySelector('#tolc-start') ? 'intro' : 'selector' });
-      else if (_state.running && !_state.finished) track('tolc_test_quit', { test: _state.key, answered: (_state.answers || []).filter(function (a) { return a !== null; }).length, at: _state.i + 1, of: (_state.qs || []).length });
+      else if (_state.running && !_state.finished) track('tolc_test_quit', { test: _state.key, attempt: _state.attemptId, how: 'button', n: (_state.answers || []).filter(function (a) { return a !== null; }).length, at: _state.i + 1, of: (_state.qs || []).length });
     } catch (e3) {}
     return _remove();
   }
@@ -571,7 +571,7 @@ document.addEventListener('click', function (e) {
       var a = st2.answers ? st2.answers[i] : null;
       return a !== null && a !== undefined && a !== q.c;
     }).length;
-    try { track('tolc_errors_generate_click', { n: nWrongNow }); } catch (e) {}
+    try { track('tolc_errors_generate_click', { n: nWrongNow, attempt: st2.attemptId }); } catch (e) {}
     if (!nWrongNow) { if (window.showToast) window.showToast('Nessun errore da ripassare — ottimo! \uD83C\uDF89', 'success'); return; }
     if (st2._errorDeckPending) return;               // doppio click
     st2._errorDeckPending = true;
@@ -584,7 +584,7 @@ document.addEventListener('click', function (e) {
         ? 'Non riesco a creare le carte: i dati di queste domande sono incompleti.'
         : res && res.reason === 'not_ready' ? 'Cortex si sta ancora avviando: riprova tra un attimo.'
         : 'Non sono riuscito a creare il mazzo. Riprova.', 'error');
-      try { track('tolc_error_deck_failed', { reason: (res && res.reason) || 'unknown' }); } catch (e4) {}
+      try { track('tolc_error_deck_failed', { reason: (res && res.reason) || 'unknown', attempt: st2.attemptId }); } catch (e4) {}
     });
     return;
   }
@@ -596,18 +596,27 @@ document.addEventListener('click', function (e) {
   if (id === 'tolc-consegna') return _finish();
   if (id === 'tolc-annulla-consegna') { if (_state) _renderQ(); return; }
   if (id === 'tolc-next') return _next();
-  if (opt && _state) { if (_state.checked[_state.i]) return; _state.answers[_state.i] = parseInt(opt.getAttribute('data-idx'), 10); if (!_state._firstAns) { _state._firstAns = true; track('tolc_first_answer', { test: _state.key }); } _renderQ(); }
+  if (opt && _state) { if (_state.checked[_state.i]) return; _state.answers[_state.i] = parseInt(opt.getAttribute('data-idx'), 10); if (!_state._firstAns) { _state._firstAns = true; track('tolc_first_answer', { test: _state.key, attempt: _state.attemptId }); } _renderQ(); }
 });
 
-// v3 25/09/2026: durante la prova NON c'e' un tasto per uscire → chi abbandona lo fa
-// chiudendo/cambiando scheda. Lo registriamo UNA volta per prova (tolc_test_quit, how:'leave').
+// 04/10/2026: cambiare scheda NON è un abbandono (Clarity: 18w0k5v, 15th6mt, 1xmjomy hanno
+// "quit" e poi completato). Ora: tolc_test_hidden quando la pagina si nasconde durante la prova,
+// tolc_test_resumed al ritorno (duration = secondi via), tolc_test_quit solo per l'uscita
+// esplicita. Ogni evento porta l'id del tentativo: completato/abbandonato si calcola sul
+// tentativo (functions/journey-summary.cjs), non sul singolo evento.
 if (typeof document !== 'undefined') {
   document.addEventListener('visibilitychange', function () {
     try {
-      if (document.visibilityState !== 'hidden') return;
-      if (!_state || !_state.running || _state.finished || _state._quitLogged) return;
-      _state._quitLogged = true;
-      track('tolc_test_quit', { test: _state.key, answered: (_state.answers || []).filter(function (a) { return a !== null; }).length, at: _state.i + 1, of: (_state.qs || []).length, how: 'leave' });
+      if (!_state || !_state.running || _state.finished) return;
+      if (document.visibilityState === 'hidden') {
+        if (_state._hiddenAt) return;
+        _state._hiddenAt = Date.now();
+        track('tolc_test_hidden', { test: _state.key, attempt: _state.attemptId, n: (_state.answers || []).filter(function (a) { return a !== null; }).length, at: _state.i + 1, of: (_state.qs || []).length });
+      } else if (_state._hiddenAt) {
+        var away = Math.max(0, Math.round((Date.now() - _state._hiddenAt) / 1000));
+        _state._hiddenAt = 0;
+        track('tolc_test_resumed', { test: _state.key, attempt: _state.attemptId, duration: away });
+      }
     } catch (e) {}
   });
 }
