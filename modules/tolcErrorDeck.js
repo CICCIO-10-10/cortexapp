@@ -177,7 +177,7 @@ export function maybeShowTolcResume(attempt = 0) {
         box.style.cssText = 'position:fixed;left:50%;bottom:16px;transform:translateX(-50%);width:min(92vw,420px);z-index:70000;background:#15151d;border:1px solid rgba(34,197,94,.45);border-radius:16px;padding:16px;color:#e8e8ee;font-family:Inter,system-ui,sans-serif;box-shadow:0 18px 50px rgba(0,0,0,.5);';
         const title = document.createElement('div');
         title.style.cssText = 'font-weight:800;font-size:.98rem;margin-bottom:6px;';
-        title.textContent = 'Il tuo ' + rec.testName + ' è salvato' + (rec.total ? ': ' + rec.correct + '/' + rec.total + ' corrette' : '');
+        title.textContent = 'Il tuo ' + rec.testName + (rec.total ? ': ' + rec.correct + '/' + rec.total + ' corrette' : '');
         const body = document.createElement('div');
         body.style.cssText = 'font-size:.82rem;color:rgba(255,255,255,.65);line-height:1.5;margin-bottom:12px;';
         body.textContent = due === 1 ? 'Hai 1 errore pronto da ripassare.' : 'Hai ' + due + ' errori pronti da ripassare.';
