@@ -44,7 +44,8 @@ export class AppRouter {
     }
 
     _dispatch(pageId, push) {
-        const path = pageId === 'home' ? '/' : `/${pageId}`;
+        // 04/10/2026: Home su /app (su "/" c'è la landing): vedi core/navigation.js.
+        const path = pageId === 'home' ? '/app' : `/${pageId}`;
         
         if (push) {
             if (window.location.pathname !== path) {

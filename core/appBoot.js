@@ -65,13 +65,16 @@ export function onAuthStateChangedHandler(user, firebaseDeps = {}) {
     if (desiredScope !== currentScope()) {
         if (_scopeSwitching) return;
         _scopeSwitching = true;
+        window.__cxScopeSwitching = true;
         switchAccountScope(desiredScope).then(async () => {
             if (canReloadForScope()) { location.reload(); return; }
             await rehydrateForScope();
             _scopeSwitching = false;
+            window.__cxScopeSwitching = false;
             onAuthStateChangedHandler(user, firebaseDeps);
         }).catch((err) => {
             _scopeSwitching = false;
+            window.__cxScopeSwitching = false;
             console.error('[Scope] cambio account non riuscito:', err);
             try { window.showToast?.('Non riesco a preparare i dati di questo account sul dispositivo. Ricarica la pagina: i tuoi dati non sono stati toccati.', 'error'); } catch (_) {}
         });
@@ -249,6 +252,10 @@ export function onAuthStateChangedHandler(user, firebaseDeps = {}) {
         localStorage.removeItem('mm_user_name');
         localStorage.removeItem('mm_user_avatar');
 
+        // 04/10/2026: accesso Google partito da ospite ma non completato (annullato o fallito):
+        // __guestLogin toglie 'cortex_guest' prima del redirect e al ritorno compariva il muro di
+        // login, con il lavoro da ospite (es. mazzo degli errori TOLC) fuori portata. Si torna ospite.
+        if (!redirectPendingFresh()) restoreGuestAfterFailedLogin(false);
         const isGuest = localStorage.getItem('cortex_guest') === '1';
         if (overlay) {
             if (redirectPending || isGuest) {
@@ -345,6 +352,9 @@ function initModulesOnce(deps) {
         discoverGeminiModel: deps.discoverGeminiModel, KEYS: deps.KEYS,
         updateUIStrings: deps.updateUIStrings,
     });
+    // Moduli pronti: da qui si può riproporre il ripasso TOLC salvato prima di un accesso.
+    window.__cxModulesReady = true;
+    setTimeout(() => { try { window.__cxMaybeShowTolcResume?.(); } catch (_) {} }, 1500);
 }
 
 export function bootApp(deps) {
@@ -403,6 +413,38 @@ export function bootApp(deps) {
         }
     }, 5000);
 }
+
+function redirectPendingFresh() {
+    try {
+        return localStorage.getItem('cortex_redirect_pending') === '1' &&
+            Date.now() - (parseInt(localStorage.getItem('cortex_redirect_ts') || '0', 10) || 0) < 3 * 60 * 1000;
+    } catch (_) { return false; }
+}
+
+/**
+ * Accesso Google partito da ospite ma non completato (annullato, fallito, nessun utente al
+ * ritorno dal redirect): torna in modalità ospite invece di mostrare il muro di login.
+ * @param {boolean} applyUi  true se il gestore "nessun utente" è già passato (serve aggiornare la UI)
+ */
+export function restoreGuestAfterFailedLogin(applyUi) {
+    try {
+        if (window._fbLoggedIn) return false;
+        const convTs = parseInt(localStorage.getItem('cortex_guest_conversion_ts') || '0', 10) || 0;
+        if (!(convTs > 0 && Date.now() - convTs <= 30 * 60 * 1000)) return false;
+        localStorage.setItem('cortex_guest', '1');
+        localStorage.removeItem('cortex_guest_conversion_ts');
+        try { track('guest_login_not_completed'); } catch (_) {}
+        if (applyUi) {
+            document.getElementById('auth-overlay')?.classList.add('hidden');
+            const appRoot = document.getElementById('app-root');
+            if (appRoot) appRoot.style.display = 'block';
+            if (typeof window.__initGuestMode === 'function') window.__initGuestMode();
+            window.showPage?.('home');
+        }
+        return true;
+    } catch (_) { return false; }
+}
+if (typeof window !== 'undefined') window.__cxRestoreGuestAfterFailedLogin = restoreGuestAfterFailedLogin;
 
 let _localOnlyStarted = false;
 /**

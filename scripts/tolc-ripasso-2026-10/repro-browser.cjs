@@ -76,23 +76,30 @@ async function run(scenario) {
   });
   out.notes.push('pulsanti risultato: ' + JSON.stringify(result.buttons));
   if (scenario === 'login_resume') {
-    // Richiesta di accesso dal risultato: con il login reale la pagina viene ricaricata (redirect su mobile).
-    await page.evaluate(() => { window.loginWithGoogle = function () { window.__loginCalled = true; }; });
+    // Richiesta di accesso dal risultato. Il login reale su telefono è un redirect: simuliamo
+    // l'avvio (stessi flag di _doRedirect) e il ritorno su "/" (URL usato dalla vecchia app),
+    // SENZA completare l'accesso (backend bloccato) → atteso: ritorno in /app, di nuovo ospite,
+    // proposta "Ripassa i tuoi errori" che apre lo studio.
+    out.notes.push('URL al risultato: ' + await page.evaluate(() => location.pathname));
+    await page.evaluate(() => { window.loginWithGoogle = function () {
+      localStorage.setItem('cortex_redirect_pending', '1'); localStorage.setItem('cortex_redirect_ts', String(Date.now()));
+      window.__loginCalled = true; setTimeout(() => { location.href = '/'; }, 50);
+    }; });
     const enter = await page.$('#tolc-enter');
     if (enter) await enter.click();
-    await page.waitForTimeout(300);
-    out.notes.push('login chiamato: ' + await page.evaluate(() => !!window.__loginCalled));
-    out.notes.push('dopo la richiesta di accesso: ' + JSON.stringify(await page.evaluate(() => ({
-      lastResult: localStorage.getItem('cortex_tolc_last_result'),
-      decks: (JSON.parse(localStorage.getItem('mm_decks') || '[]') || []).filter(d => d && /^tolc-err-/.test(String(d.id))).length,
-    }))));
-    await page.reload({ waitUntil: 'load' });   // simula il ritorno dal redirect (login non completato: backend bloccato)
-    await page.waitForTimeout(2500);
+    await page.waitForTimeout(200);
+    out.notes.push('prima del redirect: ' + JSON.stringify(await page.evaluate(() => ({ login: !!window.__loginCalled, resume: JSON.parse(localStorage.getItem('cortex_tolc_resume') || 'null') }))));
+    await page.waitForURL(/\/app/, { timeout: 8000 }).catch(() => {});
+    await page.waitForTimeout(5000);
     out.notes.push('dopo il ritorno: ' + JSON.stringify(await page.evaluate(() => ({
-      resume: !!document.getElementById('tolc-resume-card'),
-      resumeText: (document.getElementById('tolc-resume-card') || {}).textContent ? document.getElementById('tolc-resume-card').textContent.trim().slice(0, 160) : null,
-      tolcErrDecks: (window.state && window.state.decks ? window.state.decks : []).filter(d => /^tolc-err-/.test(String(d.id))).length,
+      path: location.pathname, guest: localStorage.getItem('cortex_guest'),
+      authWall: !!(document.getElementById('auth-overlay') && !document.getElementById('auth-overlay').classList.contains('hidden')),
+      resumeCard: document.getElementById('tolc-resume-card') ? document.getElementById('tolc-resume-card').textContent.trim().slice(0, 160) : null,
+      tolcErrDecks: ((window._legacyState && window._legacyState().decks) || []).filter(d => d && /^tolc-err-/.test(String(d.id))).length,
     }))));
+    const go = await page.$('#tolc-resume-go');
+    if (go) { await go.click(); await page.waitForTimeout(800); }
+    out.notes.push('studio aperto dalla ripresa: ' + await page.evaluate(() => { const o = document.getElementById('study-overlay'); return !!(o && o.classList.contains('active')); }));
     await finish(); return out;
   }
   const primary = await page.$('#tolc-gen-errors');
@@ -103,7 +110,7 @@ async function run(scenario) {
     const vis = el => !!el && el.offsetParent !== null;
     const ov = document.getElementById('study-overlay');
     const toasts = Array.from(document.querySelectorAll('.toast, #toast, [class*=toast]')).map(t => t.textContent.trim().slice(0, 120)).filter(Boolean);
-    return { overlayGone: !document.getElementById('tolc-sim-overlay'), studyVisible: !!(ov && ov.classList.contains('active')), onboardingVisible: vis(document.getElementById('onboarding-overlay')) || !!document.querySelector('[id*=onboarding][style*=flex]'), toasts };
+    return { overlayGone: !document.getElementById('tolc-sim-overlay'), studyVisible: !!(ov && ov.classList.contains('active')), onboardingVisible: (document.getElementById('onboarding-overlay') || {style:{}}).style.display === 'flex', toasts };
   });
   out.notes.push('dopo il click: ' + JSON.stringify(studyOpen));
   // Valuta le carte fino in fondo

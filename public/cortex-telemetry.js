@@ -14,7 +14,7 @@
   var landingSent=false;
   window.__cxStartTelemetry=function(){
     try{
-      if(optedOut()||landingSent||/^\/app(?:\.html)?\/?$/.test(location.pathname))return;
+      if(optedOut()||landingSent||/^\/app(?:\.html)?\/?$/.test(location.pathname)||document.getElementById('app-root'))return;
       landingSent=true;
       window.__cxSendTelemetry({type:'landing_view'}).catch(function(){landingSent=false;});
     }catch(_){}

@@ -26,7 +26,12 @@ try{
   if(_p.get('notrack')==='1')localStorage.setItem('cortex_no_track','1');
   if(_p.get('hub')!=='1'){
     var _known=localStorage.getItem('mm_is_logged_in')==='true'; // #2: solo loggati veri, non vecchi ospiti (evita redirect a vuoto su /app)
-    if(_known)location.replace('/app');
+    // 04/10/2026: ritorno dal login Google (redirect) o ripresa del TOLC in corso: la vecchia app
+    // portava la Home su "/" (questa landing) e l'accesso/il risultato si perdevano qui.
+    var _now=Date.now(), _rp=localStorage.getItem('cortex_redirect_pending')==='1' && (_now-parseInt(localStorage.getItem('cortex_redirect_ts')||'0',10))<3*60*1000;
+    var _rs=0; try{_rs=(JSON.parse(localStorage.getItem('cortex_tolc_resume')||'null')||{}).ts||0;}catch(_e){}
+    var _resume=_rs>0 && (_now-_rs)<30*60*1000;
+    if(_known||_rp||_resume)location.replace('/app'+(_rp?location.search+location.hash:''));
   }
 }catch(e){}
 </script>

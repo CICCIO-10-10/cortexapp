@@ -8,7 +8,7 @@
 
 import { TOLC_TESTS, TOLC_ENG_BANCA, tolcTotQ, tolcTotMin } from '../data/tolc.js';
 import { track } from '../core/analytics.js';
-import { createAndStudyTolcErrorDeck } from './tolcErrorDeck.js';
+import { createAndStudyTolcErrorDeck, saveTolcResultAndLogin } from './tolcErrorDeck.js';
 
 let _state = null;
 let _timer = null;
@@ -362,14 +362,15 @@ function _renderResult() {
   // diventa il bottone PRINCIPALE, e la X chiede prima di uscire.
   var nWrong = stats.reduce(function (a, g) { return a + (g.wrong || 0); }, 0);
   st._nWrong = nWrong; st._resultShown = true;
-  var genLabel = nWrong > 0
-    ? '🎯 Trasforma i tuoi ' + nWrong + ' errori in flashcard'
-    : '🎯 Genera flashcard sui tuoi errori';
+  st._correct = correct;
+  // 04/10/2026: UNA azione principale. "Trasforma in flashcard" faceva pensare all'AI e al
+  // login; il mazzo e' locale: domanda + risposta corretta + risposta data, subito.
   var genBtn = nWrong > 0
-    ? '<button id="tolc-gen-errors" style="width:100%;padding:15px;border-radius:12px;border:none;font-weight:800;font-size:1rem;color:#fff;background:linear-gradient(135deg,#16a34a,#22c55e);cursor:pointer;box-shadow:0 10px 30px rgba(34,197,94,.25);">' + genLabel + '</button>' +
-      '<div style="text-align:center;font-size:.76rem;color:rgba(255,255,255,.55);margin:6px 0 12px;">Ripassa subito le domande che hai sbagliato. Gratis, senza account.</div>'
-    : '<div role="status" style="text-align:center;padding:12px;margin:8px 0 12px;border-radius:12px;background:rgba(34,197,94,.1);color:#86efac;font-weight:700;">Nessun errore da trasformare in flashcard — ottimo risultato!</div>';
-  var enterBtn = '<button id="tolc-enter" style="width:100%;padding:14px;margin-top:9px;border-radius:12px;border:1px solid rgba(168,85,247,.55);background:rgba(168,85,247,.14);color:#e9d5ff;font-weight:800;font-size:.98rem;cursor:pointer;">Salva i progressi su Cortex →</button>';
+    ? '<button id="tolc-gen-errors" style="width:100%;padding:15px;border-radius:12px;border:none;font-weight:800;font-size:1rem;color:#fff;background:linear-gradient(135deg,#16a34a,#22c55e);cursor:pointer;box-shadow:0 10px 30px rgba(34,197,94,.25);">🎯 Ripassa i tuoi ' + nWrong + (nWrong === 1 ? ' errore' : ' errori') + '</button>' +
+      '<div style="text-align:center;font-size:.76rem;color:rgba(255,255,255,.6);margin:6px 0 12px;line-height:1.45;">Per ogni errore vedi la risposta giusta accanto alla tua, poi lo ripassi. Gratis, senza account.</div>'
+    : '<div role="status" style="text-align:center;padding:12px;margin:8px 0 12px;border-radius:12px;background:rgba(34,197,94,.1);color:#86efac;font-weight:700;">Nessun errore da ripassare — ottimo risultato!</div>';
+  // Accesso facoltativo: prima di aprirlo il risultato e il mazzo degli errori vengono messi al sicuro.
+  var enterBtn = '<button id="tolc-enter" style="width:100%;padding:10px;margin-top:10px;border:none;background:transparent;color:#c4b5fd;font-weight:700;font-size:.86rem;text-decoration:underline;text-underline-offset:3px;cursor:pointer;">Salva il risultato nel tuo account Google</button>';
   var emoji = pct >= 60 ? '🎉' : '💪';
   var th = 'padding:8px 6px;font-size:.62rem;text-transform:uppercase;letter-spacing:.4px;color:#c084fc;font-weight:800;';
   var td = 'padding:9px 6px;border-top:1px solid rgba(255,255,255,.07);font-size:.85rem;';
@@ -435,13 +436,12 @@ function _renderResult() {
     '<p style="font-size:.66rem;color:rgba(255,255,255,.4);line-height:1.55;margin:8px 0 14px;">' + note +
       ' Le regole di ammissione (soglie, OFA, uso dell’inglese, penalita’ in graduatoria) <b>variano per ateneo</b>: fa fede il bando. Fonte: CISIA.' +
     '</p>' +
-    '<div style="text-align:center;font-size:.82rem;color:#cbc6e8;margin:10px 0 0;line-height:1.5;">📈 <b style="color:#fff;">Crea un account gratis</b> per salvare i progressi, sbloccare tutti i 10 TOLC e vedere se <b style="color:#fff;">migliori</b> nel tempo.</div>' +
-    enterBtn +
-    '<button id="tolc-share" style="width:100%;padding:14px;margin-top:9px;border-radius:12px;border:1px solid rgba(56,189,248,.5);background:rgba(56,189,248,.14);color:#38bdf8;font-weight:800;font-size:.98rem;cursor:pointer;">📤 Condividi il punteggio</button>' +
-    '<div style="display:flex;gap:9px;margin-top:9px;">' +
-      '<button id="tolc-retry" data-key="' + st.key + '" style="flex:1;padding:12px;border-radius:12px;border:1px solid rgba(168,85,247,.5);background:rgba(168,85,247,.12);color:#c084fc;font-weight:800;cursor:pointer;">↻ Riprova</button>' +
-      '<button id="tolc-back" style="flex:1;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(255,255,255,.6);font-weight:700;cursor:pointer;">← Altri TOLC</button>' +
-    '</div>'
+    '<div style="display:flex;gap:8px;margin-top:4px;">' +
+      '<button id="tolc-retry" data-key="' + st.key + '" style="flex:1;padding:11px 6px;border-radius:12px;border:1px solid rgba(168,85,247,.5);background:rgba(168,85,247,.12);color:#c084fc;font-weight:800;font-size:.85rem;cursor:pointer;">↻ Riprova</button>' +
+      '<button id="tolc-back" style="flex:1;padding:11px 6px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(255,255,255,.65);font-weight:700;font-size:.85rem;cursor:pointer;">Altri TOLC</button>' +
+      '<button id="tolc-share" style="flex:1;padding:11px 6px;border-radius:12px;border:1px solid rgba(56,189,248,.45);background:rgba(56,189,248,.1);color:#38bdf8;font-weight:800;font-size:.85rem;cursor:pointer;">📤 Condividi</button>' +
+    '</div>' +
+    enterBtn
   );
 }
 
@@ -547,8 +547,16 @@ document.addEventListener('click', function (e) {
   if (id === 'tolc-exit-yes') { try { track('tolc_exit_prompt_leave'); } catch (e2) {} return _remove(); }
   if (id === 'tolc-enter') {
     try { track('tolc_sim_enter_cortex'); } catch (e) {}
-    // CATTURA VERA: converti l'ospite in account (login Google), cosi' i progressi si salvano davvero.
     try { localStorage.setItem('cortex_sim','tolc'); } catch(e){}
+    // 04/10/2026: l'accesso ricarica la pagina (redirect su telefono, cambio di spazio dati
+    // su desktop) e il risultato in memoria andava perso. Ora errori e riepilogo vengono
+    // salvati prima, e al ritorno compare "Riprendi il ripasso" (tolcErrorDeck.js).
+    var stE = _state;
+    if (stE && stE.finished && (typeof window.__guestLogin === 'function' || typeof window.loginWithGoogle === 'function')) {
+      saveTolcResultAndLogin({ attemptId: stE.attemptId, key: stE.key, test: stE.test, qs: stE.qs, answers: stE.answers }, _math,
+        { correct: stE._correct || 0, total: (stE.qs || []).length, nWrong: stE._nWrong || 0 });
+      return;
+    }
     if (typeof window.__guestLogin === 'function') { window.__guestLogin(); return; }
     if (typeof window.loginWithGoogle === 'function') { window.loginWithGoogle(); return; }
     location.href = '/app?sim=tolc&utm_source=tolcsim&utm_medium=result&utm_content=salva_progressi';
@@ -574,7 +582,9 @@ document.addEventListener('click', function (e) {
       if (res && res.reason === 'busy') return;
       if (window.showToast) window.showToast(res && res.reason === 'incomplete'
         ? 'Non riesco a creare le carte: i dati di queste domande sono incompleti.'
+        : res && res.reason === 'not_ready' ? 'Cortex si sta ancora avviando: riprova tra un attimo.'
         : 'Non sono riuscito a creare il mazzo. Riprova.', 'error');
+      try { track('tolc_error_deck_failed', { reason: (res && res.reason) || 'unknown' }); } catch (e4) {}
     });
     return;
   }

@@ -115,8 +115,9 @@ export function closeOnboarding() {
     // v3 25/09: onboarding_complete scatta anche per chi salta → separiamo i due casi
     try {
         // 29/09/2026: "finito" = obiettivo toccato ORA (Instagram pre-imposta il goal: non conta come finito)
-        if (_goalChosenNow) track('onboarding_finished', { goal: localStorage.getItem('cortex_user_goal'), last_step: obCurrentSlide });
-        else track('onboarding_skipped', { last_step: obCurrentSlide });
+        // 04/10/2026: variant distingue la schermata unica (dal 29/09) dalle versioni a più slide.
+        if (_goalChosenNow) track('onboarding_finished', { goal: localStorage.getItem('cortex_user_goal'), last_step: obCurrentSlide, variant: 'single_screen' });
+        else track('onboarding_skipped', { last_step: obCurrentSlide, variant: 'single_screen' });
     } catch (_) {}
 
     const goal = localStorage.getItem('cortex_user_goal');
@@ -125,37 +126,13 @@ export function closeOnboarding() {
         if (toast) toast('Focus: Preparazione Esami attiva. 🎓', 'info');
     }
 
-    // NUOVO UTENTE (21/08/2026 - fix attivazione): niente form vuoto.
-    // Gli mettiamo un MAZZO DEMO pronto cosi' ha SUBITO qualcosa da studiare
-    // (la home non e' mai vuota = niente piu' rimbalzo istantaneo).
+    // 04/10/2026: chi chiude (o sceglie l'obiettivo) senza mazzi va alla Home "Inizia da qui",
+    // che offre le due prime attività reali (foto/appunti → flashcard, simulazione TOLC).
+    // Prima veniva creato un mazzo demo su "come funziona Cortex" e si finiva in Materiale:
+    // un passaggio in più prima di qualcosa di utile, e la Home "Inizia da qui" spariva.
     const state = _deps.state;
-    if (!state || !state.decks || state.decks.length === 0) {
-        try {
-            const _today = (() => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); })();
-            const _c = (q, a) => ({ id: 'card_' + Math.random().toString(36).substr(2,9), q, a, nextReview: _today, interval: 1, ease: 2.5, reps: 0 });
-            if (state && Array.isArray(state.decks)) {
-                state.decks.push({
-                    id: 'deck_demo_' + Date.now(),
-                    title: '👋 Inizia da qui (mazzo demo)',
-                    name: 'Inizia da qui · mazzo di esempio',
-                    cards: [
-                        _c('Come si studia con Cortex?', 'Rispondi a mente, poi giri la carta. Se sbagli te la ripropone prima: e la ripetizione dilazionata, ricordi di piu con meno fatica.'),
-                        _c('Cos e l active recall?', 'Chiudere il libro e provare a ripetere a memoria. E il metodo piu efficace, e Cortex lo fa in automatico dai tuoi appunti.'),
-                        _c('Come creo un mazzo dai MIEI appunti?', 'Vai su Nuova materia, incolla o carica gli appunti, e l AI genera le flashcard per te.'),
-                        _c('Pronto?', 'Fai Studia o Quick Test su questo mazzo per provare, poi crea il tuo. Buono studio! 🚀'),
-                    ],
-                    createdAt: new Date().toISOString()
-                });
-                import('../modules/deckUtils.js').then(m => { if (m && m.saveState) m.saveState(); if (window.renderDecks) window.renderDecks(); }).catch(() => {});
-                const toast = _deps.showToast || window.showToast;
-                if (toast) toast('Ti ho messo un mazzo demo: provalo con Studia! 👋', 'success');
-            }
-            if (window.showPage) window.showPage('materiale');
-        } catch (e) {
-            if (window.showPage) window.showPage('materiale');
-            if (window.showView) window.showView('create-deck');
-        }
-    }
+    const hasDecks = !!(state && Array.isArray(state.decks) && state.decks.length);
+    try { if (window.showPage) window.showPage(hasDecks ? 'materiale' : 'home'); } catch (_) {}
 }
 
 // ── TRIGGER OVERLAY (prima visita) ───────────────────────────────────────────
@@ -218,8 +195,27 @@ export function triggerOnboardingOverlay() {
     // FIX 25/09/2026: chi arriva con ?sim=tolc vedeva l'onboarding aprirsi SOTTO il
     // simulatore (due overlay insieme). Ora, se il simulatore TOLC è in arrivo o aperto,
     // l'onboarding aspetta che venga chiuso e solo dopo si mostra (se serve ancora).
-    const _simArrival = !!document.getElementById('sim-boot-splash') || /[?&]sim=/.test(window.location.search);
-    const _simBusy = () => !!(document.getElementById('tolc-sim-overlay') || document.getElementById('sim-boot-splash') || document.getElementById('tolc-exit-ask'));
+    const _simArrival = !!document.getElementById('sim-boot-splash') || /[?&]sim=/.test(window.location.search) ||
+        (() => { try { return !!localStorage.getItem('cortex_sim'); } catch (_) { return false; } })();
+    // 04/10/2026: "occupato" include anche lo studio (es. mazzo degli errori TOLC) e le proposte
+    // successive: l'onboarding si apriva SOPRA la prima sessione di ripasso.
+    const _simBusy = () => !!(document.getElementById('tolc-sim-overlay') || document.getElementById('sim-boot-splash') ||
+        document.getElementById('tolc-exit-ask') || document.getElementById('tolc-save-prompt') || document.getElementById('tolc-resume-card') ||
+        (document.getElementById('study-overlay') && document.getElementById('study-overlay').classList.contains('active')));
+    // Chi ha già fatto un'attività utile (TOLC, mazzi) non deve rispondere a "Cosa devi preparare?".
+    const _bypassReason = () => {
+        try {
+            const decks = _deps.state && Array.isArray(_deps.state.decks) ? _deps.state.decks : [];
+            if (decks.length) return 'has_decks';
+            if (_simArrival) return 'tolc_arrival';
+        } catch (_) {}
+        return '';
+    };
+    const _bypass = (reason) => {
+        if (localStorage.getItem('cortex_onboarded') === '1') return;
+        localStorage.setItem('cortex_onboarded', '1');
+        try { track('onboarding_bypassed', { reason }); } catch (_) {}
+    };
     const _showOverlay = () => {
         if (localStorage.getItem('cortex_onboarded') === '1') return;
         const authOverlay = document.getElementById('auth-overlay');
@@ -237,13 +233,19 @@ export function triggerOnboardingOverlay() {
     };
 
     setTimeout(() => {
+        const early = _bypassReason();
+        if (early) return _bypass(early);
         if (!_simArrival && !_simBusy()) return _showOverlay();
         let seen = _simBusy(), waited = 0;
         const iv = setInterval(() => {
             waited += 1000;
             if (_simBusy()) { seen = true; return; }
             // Il simulatore è stato aperto e poi chiuso, oppure non è mai partito (15 s)
-            if (seen || waited >= 15000) { clearInterval(iv); _showOverlay(); }
+            if (seen || waited >= 15000) {
+                clearInterval(iv);
+                const r = _bypassReason();
+                if (r) _bypass(r); else _showOverlay();
+            }
         }, 1000);
     }, 1200);
 }

@@ -112,3 +112,35 @@ export function aiNotesFromDeck(deck) {
         '. Crea flashcard di ripasso mirate su questi concetti:\n\n' +
         deck.cards.map(c => String(c.q).slice(0, 300) + '\nRisposta corretta: ' + String(c.a).split('  ·  ')[0].slice(0, 200)).join('\n\n');
 }
+
+// ── Ripresa dopo l'accesso (04/10/2026) ──────────────────────────────────────
+// Il login Google su telefono è un redirect (la pagina si ricarica) e, con gli spazi
+// dati per account, anche su desktop la pagina si ricarica: il risultato del TOLC, che
+// vive solo in memoria, andava perso. Prima dell'accesso salviamo un riepilogo minimo
+// (nessun testo di domande o risposte) per riproporre il ripasso al ritorno.
+export const TOLC_RESUME_KEY = 'cortex_tolc_resume';
+export const TOLC_RESUME_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
+
+export function buildResumeRecord({ attemptId, deckId, testName, correct, total, nWrong, reason, now }) {
+    if (!attemptId) return null;
+    const n = v => (Number.isFinite(v) && v >= 0 ? Math.floor(v) : 0);
+    return {
+        v: 1,
+        attemptId: clean(attemptId, 100),
+        deckId: deckId ? clean(deckId, 100) : null,
+        testName: clean(testName, 60) || 'TOLC',
+        correct: n(correct), total: n(total), nWrong: n(nWrong),
+        reason: reason === 'save_prompt' ? 'save_prompt' : 'result_login',
+        ts: Number.isFinite(now) ? now : Date.now(),
+    };
+}
+
+/** Legge e valida il record; null se assente, malformato o più vecchio di maxAge. */
+export function parseResumeRecord(raw, now, maxAge = TOLC_RESUME_MAX_AGE) {
+    try {
+        const r = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        if (!r || r.v !== 1 || typeof r.attemptId !== 'string' || !r.attemptId) return null;
+        if (!Number.isFinite(r.ts) || now - r.ts > maxAge || r.ts - now > 60 * 1000) return null;
+        return r;
+    } catch (_) { return null; }
+}

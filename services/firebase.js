@@ -268,10 +268,14 @@ export async function initFirebase() {
                             if (typeof window.triggerOnboardingOverlay === 'function') window.triggerOnboardingOverlay();
                         }, 600);
                     }
+                } else {
+                    // Nessun utente al ritorno dal redirect: se era un ospite, torna ospite (appBoot.js).
+                    try { window.__cxRestoreGuestAfterFailedLogin?.(true); } catch (_) {}
                 }
             } catch (e) {
                 clearRedirectState();
                 console.warn('[Firebase] getRedirectResult:', e.message);
+                try { if (!window._fbLoggedIn) window.__cxRestoreGuestAfterFailedLogin?.(true); } catch (_) {}
             }
         } else {
             // Flag assente o stale — pulizia completa per sicurezza

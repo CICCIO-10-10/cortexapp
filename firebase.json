@@ -84,6 +84,22 @@
         "destination": "/app.html"
       },
       {
+        "source": "/materiale",
+        "destination": "/app.html"
+      },
+      {
+        "source": "/tecniche",
+        "destination": "/app.html"
+      },
+      {
+        "source": "/community",
+        "destination": "/app.html"
+      },
+      {
+        "source": "/lezioni",
+        "destination": "/app.html"
+      },
+      {
         "source": "/privacy",
         "destination": "/privacy.html"
       },

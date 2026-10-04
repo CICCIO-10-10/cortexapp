@@ -70,14 +70,16 @@ export function showPage(id) {
 
     // Update URL without reloading (History API)
     const urlMap = {
-        home:      '/',
+        // 04/10/2026: la Home dell'app vive su /app. Su "/" c'è la landing (index.html):
+        // ricaricare la pagina o tornare dal login Google (redirect) portava fuori dall'app.
+        home:      '/app',
         tecniche:  '/tecniche',
         materiale: '/materiale',
         community: '/community',
         lezioni:   '/lezioni',
         settings:  '/settings',
     };
-    const newUrl = urlMap[pageId] || '/';
+    const newUrl = urlMap[pageId] || '/app';
     if (window.location.pathname !== newUrl) {
         history.pushState({ page: pageId }, '', newUrl);
     }

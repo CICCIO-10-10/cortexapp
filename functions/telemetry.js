@@ -36,7 +36,7 @@ function handler({db,admin,secret,now=()=>Date.now(),ipRateLimit}) {
     const stamp=admin.firestore.FieldValue.serverTimestamp();
     tx.create(record,{type:event.type,page:event.page,source:event.source,referrer:event.referrer,meta:event.meta,tracking_version:3,ts:stamp});
     tx.set(parent,{vid:event.visitor,last_seen:stamp,...(!summary.exists?{first_seen:stamp,source:event.source,entry:event.page,referrer:event.referrer}:{})},{merge:true});
-    const pageGroup=/^\/app(?:\.html)?\/?$/.test(event.page)?'app':'landing';
+    const pageGroup=/^\/(?:app(?:\.html)?|materiale|tecniche|community|lezioni|settings)\/?$/.test(event.page)?'app':'landing';
     tx.set(db.collection('analytics').doc('presence').collection('sessions').doc(event.visitor),{page:pageGroup,path:event.page,source:event.source,lastSeen:stamp},{merge:true});
     if(['landing_view','session_start'].includes(event.type)){
       const date=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Rome',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(time));

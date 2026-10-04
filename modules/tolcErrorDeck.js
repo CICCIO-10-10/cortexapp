@@ -20,7 +20,7 @@ import { saveState } from './deckUtils.js';
 import { startStudyById } from './study.js';
 import { track } from '../core/analytics.js';
 import { todayStr } from '../js/utils.js';
-import { collectWrongAnswers, buildTolcErrorDeck, findDeckForAttempt, isTolcErrorDeck, aiNotesFromDeck, TOLC_ERROR_NO_EXPLANATION } from './tolcErrorCards.js';
+import { collectWrongAnswers, buildTolcErrorDeck, findDeckForAttempt, isTolcErrorDeck, aiNotesFromDeck, TOLC_ERROR_NO_EXPLANATION, TOLC_RESUME_KEY, buildResumeRecord, parseResumeRecord } from './tolcErrorCards.js';
 
 const FUNNEL_KEY = 'cortex_tolc_error_funnel';
 const FUNNEL_TTL = 30 * 24 * 60 * 60 * 1000;
@@ -49,6 +49,35 @@ export function markTolcErrorStep(deckId, step) {
 let _busy = false;
 
 /**
+ * Crea il mazzo degli errori (o ritrova quello già creato per questo tentativo), SENZA aprire lo studio.
+ * Usato sia dal pulsante principale sia prima di una richiesta di accesso.
+ * @returns {{ok:true, deck:object, created:boolean} | {ok:false, reason:string}}
+ */
+export function ensureTolcErrorDeck(st, fmt) {
+    if (!st || !st.attemptId) return { ok: false, reason: 'no_attempt' };
+    if (!state || !Array.isArray(state.decks)) return { ok: false, reason: 'not_ready' };
+    let deck = findDeckForAttempt(state.decks, st.attemptId);
+    if (deck) return { ok: true, deck, created: false };
+    const { wrong, skipped } = collectWrongAnswers(st.qs, st.answers);
+    if (!wrong.length) return { ok: false, reason: skipped ? 'incomplete' : 'no_errors' };
+    deck = buildTolcErrorDeck({
+        attemptId: st.attemptId,
+        testKey: st.key,
+        testName: (st.test && st.test.nome) || 'TOLC',
+        wrong, today: todayStr(), format: fmt,
+    });
+    if (!deck) return { ok: false, reason: 'incomplete' };
+    state.decks.push(deck);
+    saveState();
+    const guest = _isGuest();
+    _write({ deckId: deck.id, ts: Date.now(), guest, steps: {} });
+    // Riusa l'evento esistente "ingresso nella sessione di studio" (study.js).
+    try { localStorage.setItem('cortex_tolc_error_study_pending', JSON.stringify({ ts: Date.now(), deckId: deck.id })); } catch (_) {}
+    try { track('tolc_error_deck_created', { count: deck.cards.length, mode: 'local', type: guest ? 'guest' : 'account' }); } catch (_) {}
+    return { ok: true, deck, created: true };
+}
+
+/**
  * Crea (o riapre, se già creato per questo tentativo) il mazzo degli errori e avvia lo studio.
  * @param {object} st      stato della simulazione ({ attemptId, key, test, qs, answers })
  * @param {function} fmt   formattatore testo (notazioni matematiche)
@@ -58,32 +87,13 @@ export async function createAndStudyTolcErrorDeck(st, fmt) {
     if (_busy) return { ok: false, reason: 'busy' };
     _busy = true;
     try {
-        if (!st || !st.attemptId) return { ok: false, reason: 'no_attempt' };
-        let deck = findDeckForAttempt(state.decks, st.attemptId);
-        let created = false;
-        if (!deck) {
-            const { wrong, skipped } = collectWrongAnswers(st.qs, st.answers);
-            if (!wrong.length) return { ok: false, reason: skipped ? 'incomplete' : 'no_errors' };
-            deck = buildTolcErrorDeck({
-                attemptId: st.attemptId,
-                testKey: st.key,
-                testName: (st.test && st.test.nome) || 'TOLC',
-                wrong, today: todayStr(), format: fmt,
-            });
-            if (!deck) return { ok: false, reason: 'incomplete' };
-            state.decks.push(deck);
-            saveState();
-            created = true;
-            const guest = _isGuest();
-            _write({ deckId: deck.id, ts: Date.now(), guest, steps: {} });
-            // Riusa l'evento esistente "ingresso nella sessione di studio" (study.js).
-            try { localStorage.setItem('cortex_tolc_error_study_pending', JSON.stringify({ ts: Date.now(), deckId: deck.id })); } catch (_) {}
-            try { track('tolc_error_deck_created', { count: deck.cards.length, mode: 'local', type: guest ? 'guest' : 'account' }); } catch (_) {}
-        }
+        const res = ensureTolcErrorDeck(st, fmt);
+        if (!res.ok) return res;
+        const { deck, created } = res;
         // Nessun cambio di pagina: lo studio si apre in sovrimpressione e l'URL resta quello dell'app.
         if (window.showToast) {
             window.showToast(created
-                ? deck.cards.length + (deck.cards.length === 1 ? ' carta pronta' : ' carte pronte') + ' dai tuoi errori. Le domande non hanno una spiegazione: vedrai la risposta corretta.'
+                ? deck.cards.length + (deck.cards.length === 1 ? ' carta pronta' : ' carte pronte') + ': su ogni carta vedi la risposta corretta e quella che avevi scelto.'
                 : 'Riapro il mazzo dei tuoi errori.', 'success');
         }
         // Il banner "Attiva le notifiche" (prima visita) copriva i pulsanti di valutazione su
@@ -92,10 +102,109 @@ export async function createAndStudyTolcErrorDeck(st, fmt) {
         await startStudyById(deck.id);
         return { ok: true, created, count: deck.cards.length };
     } catch (e) {
+        try { track('tolc_error_deck_failed', { reason: 'error' }); } catch (_) {}
         return { ok: false, reason: 'error' };
     } finally {
         _busy = false;
     }
+}
+
+// ── Accesso senza perdere il risultato ───────────────────────────────────────
+function _saveResume(rec) {
+    try { if (rec) localStorage.setItem(TOLC_RESUME_KEY, JSON.stringify(rec)); return !!rec; } catch (_) { return false; }
+}
+function _clearResume() { try { localStorage.removeItem(TOLC_RESUME_KEY); } catch (_) {} }
+function _startLogin() {
+    if (typeof window.__guestLogin === 'function') window.__guestLogin();
+    else if (typeof window.loginWithGoogle === 'function') window.loginWithGoogle();
+}
+
+/**
+ * "Salva il risultato con Google" dalla schermata del risultato: prima di avviare l'accesso
+ * (che ricarica la pagina) mette al sicuro gli errori in un mazzo locale e un riepilogo del
+ * risultato, così al ritorno la persona può riprendere dal ripasso.
+ * @param {object} st       stato della simulazione
+ * @param {function} fmt    formattatore testo
+ * @param {{correct:number,total:number,nWrong:number}} summary
+ */
+export function saveTolcResultAndLogin(st, fmt, summary) {
+    if (window._firebaseUnavailable) {
+        if (window.showToast) window.showToast('L’accesso non è disponibile in questo momento. Puoi comunque ripassare gli errori su questo dispositivo.', 'info');
+        return { ok: false, reason: 'auth_unavailable' };
+    }
+    let deckId = null;
+    try { const r = ensureTolcErrorDeck(st, fmt); if (r.ok) deckId = r.deck.id; } catch (_) {}
+    const saved = _saveResume(buildResumeRecord({
+        attemptId: st && st.attemptId, deckId,
+        testName: st && st.test && st.test.nome,
+        correct: summary && summary.correct, total: summary && summary.total, nWrong: summary && summary.nWrong,
+        reason: 'result_login',
+    }));
+    try { track('tolc_result_login_click', { count: (summary && summary.nWrong) || 0, success: saved }); } catch (_) {}
+    _startLogin();
+    return { ok: true, deckId };
+}
+
+let _resumeTimer = null;
+/**
+ * Al ritorno (dopo l'accesso o una ricarica) ripropone UNA volta il ripasso del mazzo degli
+ * errori salvato prima dell'accesso. Non compare sopra simulatore, studio o onboarding.
+ */
+export function maybeShowTolcResume(attempt = 0) {
+    try {
+        clearTimeout(_resumeTimer);
+        const rec = parseResumeRecord(localStorage.getItem(TOLC_RESUME_KEY), Date.now());
+        if (!rec) { _clearResume(); return false; }
+        const busy = document.getElementById('tolc-sim-overlay') || document.getElementById('tolc-save-prompt') ||
+            document.getElementById('tolc-resume-card') ||
+            (document.getElementById('study-overlay') && document.getElementById('study-overlay').classList.contains('active')) ||
+            (document.getElementById('onboarding-overlay') && document.getElementById('onboarding-overlay').style.display === 'flex') ||
+            !window.__cxModulesReady || window.__cxScopeSwitching;
+        const deck = rec.deckId && state && Array.isArray(state.decks) ? state.decks.find(d => d && String(d.id) === String(rec.deckId)) : null;
+        // I mazzi arrivano da IndexedDB in modo asincrono: riprova per qualche secondo.
+        if (busy || (rec.deckId && !deck)) {
+            if (attempt < 12) _resumeTimer = setTimeout(() => maybeShowTolcResume(attempt + 1), 1000);
+            else if (rec.deckId && !deck) _clearResume();   // mazzo non presente in questo account/dispositivo
+            return false;
+        }
+        _clearResume();
+        if (!deck) return false;
+        const due = Array.isArray(deck.cards) ? deck.cards.length : 0;
+        const box = document.createElement('div');
+        box.id = 'tolc-resume-card';
+        box.setAttribute('role', 'dialog');
+        box.setAttribute('aria-label', 'Riprendi il ripasso del TOLC');
+        box.style.cssText = 'position:fixed;left:50%;bottom:16px;transform:translateX(-50%);width:min(92vw,420px);z-index:70000;background:#15151d;border:1px solid rgba(34,197,94,.45);border-radius:16px;padding:16px;color:#e8e8ee;font-family:Inter,system-ui,sans-serif;box-shadow:0 18px 50px rgba(0,0,0,.5);';
+        const title = document.createElement('div');
+        title.style.cssText = 'font-weight:800;font-size:.98rem;margin-bottom:6px;';
+        title.textContent = 'Il tuo ' + rec.testName + ' è salvato' + (rec.total ? ': ' + rec.correct + '/' + rec.total + ' corrette' : '');
+        const body = document.createElement('div');
+        body.style.cssText = 'font-size:.82rem;color:rgba(255,255,255,.65);line-height:1.5;margin-bottom:12px;';
+        body.textContent = due === 1 ? 'Hai 1 errore pronto da ripassare.' : 'Hai ' + due + ' errori pronti da ripassare.';
+        const go = document.createElement('button');
+        go.id = 'tolc-resume-go';
+        go.style.cssText = 'width:100%;padding:12px;border:none;border-radius:10px;font-weight:800;color:#fff;background:linear-gradient(135deg,#16a34a,#22c55e);cursor:pointer;';
+        go.textContent = 'Ripassa i tuoi errori';
+        const later = document.createElement('button');
+        later.id = 'tolc-resume-later';
+        later.style.cssText = 'width:100%;padding:10px;margin-top:6px;border:none;background:transparent;color:rgba(255,255,255,.5);font-weight:600;cursor:pointer;';
+        later.textContent = 'Più tardi (lo trovi tra i tuoi mazzi)';
+        box.append(title, body, go, later);
+        document.body.appendChild(box);
+        const type = window._fbLoggedIn ? 'account' : 'guest';
+        try { track('tolc_resume_shown', { count: due, type, flow: rec.reason }); } catch (_) {}
+        const close = () => { try { box.remove(); } catch (_) {} };
+        go.onclick = () => {
+            try { track('tolc_resume_click', { count: due, type, flow: rec.reason }); } catch (_) {}
+            close();
+            startStudyById(deck.id);
+        };
+        later.onclick = () => {
+            try { track('tolc_resume_dismiss', { type, flow: rec.reason }); } catch (_) {}
+            close();
+        };
+        return true;
+    } catch (_) { return false; }
 }
 
 // ── Eventi dallo studio (study.js chiama questo hook solo per i mazzi errori TOLC) ──
@@ -135,6 +244,8 @@ function _onLoginCompleted() {
 export function showTolcSavePrompt(deck) {
     try {
         if (!isTolcErrorDeck(deck) || document.getElementById('tolc-save-prompt')) return;
+        // Senza SDK Firebase (modalità solo locale) accesso e AI non funzionano: non proporli.
+        if (window._firebaseUnavailable) return;
         if (!markTolcErrorStep(deck.id, 'prompt')) return;   // una volta per mazzo
         const guest = _isGuest();
         const box = document.createElement('div');
@@ -161,8 +272,8 @@ export function showTolcSavePrompt(deck) {
         if (login) login.onclick = () => {
             try { track('tolc_error_save_prompt_login_click'); } catch (_) {}
             close();
-            if (typeof window.__guestLogin === 'function') window.__guestLogin();
-            else if (typeof window.loginWithGoogle === 'function') window.loginWithGoogle();
+            _saveResume(buildResumeRecord({ attemptId: deck.sourceAttempt || deck.id, deckId: deck.id, testName: deck.subject, nWrong: (deck.cards || []).length, reason: 'save_prompt' }));
+            _startLogin();
         };
         box.querySelector('#tsp-ai').onclick = () => {
             try { track('tolc_error_save_prompt_ai_click', { type: guest ? 'guest' : 'account' }); } catch (_) {}
@@ -198,4 +309,5 @@ export function requestAiExplanation(deck) {
 if (typeof window !== 'undefined') {
     window.__cxTolcErrorStudyEvent = _onStudyEvent;
     window.__cxTolcErrorLoginDone = _onLoginCompleted;
+    window.__cxMaybeShowTolcResume = maybeShowTolcResume;
 }
