@@ -309,6 +309,12 @@ export async function testFirebaseConnection() {
  */
 let _syncInFlight = false;
 let _syncPending = false;
+// 04/10/2026: lettura del cloud e invio non devono intrecciarsi. Se un invio parte o finisce
+// mentre loadFromCloud legge i mazzi, quella lettura è vecchia: non si unisce (creerebbe
+// conflitti falsi, cioè "copie di questo dispositivo" identiche, o riporterebbe indietro un
+// mazzo appena caricato) e si rilegge al termine dell'invio.
+let _syncEpoch = 0;
+let _loadAfterSync = false;
 function _cleanForFs(v) { try { return v == null ? v : JSON.parse(JSON.stringify(v)); } catch (_) { return v; } }
 export async function syncToCloud(deckId = null) {
     if (!(typeof firebase !== 'undefined' && !!firebase.apps?.length) || !window._fbUserId) return;
@@ -322,7 +328,9 @@ export async function syncToCloud(deckId = null) {
         return await _syncToCloudInner(deckId);
     } finally {
         _syncInFlight = false;
+        _syncEpoch++;
         if (_syncPending) { _syncPending = false; void syncToCloud(); }
+        else if (_loadAfterSync) { _loadAfterSync = false; void loadFromCloud(); }
     }
 }
 
@@ -564,6 +572,7 @@ export async function loadFromCloud() {
             // (core/syncMerge.js): modifiche locali non sincronizzate mai sovrascritte,
             // conflitti risolti tenendo entrambe le versioni, cancellazioni rispettate.
             let cloudDecks = null;
+            const _epochAtRead = _syncEpoch, _busyAtRead = _syncInFlight;
             if (data.migratedToSubcollections) {
                 try {
                     const decksSnap = await _db
@@ -578,7 +587,11 @@ export async function loadFromCloud() {
             } else if (Array.isArray(data.decks)) {
                 cloudDecks = data.decks; // utenti non ancora migrati (i soli metadati non bastano)
             }
-            if (cloudDecks && window._fbUserId === uid && _syncAllowed(uid)) {
+            const _staleRead = _busyAtRead || _syncInFlight || _syncEpoch !== _epochAtRead;
+            if (cloudDecks && _staleRead) {
+                // Lettura sovrapposta a un invio: si rilegge dopo (vedi _syncEpoch).
+                if (_syncInFlight) _loadAfterSync = true; else setTimeout(() => { void loadFromCloud(); }, 0);
+            } else if (cloudDecks && window._fbUserId === uid && _syncAllowed(uid)) {
                 const merged = mergeCloudIntoLocal({
                     local: state.decks,
                     cloud: cloudDecks,

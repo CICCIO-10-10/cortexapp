@@ -18,7 +18,11 @@
  * Nessuna decisione si basa solo sull'orologio del dispositivo.
  */
 
-const VOLATILE_FIELDS = new Set(['rev', 'updatedAt', 'syncedAt']);
+// 04/10/2026: dueCount è DERIVATO (modules/statsPanel.js lo ricalcola sul dispositivo e cambia
+// ogni giorno con le scadenze). Contarlo come contenuto rendeva "diversi" mazzi identici:
+// al primo avvio dopo l'aggiornamento (o tra due dispositivi in giorni diversi) nasceva una
+// "copia di questo dispositivo" con le stesse carte, e ogni giorno ogni mazzo risultava da caricare.
+const VOLATILE_FIELDS = new Set(['rev', 'updatedAt', 'syncedAt', 'dueCount']);
 
 export function stableStringify(value) {
     if (value === undefined) return 'null';
