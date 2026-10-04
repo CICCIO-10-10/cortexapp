@@ -720,8 +720,8 @@ function deletionDeps() {
     readPlaySubscription: (sku, token) => readPlayPurchase(getPlayApi(), sku, token),
     bucket: () => admin.storage().bucket(),
     identitySecret: () => process.env.DASHBOARD_SECRET || null,
-    // Email di conferma: SPENTA finché DELETION_EMAIL_ENABLED non vale '1'.
-    sendConfirmation: process.env.DELETION_EMAIL_ENABLED === '1' ? (to) => inviaEmail(to, 'account_deleted') : null,
+    // Email di conferma: ATTIVA (decisione del titolare, 2026-10-04); DELETION_EMAIL_ENABLED=0 la spegne.
+    sendConfirmation: process.env.DELETION_EMAIL_ENABLED !== '0' ? (to) => inviaEmail(to, 'account_deleted') : null,
   };
 }
 
@@ -1979,7 +1979,7 @@ function emailLayout(titolo, corpoHtml, ctaTesto, ctaUrl) {
 }
 
 const EMAILS = {
-  // Conferma di cancellazione account (fase 3): inviata solo con DELETION_EMAIL_ENABLED=1.
+  // Conferma di cancellazione account (fase 3): attiva; DELETION_EMAIL_ENABLED=0 la spegne.
   // Testo neutro: nessun invito a tornare, nessun piè di pagina "hai un account".
   account_deleted: {
     subject: 'Il tuo account Cortex è stato eliminato',
