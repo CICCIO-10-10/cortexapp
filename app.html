@@ -1994,6 +1994,8 @@ document.body.prepend(b);setTimeout(function(){try{var e=document.getElementById
       // NEL momento di massima motivazione (ha appena incollato i suoi appunti).
       window.showGuestLoginGate = function(context){
         if(document.getElementById('guest-login-gate')) return;
+        // 04/10/2026: la demo automatica (z-index più alto) copriva questo riquadro → "Non ora" senza risposta.
+        try{ var _demo=document.getElementById('cortex-demo'); if(_demo) _demo.remove(); }catch(e){}
         try{ if(typeof gtag==='function' && localStorage.getItem('cortex_no_track')!=='1') gtag('event','guest_ai_gate_shown',{context:String(context||'')}); }catch(e){}
         var m=document.createElement('div');
         m.id='guest-login-gate';
@@ -2098,6 +2100,10 @@ document.body.prepend(b);setTimeout(function(){try{var e=document.getElementById
           try{
             if(document.getElementById('tolc-sim-overlay')) return;
             var _so=document.getElementById('study-overlay'); if(_so && _so.classList.contains('active')) return;
+            // 04/10/2026 (Clarity: clic su "Non ora" senza risposta, "Guarda Cortex in azione" sopra il
+            // ripasso): la demo automatica non si apre sopra un'altra richiesta già sullo schermo.
+            if(document.getElementById('guest-login-gate') || document.getElementById('tolc-save-prompt') || document.getElementById('tolc-resume-card')) return;
+            var _ob=document.getElementById('onboarding-overlay'); if(_ob && _ob.style.display==='flex') return;
             if(/[?&]sim=/.test(location.search||'') || /[?&]sim=/.test(__q0||'') || localStorage.getItem('cortex_sim')) return;
           }catch(e){}
         }

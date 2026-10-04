@@ -204,6 +204,8 @@ export function triggerOnboardingOverlay() {
     // successive: l'onboarding si apriva SOPRA la prima sessione di ripasso.
     const _simBusy = () => !!(document.getElementById('tolc-sim-overlay') || document.getElementById('sim-boot-splash') ||
         document.getElementById('tolc-exit-ask') || document.getElementById('tolc-save-prompt') || document.getElementById('tolc-resume-card') ||
+        // 04/10/2026: l'onboarding (z-index 99999) copriva il riquadro di accesso AI: "Non ora" non riceveva i clic.
+        document.getElementById('guest-login-gate') ||
         (document.getElementById('study-overlay') && document.getElementById('study-overlay').classList.contains('active')));
     // Chi ha già fatto un'attività utile (TOLC, mazzi) non deve rispondere a "Cosa devi preparare?".
     const _bypassReason = () => {
@@ -241,6 +243,7 @@ export function triggerOnboardingOverlay() {
         const early = _bypassReason();
         if (early) return _bypass(early);
         if (!_simArrival && !_simBusy()) return _showOverlay();
+        // (se è aperto un altro riquadro — simulatore, studio, accesso AI — si aspetta che si chiuda)
         let seen = _simBusy(), waited = 0;
         const iv = setInterval(() => {
             waited += 1000;

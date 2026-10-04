@@ -116,3 +116,20 @@ Ogni evento del registro percorso porta `account_type` (guest/account) e `platfo
 **Attivazione:** definizione invariata (≥3 generate + ≥3 studiate + 1 voto). Le tappe di studio sono **in più**, non la sostituiscono. Per gli account, `users/{uid}.activation` registra anche `firstReviewCompletedAt/firstReviewDay`, `lastStudyDay`, `studyReturnedAt/studyReturnedDay` (solo carte valutate e sessioni concluse). `adminDashboard` espone `usersFirstReview` e `usersStudyReturned`; `usersReturned`/`usersActive7d`/`lastActive` vengono da Firebase Auth (login e **refresh del token**) e **non** sono prova di utilizzo.
 
 **Dashboard (`journey-summary.cjs`):** percorsi nuovi `tolcAttempt`, `review`, `tolcResume`; rami nuovi; `breakdown.tolc_quit_then_completed` vs `tolc_quit_not_completed` (`tolc_test_quit` scatta anche quando l'app va in background); `breakdown.onboarding_variant`; errori `firebase_sdk_unavailable` e `tolc_error_deck_failed`. Nessun evento storico ricostruito: i nuovi conteggi partono dal rilascio. La dashboard locale (AUTOMAZIONI) va aggiornata per mostrarli.
+
+## Aggiornamento 04/10/2026 (pomeriggio) — rilievi Clarity
+Ramo `fix/clarity-2026-10` sopra `fix/tolc-ripasso-v2` (online dal 04/10 12:47).
+
+**Tentativo TOLC (unità di misura).** Ogni evento della prova porta `attempt` (codice test + tempo + casuale).
+| Evento | Quando |
+|---|---|
+| `tolc_test_start` / `tolc_first_answer` / `tolc_sim_complete` | come prima, ora con `attempt` |
+| `tolc_test_hidden` **nuovo** | la pagina si nasconde durante la prova (cambio scheda, app in background) |
+| `tolc_test_resumed` **nuovo** | la pagina torna visibile (`duration` = secondi via) |
+| `tolc_test_quit` **cambiato** | SOLO uscita esplicita (`how:'button'`). Prima scattava anche al cambio scheda |
+
+Stato del tentativo (`journey-summary.cjs` → `v3.attempts`): **completato** se c'è `tolc_sim_complete`; **abbandonato** se non completato e c'è un'uscita esplicita oppure nessun evento del tentativo da **30 minuti**; altrimenti **in corso**. Pagina nascosta/ripresa non è abbandono. Più prove nella stessa sessione = tentativi distinti; eventi duplicati contano una volta. Gli eventi senza `attempt` (client precedenti) sono solo contati (`legacy_events_without_attempt`), non reinterpretati.
+
+**Percorso per tentativo** (`v3.attempts.path`, in ordine): test iniziato → prima risposta → test completato → ripasso richiesto (`tolc_errors_generate_click`) → carte disponibili (`tolc_error_deck_created`) → prima carta studiata (`tolc_error_first_card_rated`) → ripasso completato (`tolc_error_session_completed`) → salvataggio richiesto (`tolc_result_login_click` o `tolc_error_save_prompt_login_click`) → salvataggio riuscito (`tolc_error_deck_login_completed`). La generazione AI resta separata (`tolc_error_cards_*`, `cards_generation_*` con `flow: tolc_errors_ai | deck_ai | text`).
+
+**Altri eventi:** `cards_generation_started/failed` ora anche nel percorso "ripresa dopo l'accesso" (`reason`: timeout, invalid_output, ai_down, rate_limit, offline, guest_gate, paywall, other) · `study_start_failed` (`reason`: nothing_due, no_cards, load_failed, deck_not_found) · `guest_ai_gate_shown/_login/_dismiss` · `guest_save_click`. Rimosso `onboarding_complete` (scattava anche saltando).

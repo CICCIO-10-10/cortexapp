@@ -220,7 +220,7 @@ export async function autoGenerateFlashcards() {
                 container.innerHTML = '';
                 result.flashcards.forEach(fc => _deps.addPair(fc.q, fc.a));
                 toggleFlashcards(true);
-                track('cards_generated', { count: result.flashcards.length, flow: 'deck_ai', tracking_version: 2 });
+                track('cards_generated', { count: result.flashcards.length, flow: _flow, tracking_version: 2 });
                 if (_tolcErrorFlow) {
                     try {
                         track('tolc_error_cards_generated', { count: result.flashcards.length });
