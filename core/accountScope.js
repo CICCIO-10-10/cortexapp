@@ -179,6 +179,9 @@ export const ACCOUNT_IDENTITY_KEYS = Object.freeze([
     'cortex_uid', 'mm_user_email', 'mm_user_name', 'mm_user_avatar', 'mm_is_logged_in',
     'cortex_username', 'cortex_photo', 'cortex_notif_token', 'cortex_is_tester',
     'cortex_pending_ref', 'cortex_ref_tracked', 'cortex_feedbacks_local', 'cx_vid',
+    // 04/10/2026: tappe di misura legate a cx_vid (core/studyMilestones.js) e riepilogo TOLC
+    // salvato prima di un accesso (riferisce un mazzo dell'account eliminato).
+    'cortex_first_review_day', 'cortex_study_returned_day', 'cortex_tolc_resume',
 ]);
 
 /** Altri account (scope 'u:…') con dati su questo dispositivo, escluso `scope`. */
