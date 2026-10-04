@@ -33,6 +33,11 @@ function _noTrack() {
   try { return localStorage.getItem('cortex_no_track') === '1'; } catch (_) { return false; }
 }
 
+function _localDay() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
 /**
  * Incrementa un contatore di activation e valuta (una sola volta) la soglia.
  * @param {'cardsGenerated'|'cardsStudied'|'ratingsGiven'} field
@@ -58,6 +63,21 @@ export async function bumpActivation(field, n) {
       activation[field] = FV.increment(n);
       activation.lastSeen = FV.serverTimestamp();
       if (!cur.firstSeen) activation.firstSeen = FV.serverTimestamp();
+
+      // 04/10/2026: tappe di studio per account (vedi core/studyMilestones.js). Basate SOLO su
+      // carte valutate / sessioni completate: aprire l'app o il refresh del token non contano.
+      const day = _localDay();
+      if (field === 'cardsStudied' && !cur.firstReviewCompletedAt) {
+        activation.firstReviewCompletedAt = FV.serverTimestamp();
+        activation.firstReviewDay = day;
+      }
+      if (field === 'ratingsGiven') {
+        activation.lastStudyDay = day;
+        if (cur.firstReviewDay && day > cur.firstReviewDay && !cur.studyReturnedAt) {
+          activation.studyReturnedAt = FV.serverTimestamp();
+          activation.studyReturnedDay = day;
+        }
+      }
 
       let activatedNow = false;
       if (!cur.activated && gen >= T_GEN && stu >= T_STU && rate >= T_RATE) {

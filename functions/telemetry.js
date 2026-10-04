@@ -7,7 +7,10 @@ function validateEvent(body) {
   const text=(v,n)=>typeof v==='string'?v.slice(0,n):'';
   const source=text(body.source,40).toLowerCase().replace(/[^a-z0-9_-]/g,'_') || 'direct';
   const meta={};
-  const allowed=new Set(['count','card_count','flow','step','reason','duration','duration_ms','score','correct','total','source','entry','tracking_version','deck_id','type','mode','success','format','status','error_code','platform','acquisition_source','acquisition_campaign','auth_created_recently']);
+  const allowed=new Set(['count','card_count','flow','step','reason','duration','duration_ms','score','correct','total','source','entry','tracking_version','deck_id','type','mode','success','format','status','error_code','platform','acquisition_source','acquisition_campaign','auth_created_recently',
+    // 04/10/2026: meta già inviati dal client ma scartati qui (tracking plan v3): codici TOLC, punteggi,
+    // passaggi, motivi e varianti. Mai testi o identificativi: solo nomi, codici e numeri.
+    'test','pct','n','at','of','how','last_step','goal','variant','stage','after_sim','direct','rating','cards','version','method','days_after','account_type']);
   for(const [k,v] of Object.entries(body.meta && typeof body.meta==='object' ? body.meta : {}))if(allowed.has(k) && (typeof v==='string'||typeof v==='boolean'||(typeof v==='number'&&Number.isFinite(v))))meta[k]=typeof v==='string'?v.slice(0,160):v;
   return {visitor,eventId,type,page:text(body.page,120).split(/[?#]/)[0],source,referrer:text(body.referrer,200).split(/[?#]/)[0],meta};
 }

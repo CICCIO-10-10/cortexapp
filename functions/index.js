@@ -1079,6 +1079,13 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
     let usersWithFCM = 0;
     let usersWithSparks = 0;
     let usersActivated = 0;   // activation VERA (activation.activated) da services/activation.js
+    // 04/10/2026: tappe di STUDIO (services/activation.js): primo ripasso completato e ritorno a
+    // studiare in un giorno successivo. Al contrario di usersReturned/usersActive7d (Firebase Auth:
+    // lastSignInTime/lastRefreshTime, che si aggiornano anche solo aprendo l'app o rinnovando il
+    // token) contano solo carte valutate e sessioni concluse. Esistono solo da questa versione:
+    // nessuna ricostruzione dei mesi precedenti.
+    let usersFirstReview = 0;
+    let usersStudyReturned = 0;
     let usersNoEmail = 0;     // utenti senza email (anonimi/non-Google): non sono "account Google"
     const registrationByMonth = {};
 
@@ -1096,11 +1103,15 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
       if (typeof d.fcmToken === 'string' && d.fcmToken.trim()) usersWithFCM++;
       if (typeof d.sparksBalance === 'number' && Number.isFinite(d.sparksBalance) && d.sparksBalance > 0) usersWithSparks++;
       if (d.activation && d.activation.activated === true) usersActivated++;
+      if (d.activation && d.activation.firstReviewCompletedAt) usersFirstReview++;
+      if (d.activation && d.activation.studyReturnedAt) usersStudyReturned++;
       if (typeof d.email !== 'string' || !d.email.trim()) usersNoEmail++;
 
     });
 
-    // ── Attività reale utenti (Firebase Auth: lastSignInTime / lastRefreshTime) ──
+    // ── Segnali di accesso (Firebase Auth: lastSignInTime / lastRefreshTime) ──
+    // ATTENZIONE: NON sono prova di utilizzo/studio (il refresh del token avviene da solo con l'app
+    // aperta). Per lo studio usare usersFirstReview / usersStudyReturned qui sopra.
     // Risponde a: dei nostri iscritti, chi ha DAVVERO aperto/riaperto l'app?
     // Auth registra questi timestamp in automatico ad ogni accesso: 0 modifiche all'app.
     let usersActive7d = 0;   // hanno aperto l'app negli ultimi 7 giorni
@@ -1256,6 +1267,10 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
             lastActive: a.lastActive || null,
             returned: authDetailAvailable && a.createdMs ? !!a.returned : null,
             authSignalAfter18h: authDetailAvailable && a.createdMs ? !!a.returned : null,
+            // Tappe di studio (solo dati di studio, non segnali di accesso).
+            firstReviewDay: d.activation && typeof d.activation.firstReviewDay === 'string' ? d.activation.firstReviewDay : null,
+            studyReturnedDay: d.activation && typeof d.activation.studyReturnedDay === 'string' ? d.activation.studyReturnedDay : null,
+            lastStudyDay: d.activation && typeof d.activation.lastStudyDay === 'string' ? d.activation.lastStudyDay : null,
             active7d: authDetailAvailable ? !!a.active7d : null,
             totalCalls: usageAvailable ? totalCalls : null,
             daysActive: usageAvailable ? daysActive : null,
@@ -1483,6 +1498,8 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
         usersWithFCM,
         usersWithSparks,
         usersActivated,
+        usersFirstReview,
+        usersStudyReturned,
         usersNoEmail,
         usersEverOpened: authMetricsAvailable ? usersEverOpened : null,
         usersActive7d: authMetricsAvailable ? usersActive7d : null,

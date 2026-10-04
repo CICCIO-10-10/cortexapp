@@ -50,7 +50,10 @@
     try {
       var ua = navigator.userAgent || '';
       var ref = document.referrer || '';
-      if (ANDROID_TWA_REFERRER.test(ref)) return 'android_twa';
+      // 04/10/2026: nella TWA il referrer android-app:// c'è solo al primo caricamento; dopo una
+      // navigazione o il ritorno dal login Google la stessa sessione risultava 'android_web'.
+      try { if (sessionStorage.getItem('cx_platform') === 'android_twa') return 'android_twa'; } catch (_) {}
+      if (ANDROID_TWA_REFERRER.test(ref)) { try { sessionStorage.setItem('cx_platform', 'android_twa'); } catch (_) {} return 'android_twa'; }
       if (/iPad|Tablet/i.test(ua)) return 'tablet_web';
       if (/Android/i.test(ua)) return 'android_web';
       if (/iPhone|iPod|Mobile/i.test(ua)) return 'mobile_web';
@@ -72,6 +75,8 @@
     try {
       var details = (meta && typeof meta === 'object') ? Object.assign({}, meta) : {};
       details.platform = platform();
+      // 04/10/2026: ospite o account al momento dell'evento (nessun identificativo).
+      details.account_type = window._fbLoggedIn ? 'account' : 'guest';
       details.acquisition_source = source();
       var camp = campaign(); if (camp) details.acquisition_campaign = camp;
       queue.push({ type: String(type).slice(0, 60), page: location.pathname, meta: details, t: Date.now() });

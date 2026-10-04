@@ -30,12 +30,22 @@ function summarizeJourneys(events, coverage = {}) {
     tolcLocalDeck: ['tolc_sim_complete', 'tolc_error_deck_created', 'tolc_error_first_study', 'tolc_error_first_card_rated', 'tolc_error_session_completed'],
     onboarding: ['onboarding_shown', 'onboarding_finished'],
     generation: ['cards_generation_started', 'cards_generated', 'generated_cards_saved', 'study_session_start', 'study_session_completed', 'activated'],
+    // 04/10/2026: prova TOLC dall'avvio reale, qualunque sia l'ingresso (selettore o link diretto
+    // ?sim=tolc-…, che salta selettore e intro e quindi non entra nel percorso 'tolc').
+    tolcAttempt: ['tolc_test_start', 'tolc_first_answer', 'tolc_sim_complete'],
+    // Le due tappe che contano: primo ripasso completato e ritorno a studiare un giorno dopo.
+    review: ['review_first_completed', 'study_returned_next_day'],
+    // Accesso chiesto dal risultato TOLC → ritorno → ripasso ripreso.
+    tolcResume: ['tolc_result_login_click', 'tolc_resume_shown', 'tolc_resume_click'],
   };
-  const PATHS_ONLY = new Set(['tolcLocalDeck']);
+  const PATHS_ONLY = new Set(['tolcLocalDeck', 'tolcAttempt']);
   const BRANCHES = ['tolc_selector_closed', 'tolc_test_quit', 'tolc_errors_login_completed', 'onboarding_skipped', 'cards_generation_failed', 'generated_cards_discarded',
-    'tolc_error_deck_login_completed', 'tolc_error_save_prompt_shown', 'tolc_error_save_prompt_login_click', 'tolc_error_save_prompt_ai_click'];
+    'tolc_error_deck_login_completed', 'tolc_error_save_prompt_shown', 'tolc_error_save_prompt_login_click', 'tolc_error_save_prompt_ai_click',
+    'onboarding_bypassed', 'study_session_abandoned', 'tolc_error_deck_failed', 'guest_login_not_completed', 'tolc_resume_dismiss'];
   const V3 = [...Object.values(PATHS).flat(), ...BRANCHES, 'onboarding_step_viewed'];
-  const v3 = { steps: {}, paths: {}, breakdown: { gen_fail_reason: {}, tolc_closed_stage: {}, onboarding_skip_step: {}, tolc_quit_answered: [], tolc_deck_type: {} }, platforms: {}, since: null };
+  const v3 = { steps: {}, paths: {}, breakdown: { gen_fail_reason: {}, tolc_closed_stage: {}, onboarding_skip_step: {}, tolc_quit_answered: [], tolc_deck_type: {},
+    onboarding_variant: {}, onboarding_bypass_reason: {}, review_first_type: {}, review_first_flow: {}, returned_days_after: {}, returned_type: {},
+    tolc_quit_then_completed: 0, tolc_quit_not_completed: 0 }, platforms: {}, since: null };
   V3.forEach(k => { v3.steps[k] = 0; });
   const v3Names = new Set([...V3, 'app_open']);
   const v3Start = events.filter(e => v3Names.has(e.type)).reduce((m, e) => Math.min(m, e.ts), Infinity);
@@ -86,7 +96,20 @@ function summarizeJourneys(events, coverage = {}) {
         if (e.type === 'tolc_test_quit' && typeof m.answered === 'number') v3.breakdown.tolc_quit_answered.push(m.answered);
         // Denominatore del login dopo il mazzo: solo i mazzi creati da ospite (meta.type='guest').
         if (e.type === 'tolc_error_deck_created') inc(v3.breakdown.tolc_deck_type, m.type);
+        // 04/10/2026: versioni dell'onboarding separate (prima del 29/09 era a più slide).
+        if (e.type === 'onboarding_skipped' || e.type === 'onboarding_finished') inc(v3.breakdown.onboarding_variant, (m.variant || 'pre_2026_09_29') + ':' + e.type.replace('onboarding_', ''));
+        if (e.type === 'onboarding_bypassed') inc(v3.breakdown.onboarding_bypass_reason, m.reason);
+        if (e.type === 'review_first_completed') { inc(v3.breakdown.review_first_type, m.type); inc(v3.breakdown.review_first_flow, m.flow); }
+        if (e.type === 'study_returned_next_day') { inc(v3.breakdown.returned_days_after, Number.isFinite(m.days_after) ? Math.min(m.days_after, 8) : null); inc(v3.breakdown.returned_type, m.type); }
         if (BRANCHES.includes(e.type) && !seen.has(e.type)) { v3.steps[e.type]++; seen.add(e.type); }
+      }
+      // Abbandono TOLC: 'tolc_test_quit' scatta anche quando l'app va in background. Si separa chi
+      // poi ha comunque consegnato da chi non ha mai completato una prova dopo l'uscita.
+      const quitTs = vEvents.filter(e => e.type === 'tolc_test_quit').map(e => e.ts);
+      if (quitTs.length) {
+        const firstQuit = Math.min(...quitTs);
+        if (vEvents.some(e => e.type === 'tolc_sim_complete' && e.ts > firstQuit)) v3.breakdown.tolc_quit_then_completed++;
+        else v3.breakdown.tolc_quit_not_completed++;
       }
       const platformEvents = new Map();
       for (const e of vEvents) {
@@ -108,7 +131,7 @@ function summarizeJourneys(events, coverage = {}) {
     // be used as the denominator for the next success step.
   }
   // ── Errori da utenti reali (26/09/2026), ultimi 7 giorni: eventi, browser distinti, motivi ──
-  const ERR_TYPES = ['cloud_sync_failed', 'js_error', 'cards_generation_failed'];
+  const ERR_TYPES = ['cloud_sync_failed', 'js_error', 'cards_generation_failed', 'firebase_sdk_unavailable', 'tolc_error_deck_failed'];
   const errSince = Date.now() - 7 * 24 * 3600 * 1000;
   const errors = { since: errSince, events: {}, browsers: {}, reasons: {} };
   ERR_TYPES.forEach(t => { errors.events[t] = 0; errors.browsers[t] = 0; errors.reasons[t] = {}; });

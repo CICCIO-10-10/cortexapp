@@ -26,6 +26,7 @@ import { renderDecks }    from './decks.js';
 import { updateMemoryBank } from '../services/memoryService.js';
 import { track }          from '../core/analytics.js';
 import { bumpActivation } from '../services/activation.js';
+import { noteReviewCompleted, noteCardRated } from '../core/studyMilestones.js';
 import { TRANSLATIONS } from '../data/translations.js';
 const _t = () => (TRANSLATIONS[localStorage.getItem('mm_lang')||'it'] || TRANSLATIONS.it);
 
@@ -92,12 +93,21 @@ let sessionStartTime = 0;   // timestamp ms — per calcolo durata sessione
 let sessionDeckName  = '';  // nome mazzo — per la share card
 let activeDeckId = null;
 let studyRun = 0;
+let _sessionEnded = false;   // la sessione corrente è arrivata in fondo (endSession)
 
 function _tolcErrorHook(step, deck, extra) {
     // Mazzi creati dagli errori TOLC (modules/tolcErrorDeck.js): passaggi del funnel e
     // proposta di accesso non bloccante. No-op per tutti gli altri mazzi.
     try { if (deck && deck.source === 'tolc_errors_local' && typeof window !== 'undefined' && typeof window.__cxTolcErrorStudyEvent === 'function') window.__cxTolcErrorStudyEvent(step, deck, extra); } catch (_) {}
 }
+
+// 04/10/2026: tappe di misura (core/studyMilestones.js). Solo nomi/conteggi, track() rispetta il consenso.
+function _studyFlow(deck) {
+    if (deck && deck.source === 'tolc_errors_local') return 'tolc_errors';
+    if (deck && /^deck_demo_/.test(String(deck.id))) return 'demo';
+    return 'deck';
+}
+function _accountType() { try { return (typeof window !== 'undefined' && window._fbLoggedIn) ? 'account' : 'guest'; } catch (_) { return 'guest'; } }
 
 // ── Funzioni esportate ───────────────────────────────────────────────────────
 
@@ -148,6 +158,7 @@ export async function startStudy(deckIndex) {
     sessionCorrect = 0; sessionWrong = 0; sessionHard = 0; sessionStreak = 0;
     sessionStartTime = Date.now();
     sessionDeckName  = deck.name || deck.title || 'Studio';
+    _sessionEnded = false;
     const streakEl = document.getElementById('study-streak');
     if (streakEl) streakEl.textContent = '';
 
@@ -235,6 +246,10 @@ export function rateCard(rating) {
 
     // Activation tracking: 1 rating valutato (GA4 + Firestore server-side)
     try { track('card_rated', { rating }); } catch (_) {}
+    try {
+        const ret = noteCardRated(localStorage, todayStr());
+        if (ret.returned) track('study_returned_next_day', { days_after: ret.daysAfter, type: _accountType(), flow: _studyFlow(deck) });
+    } catch (_) {}
     bumpActivation('ratingsGiven', 1);
     _tolcErrorHook('first_rate', deck);
 
@@ -278,6 +293,12 @@ export function rateCard(rating) {
 
 export function closeStudy() {
     const _closingDeck = activeDeckId != null ? (_deps.state.decks || []).find(d => String(d.id) === String(activeDeckId)) : null;
+    // 04/10/2026: abbandono = chiusura prima della fine con una sessione davvero avviata.
+    try {
+        if (activeDeckId != null && !_sessionEnded && studyQueue.length) {
+            track('study_session_abandoned', { count: sessionCorrect + sessionHard + sessionWrong, total: studyQueue.length, type: _accountType(), flow: _studyFlow(_closingDeck) });
+        }
+    } catch (_) {}
     studyRun++;
     studyQueue = [];
     studyIndex = 0;
@@ -314,6 +335,13 @@ function endSession() {
 
     // Activation tracking: sessione di studio completata (GA4 + Firestore server-side)
     try { track('study_session_completed', { cards: totalCards, pct: finalPct }); } catch (_) {}
+    try {
+        const _doneDeck = (_deps.state.decks || []).find(d => String(d.id) === String(activeDeckId));
+        if (noteReviewCompleted(localStorage, todayStr(), totalCards).first) {
+            track('review_first_completed', { count: totalCards, type: _accountType(), flow: _studyFlow(_doneDeck) });
+        }
+    } catch (_) {}
+    _sessionEnded = true;
     if (totalCards > 0) bumpActivation('cardsStudied', totalCards);
     _tolcErrorHook('completed', _deps.state.decks.find(d => String(d.id) === String(activeDeckId)), { count: totalCards });
 
