@@ -349,7 +349,8 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
 
   // Fase 4: un abbonamento già attivo (Stripe o Google Play) non se ne apre un secondo:
   // il cambio piano/disdetta passa da "Gestisci abbonamento".
-  const userDoc = await db.collection('users').doc(uid).get();
+  const [userDoc, lockDoc] = await Promise.all([db.collection('users').doc(uid).get(), db.collection('_deletionLocks').doc(uid).get()]);
+  if (lockDoc.exists) throw new functions.https.HttpsError('failed-precondition', 'Account in cancellazione.');
   const userData = userDoc.data() || {};
   const ep = entitlements.effectivePlan(userData, Date.now());
   if (ep.plan !== 'free' && !ep.trial) {
@@ -370,7 +371,18 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
       await db.collection('stripeCustomers').doc(stripeCustomerId).set({ uid }, { merge: true });
     }
 
-    // 2. Create Session (stessa richiesta entro 10 minuti → stessa sessione)
+    // 2. Un solo checkout aperto per cliente: le pagine di pagamento aperte prima (altro piano,
+    // altra scheda, più di 10 minuti fa) vengono chiuse, così non si possono pagare due abbonamenti.
+    const bucket = Math.floor(Date.now() / 600000);
+    try {
+      const open = await getStripe().checkout.sessions.list({ customer: stripeCustomerId, status: 'open', limit: 10 });
+      for (const cs of (open && open.data) || []) {
+        const sameRequest = cs.metadata && cs.metadata.plan === plan && Math.floor((cs.created || 0) * 1000 / 600000) === bucket;
+        if (cs.mode === 'subscription' && !sameRequest) await getStripe().checkout.sessions.expire(cs.id);
+      }
+    } catch (e) { console.warn('[Stripe] chiusura checkout aperti non riuscita:', e.type || e.code || 'internal'); }
+
+    // 3. Create Session (stessa richiesta entro 10 minuti → stessa sessione)
     const session = await getStripe().checkout.sessions.create({
       customer: stripeCustomerId,
       mode: 'subscription',
@@ -382,7 +394,7 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
       metadata: { uid, plan },
       // uid e piano anche sull'abbonamento: il webhook li ritrova senza dipendere dall'ordine degli eventi.
       subscription_data: { metadata: { uid, plan } },
-    }, { idempotencyKey: `checkout_${uid}_${plan}_${Math.floor(Date.now() / 600000)}` });
+    }, { idempotencyKey: `checkout_${uid}_${plan}_${bucket}` });
 
     return { url: session.url };
   } catch (err) {
@@ -710,23 +722,26 @@ exports.playRtdn = functions.pubsub.topic('play-rtdn').onPublish(async (message)
  * abbonamenti registrati, anche se un webhook/una notifica è andata persa o l'app non
  * viene più aperta. Solo letture verso i provider; scrive lo stato corrente.
  */
-exports.reconcileBilling = functions.runWith({ timeoutSeconds: 300 }).pubsub.schedule('15 4 * * *').timeZone('Europe/Rome').onRun(async () => {
+exports.reconcileBilling = functions.runWith({ timeoutSeconds: 540 }).pubsub.schedule('15 4 * * *').timeZone('Europe/Rome').onRun(async () => {
   const now = Date.now();
-  const stats = { stripe: 0, play: 0, errors: 0 };
+  const stats = { stripe: 0, play: 0, skipped: 0, errors: 0 };
   const priceMap = billing.priceMapFromEnv(process.env);
-  const stripeUsers = await db.collection('users').where('stripeSubscriptionId', '!=', null).select('stripeSubscriptionId').get();
+  const OLD = 7 * 86400e3;
+  // Abbonamenti chiusi da più di 7 giorni (già sincronizzati) non si rileggono ogni giorno.
+  const stripeUsers = await db.collection('users').where('stripeSubscriptionId', '!=', null).select('stripeSubscriptionId', 'stripeSubscription').get();
   for (const doc of stripeUsers.docs) {
-    const subId = doc.data().stripeSubscriptionId;
+    const d = doc.data(), subId = d.stripeSubscriptionId, rec = d.stripeSubscription;
     if (typeof subId !== 'string' || !subId) continue;
-    try {
-      const summary = billing.summarizeStripeSubscription(await getStripe().subscriptions.retrieve(subId), priceMap);
-      if (summary.plan) { await billing.applyStripeSubscription({ db, admin, uid: doc.id, summary, now }); stats.stripe++; }
-    } catch (err) { stats.errors++; console.error('[Reconcile] Stripe', doc.id.slice(0, 6), err.type || err.code || 'internal'); }
+    if (rec && ['canceled', 'incomplete_expired'].includes(rec.status) && Number(rec.syncedAt || 0) < now - OLD) { stats.skipped++; continue; }
+    try { await billing.reconcileStripe({ db, admin, stripe: getStripe(), subId, uidHint: doc.id, priceMap, now }); stats.stripe++; }
+    catch (err) { if (!billing.isMissing(err)) { stats.errors++; console.error('[Reconcile] Stripe', doc.id.slice(0, 6), err.type || err.code || 'internal'); } }
   }
   const playUsers = await db.collection('users').where('googlePlaySubscription.purchaseToken', '!=', null).select('googlePlaySubscription').get();
   for (const doc of playUsers.docs) {
     const gp = doc.data().googlePlaySubscription || {};
     if (typeof gp.purchaseToken !== 'string' || !security.PRODUCTS[gp.sku]?.plan) continue;
+    const exp = entitlements.toMillis(gp.expiresAt);
+    if (exp !== null && exp < now - 30 * 86400e3) { stats.skipped++; continue; }
     try {
       const receipt = await db.collection('_purchaseReceipts').doc(security.hash(gp.purchaseToken)).get();
       if (receipt.exists && receipt.data().uid !== doc.id) continue;
@@ -738,7 +753,6 @@ exports.reconcileBilling = functions.runWith({ timeoutSeconds: 300 }).pubsub.sch
   console.log('[Reconcile] billing', JSON.stringify(stats));
   return null;
 });
-
 
 /**
  * deleteUserAccount — GDPR Right to Erasure (audit 2026-10, fase 3: cancellazione completa)

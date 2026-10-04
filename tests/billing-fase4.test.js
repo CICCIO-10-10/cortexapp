@@ -39,9 +39,13 @@ describe('matrice dei diritti (effectivePlan)', () => {
       expect(entitlements.effectivePlan({ plan: 'student', planSource: 'stripe', stripeSubscription: stripeRec(st) }, NOW)).toMatchObject({ plan: 'free', paidExpired: true });
     expect(entitlements.effectivePlan({ plan: 'student', planSource: 'google_play', planExpiresAt: ts(NOW - 1) }, NOW)).toMatchObject({ plan: 'free', paidExpired: true });
   });
-  it('pagamento in ritardo (past_due): accesso per una tolleranza definita, poi no', () => {
-    expect(entitlements.effectivePlan({ plan: 'student', planSource: 'stripe', stripeSubscription: stripeRec('past_due', 'student', NOW - 3 * DAY) }, NOW)).toMatchObject({ plan: 'student', pastDue: true });
-    expect(entitlements.effectivePlan({ plan: 'student', planSource: 'stripe', stripeSubscription: stripeRec('past_due', 'student', NOW - 15 * DAY) }, NOW).plan).toBe('free');
+  it('pagamento in ritardo (past_due): 14 giorni dal primo ritardo, non dalla fine del periodo (che Stripe sposta avanti)', () => {
+    const pd = since => ({ plan: 'student', planSource: 'stripe', stripeSubscription: { ...stripeRec('past_due', 'student', NOW + 360 * DAY), pastDueSince: since } });
+    expect(entitlements.effectivePlan(pd(NOW - 3 * DAY), NOW)).toMatchObject({ plan: 'student', pastDue: true });
+    expect(entitlements.effectivePlan(pd(NOW - 15 * DAY), NOW).plan).toBe('free');   // annuale: niente "un anno gratis"
+  });
+  it('piano concesso a mano (planSource diverso) resta anche con uno stato Stripe chiuso', () => {
+    expect(entitlements.effectivePlan({ plan: 'pro', planSource: 'manual', stripeSubscription: stripeRec('canceled') }, NOW).plan).toBe('pro');
   });
   it('due provider insieme: vince il piano più alto; Play scaduto non toglie Stripe attivo', () => {
     const both = { plan: 'student', planSource: 'google_play', planExpiresAt: ts(NOW + DAY), googlePlaySubscription: { sku: 'cortex_student_monthly', expiresAt: ts(NOW + DAY) }, stripeSubscription: stripeRec('active', 'pro') };
@@ -126,8 +130,70 @@ describe('webhook Stripe riconciliato', () => {
     expect(f.rows.get('_stripeEvents/evt_c3')).toMatchObject({ status: 'ignored' });
   });
 
+  it('past_due: la tolleranza parte dal primo evento in ritardo e non si azzera con gli eventi successivi', async () => {
+    await run(checkout());
+    subs.sub_1 = subObj('sub_1', 'past_due', { end: NOW + 360 * DAY });
+    await run(ev('evt_pd1', 'invoice.payment_failed', { id: 'in_1', subscription: 'sub_1' }));
+    const since = f.rows.get('users/U1').stripeSubscription.pastDueSince;
+    expect(since).toBe(NOW);
+    await billing.handleStripeEvent({ db: f.db, admin: f.admin, stripe, event: ev('evt_pd2', 'invoice.payment_failed', { id: 'in_2', subscription: 'sub_1' }), priceMap, now: NOW + 5 * DAY, checkoutGrant: stripeBilling.subscriptionCheckoutGrant });
+    expect(f.rows.get('users/U1').stripeSubscription.pastDueSince).toBe(since);
+    expect(entitlements.effectivePlan(f.rows.get('users/U1'), NOW + 15 * DAY).plan).toBe('free');
+  });
+
+  it('prezzo non più mappato: la disdetta dell\'abbonamento già noto viene comunque applicata', async () => {
+    f.rows.set('users/U1', { plan: 'student', planSource: 'stripe', stripeCustomerId: 'cus_A', stripeSubscriptionId: 'sub_legacy' });   // documento pre-fase 4
+    f.rows.set('stripeCustomers/cus_A', { uid: 'U1' });
+    subs.sub_legacy = subObj('sub_legacy', 'canceled', { price: 'price_vecchio' });
+    expect(await run(ev('evt_lg', 'customer.subscription.deleted', subs.sub_legacy))).toMatchObject({ status: 'applied', plan: 'free' });
+    expect(f.rows.get('users/U1')).toMatchObject({ plan: 'free', cancelReason: 'canceled', stripeSubscription: { status: 'canceled', plan: 'student' } });
+  });
+
+  it('prezzo sconosciuto su un abbonamento attivo mai visto: nessun piano inventato', async () => {
+    f.rows.set('stripeCustomers/cus_A', { uid: 'U1' });
+    subs.sub_x = subObj('sub_x', 'active', { price: 'price_ignoto' });
+    expect(await run(ev('evt_x', 'customer.subscription.created', subs.sub_x))).toMatchObject({ status: 'ignored', reason: 'unknown_price' });
+  });
+
+  it('pagamento recuperato: il banner di "ritorno" non resta acceso', async () => {
+    await run(checkout());
+    subs.sub_1 = subObj('sub_1', 'unpaid');
+    await run(ev('evt_u', 'invoice.payment_failed', { id: 'in_1', subscription: 'sub_1' }));
+    expect(f.rows.get('users/U1').winbackEligible).toBe(true);
+    subs.sub_1 = subObj('sub_1', 'active');
+    await run(ev('evt_ok', 'invoice.paid', { id: 'in_2', subscription: 'sub_1' }));
+    expect(f.rows.get('users/U1')).toMatchObject({ plan: 'student', winbackEligible: false, canceledAt: null, cancelReason: null });
+  });
+
+  it('due abbonamenti attivi per lo stesso cliente: tiene il migliore e segnala il doppione (nessuna disdetta automatica)', async () => {
+    subs.sub_1 = subObj('sub_1', 'active', { created: NOW - 2 * DAY });
+    subs.sub_2 = subObj('sub_2', 'active', { price: 'price_pro_m', created: NOW - DAY });
+    stripe.subscriptions.list = async () => ({ data: [subs.sub_1, subs.sub_2] });
+    await run(checkout('sub_1'));
+    expect(f.rows.get('users/U1')).toMatchObject({ plan: 'pro', stripeSubscriptionId: 'sub_2', stripeDuplicateSubscriptions: ['sub_2', 'sub_1'] });
+    // il migliore viene disdetto: si passa all'altro ancora pagato, non a free
+    subs.sub_2 = subObj('sub_2', 'canceled', { price: 'price_pro_m', created: NOW - DAY });
+    await run(ev('evt_c', 'customer.subscription.deleted', subs.sub_2));
+    expect(f.rows.get('users/U1')).toMatchObject({ plan: 'student', stripeSubscriptionId: 'sub_1' });
+    expect(f.rows.get('users/U1').stripeDuplicateSubscriptions).toBeUndefined();
+  });
+
+  it('abbonamento pagato su un account già cancellato: segnalato per la gestione a mano', async () => {
+    f.rows.set('_deletionLocks/U1', { lockedAt: 1 });
+    await run(checkout());
+    expect(f.rows.get('_billingAlerts/deleted_sub_1')).toMatchObject({ type: 'active_subscription_on_deleted_account' });
+  });
+
+  it('abbonamento inesistente su Stripe (404): ignorato e marcato, niente riconsegne infinite', async () => {
+    const e = ev('evt_404', 'customer.subscription.updated', { id: 'sub_gone' });
+    stripe.subscriptions.retrieve = async () => { throw Object.assign(new Error('No such subscription'), { code: 'resource_missing', statusCode: 404 }); };
+    expect(await run(e)).toMatchObject({ status: 'ignored', reason: 'subscription_missing' });
+    expect(f.rows.has('_stripeEvents/evt_404')).toBe(true);
+  });
+
   it('Stripe non risponde: errore (il webhook risponde 500), nessun marker → la riconsegna viene elaborata', async () => {
     const e = ev('evt_r', 'customer.subscription.updated', { id: 'sub_missing' });
+    stripe.subscriptions.retrieve = async () => { throw Object.assign(new Error('timeout'), { type: 'StripeConnectionError' }); };
     await expect(run(e)).rejects.toThrow();
     expect(f.rows.has('_stripeEvents/evt_r')).toBe(false);
   });
@@ -169,6 +235,15 @@ describe('Google Play: notifiche RTDN e riconciliazione', () => {
     await notify(3, play('SUBSCRIPTION_STATE_CANCELED', NOW + 2 * DAY));
     expect(entitlements.effectivePlan(f.rows.get('users/P1'), NOW).plan).toBe('student');
     expect(entitlements.effectivePlan(f.rows.get('users/P1'), NOW + 3 * DAY).plan).toBe('free');
+  });
+  it('upgrade/riattivazione: il token nuovo collegato al vecchio passa allo stesso account', async () => {
+    const p = { ...play('SUBSCRIPTION_STATE_ACTIVE', NOW + 30 * DAY), linkedPurchaseToken: TOKEN };
+    expect(await notify(4, p, 'tok-nuovo')).toMatchObject({ status: 'applied', uid: 'P1', linked: true });
+    expect(f.rows.get('_purchaseReceipts/' + security.hash('tok-nuovo'))).toMatchObject({ uid: 'P1', sku: SKU });
+    expect(f.rows.get('users/P1').googlePlaySubscription.purchaseToken).toBe('tok-nuovo');
+    // la scadenza del vecchio token non toglie più il piano
+    await notify(13, play('SUBSCRIPTION_STATE_EXPIRED', NOW - DAY), TOKEN);
+    expect(entitlements.effectivePlan(f.rows.get('users/P1'), NOW).plan).toBe('student');
   });
   it('ricevuta non ancora attribuita a un account: ignorata (la attribuisce l\'app)', async () => {
     expect(await notify(4, play('SUBSCRIPTION_STATE_ACTIVE', NOW + 30 * DAY), 'tok-sconosciuto')).toMatchObject({ status: 'ignored', reason: 'unclaimed_receipt' });
@@ -231,6 +306,22 @@ describe('checkout e "Gestisci abbonamento"', () => {
     expect(calls[1][1]).toMatch(/^checkout_U1_student_\d+$/);
     expect(calls[1][2]).toEqual({ metadata: { uid: 'U1', plan: 'student' } });
     expect(f.rows.get('stripeCustomers/cus_new')).toEqual({ uid: 'U1' });
+  });
+  it('un solo checkout aperto: le pagine di pagamento aperte prima per un altro piano vengono chiuse', async () => {
+    f.rows.set('users/U1', { plan: 'free', stripeCustomerId: 'cus_1' });
+    const expired = [];
+    stripe.checkout.sessions.list = async () => ({ data: [
+      { id: 'cs_pro', mode: 'subscription', metadata: { plan: 'pro' }, created: Math.floor(Date.now() / 1000) },
+      { id: 'cs_same', mode: 'subscription', metadata: { plan: 'student' }, created: Math.floor(Date.now() / 1000) },
+      { id: 'cs_sparks', mode: 'payment', metadata: { type: 'sparks' }, created: 1 } ] });
+    stripe.checkout.sessions.expire = async id => { expired.push(id); };
+    await fns.createCheckoutSession({ plan: 'student' }, ctx('U1'));
+    expect(expired).toEqual(['cs_pro']);   // la stessa richiesta (doppio clic) resta: la ritorna l'idempotenza
+  });
+  it('account in cancellazione: niente checkout e niente documento ricreato', async () => {
+    f.rows.set('_deletionLocks/U9', { lockedAt: 1 });
+    await expect(fns.createCheckoutSession({ plan: 'student' }, ctx('U9'))).rejects.toMatchObject({ code: 'failed-precondition' });
+    expect(f.rows.has('users/U9')).toBe(false);
   });
   it('già abbonato (Stripe o Play): nessun secondo abbonamento', async () => {
     f.rows.set('users/U1', { plan: 'student', planSource: 'stripe', stripeSubscription: { id: 's', status: 'active', plan: 'student' } });

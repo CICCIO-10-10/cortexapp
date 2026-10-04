@@ -76,6 +76,8 @@ async function applyPurchase({db, admin, uid, sku, purchaseToken, purchase, Http
   if (legacy.docs.some(d => d.id !== uid && (product.plan || (d.data().googlePlayPurchases || []).some(p => p.purchaseToken === purchaseToken)))) throw new HttpsError('permission-denied', 'Ricevuta già associata a un altro account.');
   return db.runTransaction(async tx => {
     const receipt = await tx.get(receiptRef), user = await tx.get(userRef), existing = receipt.exists ? receipt.data() : null;
+    // Fase 4: un account in cancellazione non riceve piani o crediti (né si ricrea il documento).
+    if ((await tx.get(db.collection('_deletionLocks').doc(uid))).exists) throw new HttpsError('failed-precondition', 'Account in cancellazione.');
     if (existing && (existing.uid !== uid || existing.sku !== sku)) throw new HttpsError('permission-denied', 'Ricevuta già associata.');
     const data = user.exists ? user.data() : {};
     const legacyUsed = (data.googlePlayPurchases || []).some(p => p.purchaseToken === purchaseToken);

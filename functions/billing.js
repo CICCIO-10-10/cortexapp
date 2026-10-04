@@ -53,21 +53,43 @@ function summarizeStripeSubscription(sub, priceMap) {
   };
 }
 
-/**
- * Un abbonamento diverso da quello salvato sostituisce il salvato solo se dà diritti e il
- * salvato no, oppure se è più recente e dà diritti. Un vecchio abbonamento annullato non
- * può togliere il piano a quello nuovo (eventi fuori ordine o abbonamenti precedenti).
- */
-function shouldAdoptStripe(current, incoming, now) {
-  if (!current || !current.id || current.id === incoming.id) return true;
-  const inc = entitlements.stripeGrant(incoming, now), cur = entitlements.stripeGrant(current, now);
-  if (!inc) return false;
-  if (!cur) return true;
-  return (incoming.created || 0) > (current.created || 0);
+const ENTITLING_STATUSES = new Set(['active', 'trialing', 'past_due']);
+
+/** Abbonamento "di riferimento" salvato (anche per documenti precedenti alla fase 4). */
+function currentStripeRef(data, now, fresh = {}) {
+  if (data.stripeSubscription && data.stripeSubscription.id) {
+    // Se Stripe ha appena restituito anche l'abbonamento salvato, vale il suo stato attuale.
+    const f = fresh[data.stripeSubscription.id];
+    const rec = f ? { ...data.stripeSubscription, status: f.status } : data.stripeSubscription;
+    return { rec, entitled: !!entitlements.stripeGrant(rec, now) };
+  }
+  if (typeof data.stripeSubscriptionId === 'string' && data.stripeSubscriptionId) {
+    const legacyPaid = entitlements.PAID_PLANS.has(String(data.plan || '').toLowerCase()) && data.planSource !== 'google_play';
+    return { rec: { id: data.stripeSubscriptionId, created: 0, plan: legacyPaid ? String(data.plan).toLowerCase() : null }, entitled: legacyPaid };
+  }
+  return null;
 }
 
-/** Campi riassuntivi (plan, planSource, planCycle) coerenti con effectivePlan. */
-function summaryFields(data, now, FieldValue) {
+/**
+ * Un abbonamento diverso da quello salvato lo sostituisce solo se dà diritti e il salvato no,
+ * oppure se è più recente e dà diritti. Un vecchio abbonamento annullato non può togliere il
+ * piano a quello nuovo (eventi fuori ordine o abbonamenti precedenti).
+ */
+function shouldAdoptStripe(cur, incoming, now) {
+  if (!cur || !cur.rec.id || cur.rec.id === incoming.id) return true;
+  if (!entitlements.stripeGrant(incoming, now)) return false;
+  if (!cur.entitled) return true;
+  return (incoming.created || 0) > (cur.rec.created || 0);
+}
+
+function cancelReasonFor(status) {
+  if (status === 'canceled' || status === 'incomplete_expired') return 'canceled';
+  if (status === 'unpaid' || status === 'past_due') return 'payment_failed';
+  return String(status || 'inactive').slice(0, 40);
+}
+
+/** Campi riassuntivi (plan, planSource, planCycle, win-back) coerenti con effectivePlan. */
+function summaryFields(data, now, FieldValue, reason) {
   const ep = entitlements.effectivePlan(data, now);
   const paid = ep.trial ? 'free' : ep.plan;
   const out = {};
@@ -76,14 +98,18 @@ function summaryFields(data, now, FieldValue) {
   if (paid !== 'free' && ep.source === 'stripe' && data.stripeSubscription && data.stripeSubscription.cycle && data.planCycle !== data.stripeSubscription.cycle) out.planCycle = data.stripeSubscription.cycle;
   const wasPaid = entitlements.PAID_PLANS.has(String(data.plan || '').toLowerCase());
   if (wasPaid && paid === 'free') {
-    Object.assign(out, { planCycle: null, winbackEligible: true, winbackShownAt: null, canceledAt: FieldValue.serverTimestamp() });
+    Object.assign(out, { planCycle: null, winbackEligible: true, canceledAt: FieldValue.serverTimestamp(), cancelReason: reason || 'inactive' });
+    if (data.winbackEligible !== true) out.winbackShownAt = null;   // banner una volta per interruzione, non a ogni ciclo
+  }
+  if (!wasPaid && paid !== 'free' && (data.winbackEligible || data.canceledAt || data.cancelReason)) {
+    Object.assign(out, { winbackEligible: false, canceledAt: null, cancelReason: null });   // accesso tornato (pagamento recuperato)
   }
   if (Object.keys(out).length) out.planUpdatedAt = FieldValue.serverTimestamp();
   return out;
 }
 
 /** Salva lo stato Stripe riletto e ricalcola il riassunto, in transazione. */
-async function applyStripeSubscription({ db, admin, uid, summary, now = Date.now() }) {
+async function applyStripeSubscription({ db, admin, uid, summary, now = Date.now(), duplicates = [], fresh = {} }) {
   const FieldValue = admin.firestore.FieldValue;
   const userRef = db.collection('users').doc(uid);
   return db.runTransaction(async tx => {
@@ -92,15 +118,43 @@ async function applyStripeSubscription({ db, admin, uid, summary, now = Date.now
     if (lock.exists) return { applied: false, reason: 'account_deleting' };
     if (!snap.exists) return { applied: false, reason: 'no_user' };
     const data = snap.data();
-    if (!shouldAdoptStripe(data.stripeSubscription, summary, now)) return { applied: false, reason: 'older_subscription' };
-    const rec = { id: summary.id, status: summary.status, plan: summary.plan, cycle: summary.cycle, periodEnd: summary.periodEnd, cancelAtPeriodEnd: summary.cancelAtPeriodEnd, created: summary.created, syncedAt: now };
+    const cur = currentStripeRef(data, now, fresh);
+    const same = !!(cur && cur.rec.id === summary.id);
+    // Prezzo non riconosciuto (es. un prezzo vecchio non più nelle variabili): per l'abbonamento
+    // già noto si tiene il piano salvato; uno stato senza diritti si registra comunque (disdetta).
+    const plan = summary.plan || (same ? cur.rec.plan : null);
+    if (!plan && ENTITLING_STATUSES.has(summary.status)) return { applied: false, reason: 'unknown_price' };
+    const incoming = { ...summary, plan };
+    if (!shouldAdoptStripe(cur, incoming, now)) return { applied: false, reason: 'older_subscription' };
+    const prevPastDue = same && cur.rec.pastDueSince ? cur.rec.pastDueSince : null;
+    const rec = { id: summary.id, status: summary.status, plan, cycle: summary.cycle || (same ? cur.rec.cycle || null : null), periodEnd: summary.periodEnd, cancelAtPeriodEnd: summary.cancelAtPeriodEnd, created: summary.created,
+      pastDueSince: summary.status === 'past_due' ? (prevPastDue || now) : null, syncedAt: now };
     const next = { ...data, stripeSubscription: rec };
-    const fields = summaryFields(next, now, FieldValue);
-    if (fields.canceledAt && !['canceled', 'incomplete_expired'].includes(summary.status)) fields.cancelReason = 'payment_failed';
-    tx.set(userRef, { stripeSubscription: rec, stripeSubscriptionId: summary.id, ...(summary.customerId ? { stripeCustomerId: summary.customerId } : {}), ...fields }, { merge: true });
+    const fields = summaryFields(next, now, FieldValue, cancelReasonFor(summary.status));
+    const extra = duplicates.length ? { stripeDuplicateSubscriptions: duplicates.slice(0, 5) } : (data.stripeDuplicateSubscriptions ? { stripeDuplicateSubscriptions: FieldValue.delete() } : {});
+    tx.set(userRef, { stripeSubscription: rec, stripeSubscriptionId: summary.id, ...(summary.customerId ? { stripeCustomerId: summary.customerId } : {}), ...fields, ...extra }, { merge: true });
     if (summary.customerId) tx.set(db.collection('stripeCustomers').doc(summary.customerId), { uid }, { merge: true });
     return { applied: true, plan: entitlements.effectivePlan({ ...next, ...fields }, now).plan };
   });
+}
+
+/**
+ * Tutti gli abbonamenti del cliente: si sceglie quello che dà il piano più alto (a parità il più
+ * recente). Se più di uno dà diritti è un doppio abbonamento: si segnala per una verifica a mano
+ * (nessuna disdetta o rimborso automatico).
+ */
+async function bestCustomerSubscription({ stripe, eventSub, priceMap, now }) {
+  const base = summarizeStripeSubscription(eventSub, priceMap);
+  let all = [base];
+  if (base.customerId && stripe.subscriptions.list) {
+    const page = await stripe.subscriptions.list({ customer: base.customerId, status: 'all', limit: 20 });
+    const listed = ((page && page.data) || []).map(s => summarizeStripeSubscription(s, priceMap));
+    all = listed.some(x => x.id === base.id) ? listed.map(x => (x.id === base.id ? base : x)) : [base, ...listed];
+  }
+  const entitled = all.filter(x => x.plan && ENTITLING_STATUSES.has(x.status))
+    .sort((a, b) => (entitlements.RANK[b.plan] - entitlements.RANK[a.plan]) || ((b.created || 0) - (a.created || 0)));
+  const best = entitled[0] || base;
+  return { summary: best, duplicates: entitled.length > 1 ? entitled.map(x => x.id) : [], fresh: Object.fromEntries(all.map(x => [x.id, x])) };
 }
 
 /** uid dell'abbonamento: mapping cliente → metadata abbonamento → metadata cliente. */
@@ -130,6 +184,24 @@ function subscriptionIdFromEvent(event) {
   return null;
 }
 
+const isMissing = err => !!err && (err.code === 'resource_missing' || err.statusCode === 404);
+
+/** Rilegge da Stripe e applica per un utente (webhook e riconciliazione giornaliera). */
+async function reconcileStripe({ db, admin, stripe, subId, uidHint, priceMap, now }) {
+  const sub = await stripe.subscriptions.retrieve(subId);
+  const { summary, duplicates, fresh } = await bestCustomerSubscription({ stripe, eventSub: sub, priceMap, now });
+  const uid = await resolveStripeUid({ db, stripe, summary, hint: uidHint });
+  if (!uid) return { status: 'ignored', reason: 'unknown_customer' };
+  const r = await applyStripeSubscription({ db, admin, uid, summary, now, duplicates, fresh });
+  if (duplicates.length) console.error('[Billing] più abbonamenti Stripe attivi per lo stesso utente: verifica a mano', uid.slice(0, 6), duplicates.join(','));
+  if (!r.applied && r.reason === 'account_deleting' && ENTITLING_STATUSES.has(summary.status)) {
+    // Pagato dopo la cancellazione dell'account: segnalato per la disdetta/il rimborso a mano.
+    await db.collection('_billingAlerts').doc('deleted_' + summary.id).set({ type: 'active_subscription_on_deleted_account', subscriptionId: summary.id, customerId: summary.customerId || null, at: now }, { merge: true });
+    console.error('[Billing] abbonamento attivo su account cancellato:', summary.id);
+  }
+  return r.applied ? { status: 'applied', uid, plan: r.plan, duplicates } : { status: 'ignored', reason: r.reason, uid };
+}
+
 /**
  * Gestisce un evento del webhook abbonamenti già verificato (firma).
  * @returns {Promise<{status:string, reason?:string, uid?:string, plan?:string}>}
@@ -145,7 +217,7 @@ async function handleStripeEvent({ db, admin, stripe, event, priceMap, now = Dat
   if (event.type === 'checkout.session.completed') {
     const grant = checkoutGrant(event.data.object);
     if (!grant.grant) result = { status: 'ignored', reason: grant.reason };
-    else { subId = grant.subscriptionId; uidHint = grant.uid; if (grant.customerId) await db.collection('stripeCustomers').doc(grant.customerId).set({ uid: grant.uid }, { merge: true }); }
+    else { subId = grant.subscriptionId; uidHint = grant.uid; }
   } else if (STRIPE_SUB_EVENTS.has(event.type)) {
     subId = subscriptionIdFromEvent(event);
     if (!subId) result = { status: 'ignored', reason: 'no_subscription' };
@@ -155,15 +227,8 @@ async function handleStripeEvent({ db, admin, stripe, event, priceMap, now = Dat
 
   if (!result) {
     // Lo stato si rilegge sempre da Stripe: l'ordine degli eventi non conta.
-    const sub = await stripe.subscriptions.retrieve(subId);
-    const summary = summarizeStripeSubscription(sub, priceMap);
-    const uid = await resolveStripeUid({ db, stripe, summary, hint: uidHint });
-    if (!uid) result = { status: 'ignored', reason: 'unknown_customer' };
-    else if (!summary.plan) result = { status: 'ignored', reason: 'unknown_price', uid };
-    else {
-      const r = await applyStripeSubscription({ db, admin, uid, summary, now });
-      result = r.applied ? { status: 'applied', uid, plan: r.plan } : { status: 'ignored', reason: r.reason, uid };
-    }
+    try { result = await reconcileStripe({ db, admin, stripe, subId, uidHint, priceMap, now }); }
+    catch (err) { if (isMissing(err)) result = { status: 'ignored', reason: 'subscription_missing' }; else throw err; }
   }
   await markerRef.set({ type: String(event.type).slice(0, 60), status: result.status, reason: result.reason || null, processedAt: admin.firestore.FieldValue.serverTimestamp(), expiresAt: new Date(now + EVENT_MARKER_TTL_MS) });
   return result;
@@ -195,8 +260,7 @@ async function applyPlayState({ db, admin, uid, sku, purchaseToken, purchase, no
     // planExpiresAt segue il piano Play corrente (se il riassunto è Play o lo diventa).
     if (data.planSource === 'google_play' || purchase.entitled) { next.planExpiresAt = Timestamp.fromMillis(expiry); write.planExpiresAt = next.planExpiresAt; }
     if (purchase.entitled && playPlan && (!entitlements.PAID_PLANS.has(String(data.plan || '')) || data.planSource === 'google_play')) { next.plan = playPlan; next.planSource = 'google_play'; write.plan = playPlan; write.planSource = 'google_play'; }
-    const fields = summaryFields(next, now, FieldValue);
-    if (fields.canceledAt) fields.cancelReason = 'play_' + String(purchase.state || 'inactive').replace('SUBSCRIPTION_STATE_', '').toLowerCase();
+    const fields = summaryFields(next, now, FieldValue, 'play_' + String(purchase.state || 'inactive').replace('SUBSCRIPTION_STATE_', '').toLowerCase());
     tx.set(userRef, { ...write, ...fields }, { merge: true });
     return { applied: true, plan: entitlements.effectivePlan({ ...next, ...fields }, now).plan };
   });
@@ -219,7 +283,30 @@ async function handlePlayNotification({ db, admin, security, readPurchase, msg, 
   if (typeof token !== 'string' || !token || token.length > 4096) return { status: 'ignored', reason: 'no_token' };
   const receiptRef = db.collection('_purchaseReceipts').doc(security.hash(token));
   const receipt = await receiptRef.get();
-  if (!receipt.exists) return { status: 'ignored', reason: 'unclaimed_receipt', type: sn ? PLAY_SUB_NOTIFICATION[sn.notificationType] : 'VOIDED' };
+  if (!receipt.exists) {
+    // Upgrade/riattivazione: Play crea un token nuovo collegato al vecchio (linkedPurchaseToken).
+    // Se il vecchio è attribuito a un account, il nuovo passa allo stesso account; altrimenti
+    // l'attribuzione resta a verifyGooglePlayPurchase (chiamato dall'app dopo l'acquisto).
+    const sku0 = sn && sn.subscriptionId;
+    if (sku0 && security.PRODUCTS[sku0] && security.PRODUCTS[sku0].plan) {
+      const purchase = await readPurchase(sku0, token);
+      const linked = purchase && purchase.linkedPurchaseToken;
+      const lr = linked ? await db.collection('_purchaseReceipts').doc(security.hash(linked)).get() : null;
+      if (lr && lr.exists && typeof lr.data().uid === 'string') {
+        const uid = lr.data().uid;
+        const claimed = await db.runTransaction(async tx => {
+          const r = await tx.get(receiptRef);
+          if (r.exists && r.data().uid !== uid) return false;
+          if (!r.exists) tx.set(receiptRef, { uid, sku: sku0, linkedFrom: security.hash(linked), ackState: purchase.acknowledged ? 'acknowledged' : 'pending', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+          return true;
+        });
+        if (!claimed) return { status: 'ignored', reason: 'receipt' };
+        const r = await applyPlayState({ db, admin, uid, sku: sku0, purchaseToken: token, purchase, now });
+        return { status: r.applied ? 'applied' : 'ignored', reason: r.reason, uid, plan: r.plan, type: PLAY_SUB_NOTIFICATION[sn.notificationType], linked: true };
+      }
+    }
+    return { status: 'ignored', reason: 'unclaimed_receipt', type: sn ? PLAY_SUB_NOTIFICATION[sn.notificationType] : 'VOIDED' };
+  }
   const { uid, sku } = receipt.data();
   const product = security.PRODUCTS[sku];
   if (!product || typeof uid !== 'string') return { status: 'ignored', reason: 'receipt' };
@@ -248,6 +335,6 @@ async function handlePlayNotification({ db, admin, security, readPurchase, msg, 
 
 module.exports = {
   priceMapFromEnv, summarizeStripeSubscription, shouldAdoptStripe, applyStripeSubscription, resolveStripeUid,
-  subscriptionIdFromEvent, handleStripeEvent, applyPlayState, handlePlayNotification, summaryFields,
+  subscriptionIdFromEvent, handleStripeEvent, reconcileStripe, bestCustomerSubscription, isMissing, applyPlayState, handlePlayNotification, summaryFields,
   STRIPE_SUB_EVENTS, PLAY_SUB_NOTIFICATION,
 };
