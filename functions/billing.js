@@ -274,7 +274,7 @@ const PLAY_SUB_NOTIFICATION = Object.freeze({ 1: 'RECOVERED', 2: 'RENEWED', 3: '
  * a decidere: si rilegge l'acquisto su Play. Solo ricevute già attribuite a un account
  * (l'attribuzione resta a verifyGooglePlayPurchase, chiamato dall'app dopo l'acquisto).
  */
-async function handlePlayNotification({ db, admin, security, readPurchase, msg, packageName, now = Date.now() }) {
+async function handlePlayNotification({ db, admin, security, readPurchase, acknowledge = null, msg, packageName, now = Date.now() }) {
   if (!msg || typeof msg !== 'object') return { status: 'ignored', reason: 'invalid' };
   if (msg.testNotification) return { status: 'test' };
   if (msg.packageName && msg.packageName !== packageName) return { status: 'ignored', reason: 'package' };
@@ -290,7 +290,8 @@ async function handlePlayNotification({ db, admin, security, readPurchase, msg, 
     const sku0 = sn && sn.subscriptionId;
     if (sku0 && security.PRODUCTS[sku0] && security.PRODUCTS[sku0].plan) {
       const purchase = await readPurchase(sku0, token);
-      const linked = purchase && purchase.linkedPurchaseToken;
+      // Il prodotto deve coincidere con quello restituito da Play (non solo con la notifica).
+      const linked = purchase && purchase.productMatches && purchase.entitled && purchase.linkedPurchaseToken;
       const lr = linked ? await db.collection('_purchaseReceipts').doc(security.hash(linked)).get() : null;
       if (lr && lr.exists && typeof lr.data().uid === 'string') {
         const uid = lr.data().uid;
@@ -302,6 +303,8 @@ async function handlePlayNotification({ db, admin, security, readPurchase, msg, 
         });
         if (!claimed) return { status: 'ignored', reason: 'receipt' };
         const r = await applyPlayState({ db, admin, uid, sku: sku0, purchaseToken: token, purchase, now });
+        // Senza conferma entro 3 giorni Google rimborsa e revoca: si conferma qui (ripetibile).
+        if (!purchase.acknowledged && acknowledge) await acknowledge(sku0, token);
         return { status: r.applied ? 'applied' : 'ignored', reason: r.reason, uid, plan: r.plan, type: PLAY_SUB_NOTIFICATION[sn.notificationType], linked: true };
       }
     }
@@ -314,6 +317,7 @@ async function handlePlayNotification({ db, admin, security, readPurchase, msg, 
   if (product.plan) {
     const purchase = await readPurchase(sku, token);
     const r = await applyPlayState({ db, admin, uid, sku, purchaseToken: token, purchase, now });
+    if (purchase.entitled && !purchase.acknowledged && acknowledge) await acknowledge(sku, token);
     return { status: r.applied ? 'applied' : 'ignored', reason: r.reason, uid, plan: r.plan, type: sn ? PLAY_SUB_NOTIFICATION[sn.notificationType] : 'VOIDED' };
   }
   // Sparks rimborsati/annullati (voided): si tolgono i crediti una sola volta, senza andare sotto zero.

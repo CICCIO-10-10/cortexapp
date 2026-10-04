@@ -237,8 +237,12 @@ describe('Google Play: notifiche RTDN e riconciliazione', () => {
     expect(entitlements.effectivePlan(f.rows.get('users/P1'), NOW + 3 * DAY).plan).toBe('free');
   });
   it('upgrade/riattivazione: il token nuovo collegato al vecchio passa allo stesso account', async () => {
-    const p = { ...play('SUBSCRIPTION_STATE_ACTIVE', NOW + 30 * DAY), linkedPurchaseToken: TOKEN };
-    expect(await notify(4, p, 'tok-nuovo')).toMatchObject({ status: 'applied', uid: 'P1', linked: true });
+    const p = { ...play('SUBSCRIPTION_STATE_ACTIVE', NOW + 30 * DAY), linkedPurchaseToken: TOKEN, acknowledged: false };
+    const acks = [];
+    const r = await billing.handlePlayNotification({ db: f.db, admin: f.admin, security, packageName: 'app.web.cortex_app.twa', now: NOW, readPurchase: async () => p,
+      acknowledge: async (sku, tok) => { acks.push(tok); }, msg: { packageName: 'app.web.cortex_app.twa', subscriptionNotification: { notificationType: 4, purchaseToken: 'tok-nuovo', subscriptionId: SKU } } });
+    expect(r).toMatchObject({ status: 'applied', uid: 'P1', linked: true });
+    expect(acks).toEqual(['tok-nuovo']);   // confermato: Google non lo rimborsa dopo 3 giorni
     expect(f.rows.get('_purchaseReceipts/' + security.hash('tok-nuovo'))).toMatchObject({ uid: 'P1', sku: SKU });
     expect(f.rows.get('users/P1').googlePlaySubscription.purchaseToken).toBe('tok-nuovo');
     // la scadenza del vecchio token non toglie più il piano

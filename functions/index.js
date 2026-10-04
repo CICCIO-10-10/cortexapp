@@ -708,6 +708,7 @@ exports.playRtdn = functions.pubsub.topic('play-rtdn').onPublish(async (message)
     const out = await billing.handlePlayNotification({
       db, admin, security, msg, packageName: PLAY_PACKAGE_NAME(),
       readPurchase: (sku, token) => readPlayPurchase(getPlayApi(), sku, token),
+      acknowledge: (sku, token) => acknowledgePlayPurchase(getPlayApi(), sku, token),
     });
     console.log('[PlayRTDN]', out.type || '', out.status, out.reason || '', out.plan || '');
   } catch (err) {
@@ -747,6 +748,8 @@ exports.reconcileBilling = functions.runWith({ timeoutSeconds: 540 }).pubsub.sch
       if (receipt.exists && receipt.data().uid !== doc.id) continue;
       const purchase = await readPlayPurchase(getPlayApi(), gp.sku, gp.purchaseToken, now);
       await billing.applyPlayState({ db, admin, uid: doc.id, sku: gp.sku, purchaseToken: gp.purchaseToken, purchase, now });
+      // Conferme rimaste in sospeso (es. errore al momento dell'acquisto): ritentate ogni giorno.
+      if (purchase.entitled && !purchase.acknowledged) await acknowledgePlayPurchase(getPlayApi(), gp.sku, gp.purchaseToken);
       stats.play++;
     } catch (err) { stats.errors++; console.error('[Reconcile] Play', doc.id.slice(0, 6), err.code || 'internal'); }
   }
