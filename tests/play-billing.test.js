@@ -233,5 +233,5 @@ describe('compatibilità libreria Google Play', () => {
     expect(typeof a.purchases.products.get).toBe('function');
     expect(typeof a.purchases.products.acknowledge).toBe('function');
     expect(a.purchases.subscriptions.get).toBeUndefined(); // motivo della migrazione
-  });
+  }, 120_000); // il primo caricamento di googleapis su Windows può superare 20 s
 });
