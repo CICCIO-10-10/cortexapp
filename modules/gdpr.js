@@ -440,16 +440,10 @@ export async function importUserData(text) {
  * Richiede che l'utente sia loggato e abbia un abbonamento attivo.
  */
 export async function openStripePortal() {
-    if (window.showToast) window.showToast('⏳ Apertura portale Stripe...', 'info');
-
-    try {
-        // Link diretto generato dalla Dashboard Stripe (No-code customer portal)
-        const portalUrl = "https://billing.stripe.com/p/login/test_fZuaEY0GpgjEgtc6Pl3gkO0";
-        window.open(portalUrl, '_blank', 'noopener');
-    } catch (err) {
-        console.error('[Stripe Portal]', err);
-        if (window.showToast) window.showToast(t('gdpr_err_portal'), 'error');
-    }
+    // Fase 4 (audit F12): prima apriva un link fisso del portale Stripe di TEST, che non
+    // gestisce gli abbonamenti veri. Ora è la stessa azione di "Gestisci abbonamento".
+    if (typeof window.manageSubscription === 'function') return window.manageSubscription();
+    if (window.showToast) window.showToast(t('gdpr_err_portal'), 'error');
 }
 
 // ─── Registrazione globali ────────────────────────────────────────────────────

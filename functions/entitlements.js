@@ -22,30 +22,66 @@ function toMillis(value) {
   return null;
 }
 
+// Fase 4 (audit 2026-10): stato Stripe salvato dal webhook riconciliato (functions/billing.js).
+// 'past_due' = Stripe sta ritentando il pagamento: accesso mantenuto per una tolleranza
+// definita (STRIPE_PAST_DUE_GRACE_MS dopo la fine del periodo), poi niente diritti anche se
+// Stripe resta in past_due. Gli altri stati (canceled, unpaid, incomplete…) non danno diritti.
+const STRIPE_ENTITLED = new Set(['active', 'trialing']);
+const STRIPE_PAST_DUE_GRACE_MS = 14 * 86400e3;
+const PLAY_SKU_PLAN = Object.freeze({ cortex_student_monthly: 'student', cortex_pro_monthly: 'pro' });
+const RANK = { free: 0, student: 1, pro: 2 };
+
+function stripeGrant(sub, now) {
+  if (!sub || typeof sub !== 'object' || !PAID_PLANS.has(sub.plan)) return null;
+  const end = toMillis(sub.periodEnd);
+  if (STRIPE_ENTITLED.has(sub.status)) return { plan: sub.plan, source: 'stripe', expiresAt: null };
+  if (sub.status === 'past_due' && (end === null || end + STRIPE_PAST_DUE_GRACE_MS > now)) return { plan: sub.plan, source: 'stripe', expiresAt: null, pastDue: true };
+  return null;
+}
+
 /**
+ * Diritti effettivi da TUTTI i provider (fase 4). Regola: vince il piano più alto tra
+ * Stripe (stato riconciliato) e Google Play (scadenza); a parità resta l'origine salvata.
+ * I documenti precedenti alla fase 4 (senza stripeSubscription) seguono la regola di prima.
  * @param {object|null} user  dati di users/{uid}
  * @param {number} now        epoch ms
  * @returns {{plan:'free'|'student'|'pro', source:string|null, expiresAt:number|null,
- *            paidExpired:boolean, trial:boolean, trialExpiresAt:number|null}}
+ *            paidExpired:boolean, trial:boolean, trialExpiresAt:number|null, pastDue:boolean}}
  */
 function effectivePlan(user, now = Date.now()) {
   const u = user && typeof user === 'object' ? user : {};
   const stored = typeof u.plan === 'string' ? u.plan.trim().toLowerCase() : 'free';
   const source = typeof u.planSource === 'string' ? u.planSource : null;
-  let plan = PAID_PLANS.has(stored) ? stored : 'free';
-  let expiresAt = null;
+  const grants = [];
   let paidExpired = false;
 
-  // Solo i piani Google Play hanno una scadenza registrata (planExpiresAt).
-  // Se manca (es. vecchi documenti in cui un acquisto Sparks Play aveva
-  // sovrascritto planSource) non si inventa una scadenza.
-  if (plan !== 'free' && source === 'google_play') {
-    expiresAt = toMillis(u.planExpiresAt);
-    if (expiresAt !== null && expiresAt <= now) {
-      plan = 'free';
-      paidExpired = true;
-    }
+  // Stripe
+  if (u.stripeSubscription && typeof u.stripeSubscription === 'object') {
+    const g = stripeGrant(u.stripeSubscription, now);
+    if (g) grants.push(g); else if (source === 'stripe' && PAID_PLANS.has(stored)) paidExpired = true;
+  } else if (PAID_PLANS.has(stored) && source !== 'google_play') {
+    // Legacy: piano Stripe/manuale senza stato riconciliato → come prima (nessuna scadenza).
+    grants.push({ plan: stored, source, expiresAt: null });
   }
+
+  // Google Play: scadenza registrata (planExpiresAt per il piano corrente Play, oppure
+  // googlePlaySubscription.expiresAt se un altro provider ha scritto plan/planSource).
+  const gp = u.googlePlaySubscription && typeof u.googlePlaySubscription === 'object' ? u.googlePlaySubscription : null;
+  let playPlan = null, playExp = null;
+  if (source === 'google_play' && PAID_PLANS.has(stored)) { playPlan = stored; playExp = toMillis(u.planExpiresAt); if (playExp === null && gp) playExp = toMillis(gp.expiresAt); }
+  else if (gp && PLAY_SKU_PLAN[gp.sku]) { playPlan = PLAY_SKU_PLAN[gp.sku]; playExp = toMillis(gp.expiresAt); if (playExp === null) playPlan = null; }
+  if (playPlan) {
+    // Se la scadenza manca (vecchi documenti) non se ne inventa una.
+    if (playExp === null || playExp > now) grants.push({ plan: playPlan, source: 'google_play', expiresAt: playExp });
+    else if (source === 'google_play') paidExpired = true;
+  }
+
+  let best = null;
+  for (const g of grants) {
+    if (!best || RANK[g.plan] > RANK[best.plan] || (RANK[g.plan] === RANK[best.plan] && g.source === source && best.source !== source)) best = g;
+  }
+  let plan = best ? best.plan : 'free';
+  if (best) paidExpired = false;
 
   const trialExpiresAt = toMillis(u.trialExpiresAt);
   let trial = false;
@@ -53,7 +89,7 @@ function effectivePlan(user, now = Date.now()) {
     plan = u.trialPlan;
     trial = true;
   }
-  return { plan, source, expiresAt, paidExpired, trial, trialExpiresAt };
+  return { plan, source: best ? best.source : source, expiresAt: best ? best.expiresAt : (paidExpired ? toMillis(u.planExpiresAt) : null), paidExpired, trial, trialExpiresAt, pastDue: !!(best && best.pastDue) };
 }
 
-module.exports = { PAID_PLANS, toMillis, effectivePlan };
+module.exports = { PAID_PLANS, toMillis, effectivePlan, stripeGrant, STRIPE_ENTITLED, STRIPE_PAST_DUE_GRACE_MS, PLAY_SKU_PLAN, RANK };

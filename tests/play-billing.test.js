@@ -32,7 +32,9 @@ function loadPlaySection({ db, admin, api }) {
   vm.runInNewContext(src.slice(start, end), {
     exports, db, admin, security, entitlements, console: { error() {}, warn() {}, log() {} },
     process: { env: { GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: '{}' } },
-    functions: { https: { onCall: fn => fn, HttpsError } },
+    // fase 4: nella stessa sezione ci sono anche RTDN e riconciliazione (non usate qui)
+    billing: require('../functions/billing.js'),
+    functions: { https: { onCall: fn => fn, HttpsError }, pubsub: { topic: () => ({ onPublish: fn => fn }) }, runWith: () => ({ pubsub: { schedule: () => ({ timeZone: () => ({ onRun: fn => fn }) }) } }) },
     getGoogle: () => ({ auth: { GoogleAuth: class {} }, androidpublisher: () => api }),
     Date, JSON, Object, Number, Math, String, Promise, Error,
   });

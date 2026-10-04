@@ -560,7 +560,9 @@ export async function redirectToCheckout(plan) {
         }
     } catch (err) {
         console.error('[Stripe] Checkout error:', err);
-        if (window.showToast) window.showToast('Errore pagamento: ' + err.message, 'error');
+        // Fase 4: abbonamento già attivo (Stripe o Play) → niente secondo abbonamento.
+        const already = err && (err.code === 'already-exists' || err.code === 'functions/already-exists');
+        if (window.showToast) window.showToast(already ? err.message : 'Errore pagamento: ' + err.message, already ? 'info' : 'error');
     }
 }
 
@@ -569,12 +571,14 @@ export async function manageSubscription() {
         if (window.showToast) window.showToast('Firebase non disponibile.', 'error');
         return;
     }
-    if (window.showToast) window.showToast('Apertura portale abbonamento...', 'info');
+    if (window.showToast) window.showToast('Apertura gestione abbonamento...', 'info');
     try {
+        // Fase 4: unico punto per gestire l'abbonamento. Il server sceglie la destinazione:
+        // portale Stripe per gli abbonamenti web, pagina abbonamenti di Google Play per quelli Play.
         const createPortal = firebase.functions().httpsCallable('createPortalSession');
         const { data } = await createPortal();
         if (data?.url) {
-            window.location.href = data.url; // Stripe gestisce tutto: upgrade, downgrade, disdetta
+            window.location.href = data.url;
         } else {
             throw new Error('URL portale non ricevuto.');
         }

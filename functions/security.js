@@ -84,7 +84,12 @@ async function applyPurchase({db, admin, uid, sku, purchaseToken, purchase, Http
       return {success: true, alreadyProcessed: true};
     }
     if (product.plan) {
-      tx.set(userRef, {plan: product.plan, planSource: 'google_play', planExpiresAt: admin.firestore.Timestamp.fromMillis(expiry), googlePlaySubscription: {sku, purchaseToken, expiresAt: admin.firestore.Timestamp.fromMillis(expiry), orderId: purchase.orderId || '', autoRenewing: !!purchase.autoRenewing, state: purchase.state || '', activatedAt: admin.firestore.FieldValue.serverTimestamp()}}, {merge:true});
+      const gps = {sku, purchaseToken, expiresAt: admin.firestore.Timestamp.fromMillis(expiry), orderId: purchase.orderId || '', autoRenewing: !!purchase.autoRenewing, state: purchase.state || '', activatedAt: admin.firestore.FieldValue.serverTimestamp()};
+      // Fase 4: se un abbonamento Stripe riconciliato dà già un piano uguale o più alto, il
+      // riassunto (plan/planSource) resta quello; l'abbonamento Play viene comunque registrato.
+      const sg = require('./entitlements').stripeGrant(data.stripeSubscription, now);
+      const keepStripe = sg && ({student: 1, pro: 2}[sg.plan] || 0) >= ({student: 1, pro: 2}[product.plan] || 0);
+      tx.set(userRef, keepStripe ? {googlePlaySubscription: gps} : {plan: product.plan, planSource: 'google_play', planExpiresAt: admin.firestore.Timestamp.fromMillis(expiry), googlePlaySubscription: gps}, {merge:true});
     } else {
       // NB: niente planSource qui — un acquisto Sparks non deve cambiare l'origine
       // di un abbonamento esistente (es. Stripe) né attivarne la scadenza Play.

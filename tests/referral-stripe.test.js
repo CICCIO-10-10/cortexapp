@@ -115,10 +115,13 @@ describe('Stripe: solo checkout di abbonamento validi concedono un piano', () =>
     const start = src.indexOf('exports.stripeWebhook =');
     const end = src.indexOf('// ─── Phase 13');
     const exports = {};
+    // Fase 4: il webhook rilegge l'abbonamento da Stripe (simulato qui) tramite functions/billing.js.
+    const stripeSub = { id: 'sub_1', status: 'active', customer: 'cus_1', created: 1, metadata: {}, items: { data: [{ price: { id: 'price_y' }, current_period_end: 2e9 }] } };
     vm.runInNewContext(src.slice(start, end), {
-      exports, db: f.db, admin: f.admin, stripeBilling, console: { log() {}, error() {} },
+      exports, db: f.db, admin: f.admin, stripeBilling, billing: require('../functions/billing.js'), console: { log() {}, error() {} },
       functions: { https: { onRequest: fn => fn } }, getClientIp: () => '1.1.1.1', ipRateLimit: () => true,
-      getStripe: () => ({ webhooks: { constructEvent: () => event } }), process: { env: { STRIPE_WEBHOOK_SECRET: 'x' } },
+      getStripe: () => ({ webhooks: { constructEvent: () => ({ id: 'evt_1', ...event }) }, subscriptions: { retrieve: async () => stripeSub }, customers: { retrieve: async () => ({}) } }),
+      process: { env: { STRIPE_WEBHOOK_SECRET: 'x', STRIPE_PRICE_STUDENT_YEARLY: 'price_y' } },
     });
     return exports.stripeWebhook;
   }
@@ -133,6 +136,7 @@ describe('Stripe: solo checkout di abbonamento validi concedono un piano', () =>
   });
   it('webhook: abbonamento valido attiva il piano con origine Stripe e id abbonamento', async () => {
     const f = createFakeFirestore({ now: () => NOW });
+    f.rows.set('users/U1', { plan: 'free' });   // creato da createCheckoutSession prima del pagamento
     const hook = loadWebhook(f, { type: 'checkout.session.completed', data: { object: sub() } });
     await hook({ headers: {}, rawBody: '' }, res());
     expect(f.rows.get('users/U1')).toMatchObject({ plan: 'student', planSource: 'stripe', planCycle: 'yearly', stripeCustomerId: 'cus_1', stripeSubscriptionId: 'sub_1' });

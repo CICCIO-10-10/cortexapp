@@ -112,6 +112,8 @@ service cloud.firestore {
           'plan','planCycle','planSource','planUpdatedAt','planExpiresAt',
           'sparksBalance','trialPlan','trialExpiresAt','stripeCustomerId',
           'stripeSubscriptionId','googlePlaySubscription','googlePlayPurchases',
+          // Fase 4 (audit 2026-10): stato Stripe riconciliato, letto dai gate premium.
+          'stripeSubscription',
           // Referral (audit 2026-10, fase 1.3): premi e stato li scrive solo
           // claimReferral. referredBy/refCode restano scrivibili ma il server li
           // ignora (compatibilità con client già aperti); da bloccare più avanti.
@@ -124,7 +126,7 @@ service cloud.firestore {
         && (!('sparksBalance' in request.resource.data) || request.resource.data.sparksBalance == 0)
         && !request.resource.data.keys().hasAny([
              'planCycle','planSource','planUpdatedAt','planExpiresAt',
-             'trialPlan','trialExpiresAt','stripeCustomerId','stripeSubscriptionId',
+             'trialPlan','trialExpiresAt','stripeCustomerId','stripeSubscriptionId','stripeSubscription',
              'googlePlaySubscription','googlePlayPurchases',
              'referralProcessed','referralCount','referralDaysEarned','referralRewardAt']);
       allow update: if request.auth != null && request.auth.uid == userId

@@ -54,6 +54,9 @@ async function main(){
   await request('DELETE','users/'+a,null,alice,403);
   // Fase 1.3: premi referral e id abbonamento li scrive solo il server.
   for(const data of [{referralProcessed:false},{referralProcessed:true},{referralCount:50},{referralDaysEarned:999},{referralRewardAt:1},{stripeSubscriptionId:'sub_fake'},{trialPlan:'pro'},{trialExpiresAt:9999999999999}])await request('PATCH','users/'+a,data,alice,403);
+  // Fase 4: lo stato Stripe riconciliato decide i diritti → solo il server lo scrive (anche alla creazione).
+  await request('PATCH','users/'+a,{stripeSubscription:{id:'sub_fake',status:'active',plan:'pro'}},alice,403);
+  await request('PATCH','users/stripe-'+run,{plan:'free',stripeSubscription:{status:'active',plan:'pro'}},jwt('stripe-'+run),403);
   await request('PATCH','users/'+a,{plan:'free',sparksBalance:0,name:'Alice',referredBy:'ABCDEFGH',refCode:'whatever'},alice,200); // inerti: il server li ignora
   const n='newbie-'+run;
   await request('PATCH','users/'+n,{plan:'free',referralProcessed:false},jwt(n),403); // nemmeno alla creazione

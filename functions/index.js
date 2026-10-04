@@ -24,6 +24,7 @@ const entitlements = require("./entitlements");
 const accountDeletion = require("./accountDeletion");
 const referral = require("./referral");
 const stripeBilling = require("./stripeBilling");
+const billing = require("./billing");
 const aiQuota = require("./aiQuota");
 const crypto = require("node:crypto");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
@@ -346,21 +347,30 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
     throw new functions.https.HttpsError('invalid-argument', `Piano non valido: ${plan}`);
   }
 
-  try {
-    const userDoc = await db.collection('users').doc(uid).get();
-    let stripeCustomerId = userDoc.data()?.stripeCustomerId;
+  // Fase 4: un abbonamento già attivo (Stripe o Google Play) non se ne apre un secondo:
+  // il cambio piano/disdetta passa da "Gestisci abbonamento".
+  const userDoc = await db.collection('users').doc(uid).get();
+  const userData = userDoc.data() || {};
+  const ep = entitlements.effectivePlan(userData, Date.now());
+  if (ep.plan !== 'free' && !ep.trial) {
+    throw new functions.https.HttpsError('already-exists', 'Hai già un abbonamento attivo: lo gestisci da Impostazioni → Gestisci abbonamento.');
+  }
 
-    // 1. Ensure Stripe Customer exists
+  try {
+    let stripeCustomerId = userData.stripeCustomerId;
+
+    // 1. Ensure Stripe Customer exists (chiave di idempotenza: due clic = un solo cliente)
     if (!stripeCustomerId) {
       const customer = await getStripe().customers.create({
         email: context.auth.token.email,
         metadata: { uid }
-      });
+      }, { idempotencyKey: 'customer_' + uid });
       stripeCustomerId = customer.id;
-      await db.collection('users').doc(uid).update({ stripeCustomerId });
+      await db.collection('users').doc(uid).set({ stripeCustomerId }, { merge: true });
+      await db.collection('stripeCustomers').doc(stripeCustomerId).set({ uid }, { merge: true });
     }
 
-    // 2. Create Session
+    // 2. Create Session (stessa richiesta entro 10 minuti → stessa sessione)
     const session = await getStripe().checkout.sessions.create({
       customer: stripeCustomerId,
       mode: 'subscription',
@@ -368,13 +378,16 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
       line_items: [{ price: priceIds[plan], quantity: 1 }],
       success_url: 'https://cortexapp.it/app?upgrade=success',
       cancel_url:  'https://cortexapp.it/app?upgrade=cancel',
-      metadata: { uid, plan }
-    });
+      client_reference_id: uid,
+      metadata: { uid, plan },
+      // uid e piano anche sull'abbonamento: il webhook li ritrova senza dipendere dall'ordine degli eventi.
+      subscription_data: { metadata: { uid, plan } },
+    }, { idempotencyKey: `checkout_${uid}_${plan}_${Math.floor(Date.now() / 600000)}` });
 
     return { url: session.url };
   } catch (err) {
-    console.error('[Stripe] Session Error:', err);
-    throw new functions.https.HttpsError('internal', err.message);
+    console.error('[Stripe] Session Error:', err.type || err.code || 'internal');
+    throw new functions.https.HttpsError('internal', 'Pagamento non disponibile in questo momento. Riprova tra poco.');
   }
 });
 
@@ -400,71 +413,20 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  const session = event.data.object;
-
-  // A. Checkout Completato -> Attiva Piano (solo sessioni di ABBONAMENTO valide).
-  // Questo endpoint riceve anche i checkout Sparks: senza filtro un acquisto
-  // Sparks attivava Student senza scadenza (audit 2026-10, fase 1.3).
-  if (event.type === 'checkout.session.completed') {
-    const grant = stripeBilling.subscriptionCheckoutGrant(session);
-    if (!grant.grant) {
-      console.log(`[Stripe] checkout ${session.id || '?'} ignorato: ${grant.reason}`);
-    } else {
-      // Mapping Customer -> UID per gestire disdette future
-      await db.collection('stripeCustomers').doc(grant.customerId).set({ uid: grant.uid }, { merge: true });
-      await db.collection('users').doc(grant.uid).set({
-        plan: grant.plan,
-        // planSource esplicito: la scadenza Play (planExpiresAt) si applica solo ai
-        // piani con planSource 'google_play' (functions/entitlements.js).
-        planSource: 'stripe',
-        planCycle: grant.cycle,
-        planUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        stripeCustomerId: grant.customerId,
-        stripeSubscriptionId: grant.subscriptionId,
-      }, { merge: true });
-      console.log(`[Stripe] User ${grant.uid} upgraded to ${grant.plan} (${grant.cycle})`);
-    }
-  }
-
-  // B. Pagamento Fallito -> Downgrade a Free (carta scaduta, fondi insufficienti, ecc.)
-  // Stripe invia questo evento quando un rinnovo fallisce definitivamente (dopo i retry)
-  if (event.type === 'invoice.payment_failed') {
-    const invoice = event.data.object;
-    const customerId = invoice.customer;
-    // Solo per failure definitive (non per primo tentativo — billing_reason = 'subscription_cycle')
-    if (invoice.next_payment_attempt === null) {
-      const mappingDoc = await db.collection('stripeCustomers').doc(customerId).get();
-      if (mappingDoc.exists) {
-        const { uid } = mappingDoc.data();
-        await db.collection('users').doc(uid).update({
-          plan: 'free',
-          planCycle: null,
-          winbackEligible: true,
-          winbackShownAt: null,
-          canceledAt: admin.firestore.FieldValue.serverTimestamp(),
-          cancelReason: 'payment_failed',
-        });
-        console.log(`[Stripe] invoice.payment_failed → user ${uid} downgraded to free`);
-      }
-    }
-  }
-
-  // C. Abbonamento Cancellato -> Torna a Free + win-back flag
-  if (event.type === 'customer.subscription.deleted') {
-    const customerId = session.customer;
-    const mappingDoc = await db.collection('stripeCustomers').doc(customerId).get();
-
-    if (mappingDoc.exists) {
-      const { uid } = mappingDoc.data();
-      await db.collection('users').doc(uid).update({
-        plan: 'free',
-        planCycle: null,
-        winbackEligible: true,          // flag letto da appBoot.js al prossimo login
-        winbackShownAt: null,           // verrà settato quando il banner è mostrato
-        canceledAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
-      console.log(`[Stripe] User ${uid} subscription revoked — win-back flag set`);
-    }
+  // Fase 4 (audit 2026-10): ogni evento rilegge l'abbonamento da Stripe e salva lo stato
+  // corrente (functions/billing.js). Eventi ripetuti → ignorati (_stripeEvents/{event.id});
+  // eventi fuori ordine o di abbonamenti vecchi non sovrascrivono quello nuovo;
+  // invoice.paid dopo un pagamento fallito ripristina il piano; i checkout Sparks non toccano il piano.
+  try {
+    const out = await billing.handleStripeEvent({
+      db, admin, stripe: getStripe(), event, priceMap: billing.priceMapFromEnv(process.env),
+      checkoutGrant: stripeBilling.subscriptionCheckoutGrant,
+    });
+    console.log(`[Stripe] ${event.type} ${event.id}: ${out.status}${out.reason ? ' (' + out.reason + ')' : ''}${out.plan ? ' → ' + out.plan : ''}`);
+  } catch (err) {
+    // 500 → Stripe riconsegna l'evento più tardi (nessun marker scritto).
+    console.error(`[Stripe] ${event.type} ${event.id} non elaborato:`, err.type || err.code || err.message);
+    return res.status(500).send('Retry later');
   }
 
   res.json({ received: true });
@@ -494,14 +456,16 @@ exports.createSparksSession = functions.https.onCall(async (data, context) => {
   const pack = sparksMap[data.pack];
   if (!pack) throw new functions.https.HttpsError('invalid-argument', 'Pack non valido. Usa S, M o L.');
 
+  // Doppio clic entro 10 minuti → stessa sessione (nessun secondo pagamento aperto).
   const session = await getStripe().checkout.sessions.create({
     mode: 'payment',
     payment_method_types: ['card'],
     line_items: [{ price: pack.price, quantity: 1 }],
     success_url: 'https://cortexapp.it/app?sparks=success',
     cancel_url:  'https://cortexapp.it/app?sparks=cancel',
+    client_reference_id: uid,
     metadata: { uid, sparks: String(pack.sparks), type: 'sparks' }
-  });
+  }, { idempotencyKey: `sparks_${uid}_${data.pack}_${Math.floor(Date.now() / 600000)}` });
 
   return { url: session.url };
 });
@@ -579,7 +543,17 @@ exports.createPortalSession = functions.https.onCall(async (data, context) => {
 
   // Recupera il Stripe Customer ID salvato in Firestore al momento del checkout
   const userDoc = await db.collection('users').doc(uid).get();
-  const stripeCustomerId = userDoc.data()?.stripeCustomerId;
+  const userData = userDoc.data() || {};
+  const stripeCustomerId = userData.stripeCustomerId;
+
+  // Fase 4: un unico "Gestisci abbonamento". Abbonamento Google Play → si gestisce su Play
+  // (Cortex non può disdirlo da qui); Stripe → portale cliente Stripe.
+  const ep = entitlements.effectivePlan(userData, Date.now());
+  const playSku = userData.googlePlaySubscription && userData.googlePlaySubscription.sku;
+  if (ep.source === 'google_play' || (!stripeCustomerId && playSku)) {
+    const q = playSku ? `?sku=${encodeURIComponent(playSku)}&package=${encodeURIComponent(PLAY_PACKAGE_NAME())}` : '';
+    return { url: 'https://play.google.com/store/account/subscriptions' + q, provider: 'google_play' };
+  }
 
   if (!stripeCustomerId) {
     throw new functions.https.HttpsError(
@@ -594,7 +568,7 @@ exports.createPortalSession = functions.https.onCall(async (data, context) => {
       return_url: 'https://cortexapp.it/app?section=settings',
     });
 
-    return { url: session.url };
+    return { url: session.url, provider: 'stripe' };
   } catch (err) {
     console.error('[Stripe] Portal session error:', err);
     throw new functions.https.HttpsError('internal', 'Errore creazione portale: ' + err.message);
@@ -705,6 +679,64 @@ exports.getEntitlements = functions.https.onCall(async (data, context) => {
   }
   const ep = entitlements.effectivePlan(user, Date.now());
   return {plan: ep.plan, source: ep.source, expiresAt: ep.expiresAt, paidExpired: ep.paidExpired, trial: ep.trial, trialExpiresAt: ep.trialExpiresAt};
+});
+
+
+/**
+ * Google Play — notifiche in tempo reale (RTDN), fase 4.
+ * Play pubblica sul topic Pub/Sub 'play-rtdn' ogni rinnovo, disdetta, sospensione, revoca,
+ * scadenza. Configurazione (una volta, da Play Console → Monetizzazione → Configurazione
+ * monetizzazione): topic projects/cortex-74a4e/topics/play-rtdn, con permesso "Publisher" a
+ * google-play-developer-notifications@system.gserviceaccount.com.
+ */
+exports.playRtdn = functions.pubsub.topic('play-rtdn').onPublish(async (message) => {
+  let msg = null;
+  try { msg = message.json; } catch (_) { msg = null; }
+  try {
+    const out = await billing.handlePlayNotification({
+      db, admin, security, msg, packageName: PLAY_PACKAGE_NAME(),
+      readPurchase: (sku, token) => readPlayPurchase(getPlayApi(), sku, token),
+    });
+    console.log('[PlayRTDN]', out.type || '', out.status, out.reason || '', out.plan || '');
+  } catch (err) {
+    // Errore temporaneo (Play/Firestore): la riconciliazione giornaliera recupera comunque.
+    console.error('[PlayRTDN] non elaborata:', err.code || err.message || 'internal');
+  }
+  return null;
+});
+
+/**
+ * Riconciliazione giornaliera di sicurezza (fase 4): rilegge da Stripe e da Play gli
+ * abbonamenti registrati, anche se un webhook/una notifica è andata persa o l'app non
+ * viene più aperta. Solo letture verso i provider; scrive lo stato corrente.
+ */
+exports.reconcileBilling = functions.runWith({ timeoutSeconds: 300 }).pubsub.schedule('15 4 * * *').timeZone('Europe/Rome').onRun(async () => {
+  const now = Date.now();
+  const stats = { stripe: 0, play: 0, errors: 0 };
+  const priceMap = billing.priceMapFromEnv(process.env);
+  const stripeUsers = await db.collection('users').where('stripeSubscriptionId', '!=', null).select('stripeSubscriptionId').get();
+  for (const doc of stripeUsers.docs) {
+    const subId = doc.data().stripeSubscriptionId;
+    if (typeof subId !== 'string' || !subId) continue;
+    try {
+      const summary = billing.summarizeStripeSubscription(await getStripe().subscriptions.retrieve(subId), priceMap);
+      if (summary.plan) { await billing.applyStripeSubscription({ db, admin, uid: doc.id, summary, now }); stats.stripe++; }
+    } catch (err) { stats.errors++; console.error('[Reconcile] Stripe', doc.id.slice(0, 6), err.type || err.code || 'internal'); }
+  }
+  const playUsers = await db.collection('users').where('googlePlaySubscription.purchaseToken', '!=', null).select('googlePlaySubscription').get();
+  for (const doc of playUsers.docs) {
+    const gp = doc.data().googlePlaySubscription || {};
+    if (typeof gp.purchaseToken !== 'string' || !security.PRODUCTS[gp.sku]?.plan) continue;
+    try {
+      const receipt = await db.collection('_purchaseReceipts').doc(security.hash(gp.purchaseToken)).get();
+      if (receipt.exists && receipt.data().uid !== doc.id) continue;
+      const purchase = await readPlayPurchase(getPlayApi(), gp.sku, gp.purchaseToken, now);
+      await billing.applyPlayState({ db, admin, uid: doc.id, sku: gp.sku, purchaseToken: gp.purchaseToken, purchase, now });
+      stats.play++;
+    } catch (err) { stats.errors++; console.error('[Reconcile] Play', doc.id.slice(0, 6), err.code || 'internal'); }
+  }
+  console.log('[Reconcile] billing', JSON.stringify(stats));
+  return null;
 });
 
 
