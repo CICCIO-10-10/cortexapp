@@ -270,72 +270,81 @@ export function onAuthStateChangedHandler(user, firebaseDeps = {}) {
 
 
     // Initialize modules only once to avoid duplicate bindings on auth state changes
-    if (!modulesInitialized) {
-        modulesInitialized = true;
-        
-        initGamification({ showToast: deps.showToast });
-        initCalendar({ state: deps.state });
-        initQuiz({ state: deps.state, showToast: deps.showToast, awardXP: deps.awardXP, gState: deps.gState, saveGState: deps.saveGState, earnBadge: deps.earnBadge, checkBadges: deps.checkBadges });
-        initDecks({ state: deps.state });
-        initExam({ state: deps.state, showToast: deps.showToast });
-        
-        initHome({
-            loadFeedbackMessages: deps.loadFeedbackMessages,
-            clearChallengeTimer: () => {
-                if (typeof window.challengeTimer !== 'undefined' && window.challengeTimer) {
-                    clearInterval(window.challengeTimer); window.challengeTimer = null;
-                }
-            },
-        });
+    initModulesOnce(deps);
+}
 
-        initStudy({
-            state: deps.state, saveState: deps.saveState, showToast: deps.showToast, awardXP: deps.awardXP,
-            todayCardsKey: deps.KEYS.TODAY_CARDS,
-            refreshDueCounts: typeof deps.refreshDueCounts === 'function' ? deps.refreshDueCounts : null,
-            getCurrentDeckIndex: deps.getCurrentDeckIndex,
-            setCurrentDeckIndex: deps.setCurrentDeckIndex,
-            onSessionEnd: typeof deps.onSessionEnd === 'function' ? deps.onSessionEnd : null,
-        });
+/**
+ * Inizializza i moduli dell'app UNA volta. Prima stava solo dentro il callback di
+ * onAuthStateChanged: se l'SDK Firebase non si carica (rete, blocco contenuti, offline)
+ * quel callback non arriva mai e studio/mazzi/creazione restavano non inizializzati
+ * (es. il mazzo degli errori TOLC veniva creato ma lo studio non si apriva).
+ */
+function initModulesOnce(deps) {
+    if (modulesInitialized || !deps) return;
+    modulesInitialized = true;
+    
+    initGamification({ showToast: deps.showToast });
+    initCalendar({ state: deps.state });
+    initQuiz({ state: deps.state, showToast: deps.showToast, awardXP: deps.awardXP, gState: deps.gState, saveGState: deps.saveGState, earnBadge: deps.earnBadge, checkBadges: deps.checkBadges });
+    initDecks({ state: deps.state });
+    initExam({ state: deps.state, showToast: deps.showToast });
+    
+    initHome({
+        loadFeedbackMessages: deps.loadFeedbackMessages,
+        clearChallengeTimer: () => {
+            if (typeof window.challengeTimer !== 'undefined' && window.challengeTimer) {
+                clearInterval(window.challengeTimer); window.challengeTimer = null;
+            }
+        },
+    });
 
-        initDeckForm({
-            state: deps.state, saveState: deps.saveState, showToast: deps.showToast,
-            updateCharCount: deps.updateCharCount, showView: deps.showView,
-            getCurrentDeckIndex: deps.getCurrentDeckIndex,
-            setCurrentDeckIndex: deps.setCurrentDeckIndex,
-        });
+    initStudy({
+        state: deps.state, saveState: deps.saveState, showToast: deps.showToast, awardXP: deps.awardXP,
+        todayCardsKey: deps.KEYS.TODAY_CARDS,
+        refreshDueCounts: typeof deps.refreshDueCounts === 'function' ? deps.refreshDueCounts : null,
+        getCurrentDeckIndex: deps.getCurrentDeckIndex,
+        setCurrentDeckIndex: deps.setCurrentDeckIndex,
+        onSessionEnd: typeof deps.onSessionEnd === 'function' ? deps.onSessionEnd : null,
+    });
 
-        initStudyPlan({
-            state: deps.state, saveState: deps.saveState, showToast: deps.showToast,
-            showView: deps.showView, discoverGeminiModel: deps.discoverGeminiModel,
-            getCurrentDeckIndex: deps.getCurrentDeckIndex,
-            setCurrentDeckIndex: deps.setCurrentDeckIndex,
-        });
+    initDeckForm({
+        state: deps.state, saveState: deps.saveState, showToast: deps.showToast,
+        updateCharCount: deps.updateCharCount, showView: deps.showView,
+        getCurrentDeckIndex: deps.getCurrentDeckIndex,
+        setCurrentDeckIndex: deps.setCurrentDeckIndex,
+    });
 
-        initDeckCreate({
-            state: deps.state, saveState: deps.saveState, showToast: deps.showToast,
-            discoverGeminiModel: deps.discoverGeminiModel,
-            getCurrentDeckIndex: deps.getCurrentDeckIndex,
-            addPair: deps.addPair,
-        });
+    initStudyPlan({
+        state: deps.state, saveState: deps.saveState, showToast: deps.showToast,
+        showView: deps.showView, discoverGeminiModel: deps.discoverGeminiModel,
+        getCurrentDeckIndex: deps.getCurrentDeckIndex,
+        setCurrentDeckIndex: deps.setCurrentDeckIndex,
+    });
 
-        initPomodoro({ showToast: deps.showToast });
-        initLoci({ state: deps.state, showToast: deps.showToast });
-        initOralExam({ state: deps.state, showToast: deps.showToast, speakAI: deps.speakAI, evaluateWithGemini: deps.evaluateWithGemini, getLang: deps.getLang });
-        initBossMode({ state: deps.state, evaluateWithGemini: deps.evaluateWithGemini, getLang: deps.getLang });
-        initCommunity({
-            state: deps.state, saveState: deps.saveState, showToast: deps.showToast,
-            renderDecks: deps.renderDecks, getDB: deps.getFirestoreDB, initFirebase: deps.initFirebase,
-            getGState: () => deps.gState, getLevel: deps.getLevel,
-        });
-        initAudioRecording({ state: deps.state, saveState: deps.saveState, showToast: deps.showToast });
-        initChallengeMode({ showToast: deps.showToast, getActiveContext: deps.getActiveContext, callGeminiWithSearch: deps.callGeminiWithSearch });
-        initArchitect({
-            state: deps.state, gState: deps.gState, saveState: deps.saveState, saveGState: deps.saveGState,
-            showToast: deps.showToast, renderDecks: deps.renderDecks, renderHome: deps.renderHome,
-            discoverGeminiModel: deps.discoverGeminiModel, KEYS: deps.KEYS,
-            updateUIStrings: deps.updateUIStrings,
-        });
-    }
+    initDeckCreate({
+        state: deps.state, saveState: deps.saveState, showToast: deps.showToast,
+        discoverGeminiModel: deps.discoverGeminiModel,
+        getCurrentDeckIndex: deps.getCurrentDeckIndex,
+        addPair: deps.addPair,
+    });
+
+    initPomodoro({ showToast: deps.showToast });
+    initLoci({ state: deps.state, showToast: deps.showToast });
+    initOralExam({ state: deps.state, showToast: deps.showToast, speakAI: deps.speakAI, evaluateWithGemini: deps.evaluateWithGemini, getLang: deps.getLang });
+    initBossMode({ state: deps.state, evaluateWithGemini: deps.evaluateWithGemini, getLang: deps.getLang });
+    initCommunity({
+        state: deps.state, saveState: deps.saveState, showToast: deps.showToast,
+        renderDecks: deps.renderDecks, getDB: deps.getFirestoreDB, initFirebase: deps.initFirebase,
+        getGState: () => deps.gState, getLevel: deps.getLevel,
+    });
+    initAudioRecording({ state: deps.state, saveState: deps.saveState, showToast: deps.showToast });
+    initChallengeMode({ showToast: deps.showToast, getActiveContext: deps.getActiveContext, callGeminiWithSearch: deps.callGeminiWithSearch });
+    initArchitect({
+        state: deps.state, gState: deps.gState, saveState: deps.saveState, saveGState: deps.saveGState,
+        showToast: deps.showToast, renderDecks: deps.renderDecks, renderHome: deps.renderHome,
+        discoverGeminiModel: deps.discoverGeminiModel, KEYS: deps.KEYS,
+        updateUIStrings: deps.updateUIStrings,
+    });
 }
 
 export function bootApp(deps) {
@@ -352,6 +361,11 @@ export function bootApp(deps) {
 
     // 1. Core Init
     initApp(deps);
+
+    // 1b. SDK Firebase assente (script gstatic non caricato: rete, blocco dei contenuti,
+    //     offline). I moduli si inizializzavano solo nel callback di autenticazione, che in
+    //     quel caso non arriva mai: l'app restava a metà. Ora si entra in modalità locale.
+    if (typeof firebase === 'undefined') startLocalOnlyMode(deps);
 
     // 2. Safety Fallback: rimuovi splash screen se auth impiega troppo (700ms)
     setTimeout(removeSplashScreen, 700);
@@ -388,6 +402,40 @@ export function bootApp(deps) {
             }
         }
     }, 5000);
+}
+
+let _localOnlyStarted = false;
+/**
+ * Modalità SOLO LOCALE quando l'SDK Firebase non è disponibile.
+ * - non cambia lo spazio dati attivo (ospite o account): i dati del dispositivo restano dove sono;
+ * - studio, mazzi e simulazioni TOLC funzionano sul dispositivo;
+ * - accesso, sincronizzazione e AI non sono disponibili (lo diciamo, senza promettere altro).
+ */
+export function startLocalOnlyMode(deps) {
+    if (_localOnlyStarted) return;
+    _localOnlyStarted = true;
+    const accountScope = String(currentScope() || '').startsWith('u:');
+    window._firebaseUnavailable = true;
+    window._fbLoggedIn = false;
+    window._fbHasUser = false;
+    try { track('firebase_sdk_unavailable', { reason: navigator.onLine === false ? 'offline' : 'not_loaded', type: accountScope ? 'account' : 'guest' }); } catch (_) {}
+    initModulesOnce(deps);
+    try {
+        if (accountScope || localStorage.getItem('cortex_guest') === '1') {
+            const overlay = document.getElementById('auth-overlay');
+            if (overlay) overlay.classList.add('hidden');
+            const appRoot = document.getElementById('app-root');
+            if (appRoot) appRoot.style.display = 'block';
+            if (!accountScope && typeof window.__initGuestMode === 'function') window.__initGuestMode();
+            window.showPage?.('home');
+        }
+    } catch (_) {}
+    removeSplashScreen();
+    setTimeout(() => {
+        try {
+            deps?.showToast?.('Non riesco a collegarmi ai servizi di Cortex. Puoi studiare i mazzi salvati su questo dispositivo; accesso e AI non sono disponibili finché la connessione non funziona.', 'info');
+        } catch (_) {}
+    }, 1500);
 }
 
 // ── POST-PAYMENT: mostra conferma dopo redirect da Stripe ────────────────────
