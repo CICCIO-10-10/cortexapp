@@ -30,7 +30,7 @@ describe('guardie Firebase nel codice client', () => {
             });
         }
         expect(offenders).toEqual([]);
-    });
+    }, 30000);   // legge tutti i file client: su Windows (Desktop/OneDrive) può superare i 5 s di default
 
     it('syncToCloud / loadFromCloud / loadDeckFromSubcollection non lanciano se l\'SDK manca', async () => {
         const src = readFileSync(join(ROOT, 'services/firebase.js'), 'utf8');
