@@ -8,9 +8,6 @@
 
 import { getFunctions, callGeminiProxy } from './firebase.js';
 
-// 04/10/2026: `firebase?.apps` NON protegge da un identificatore non dichiarato: se l'SDK
-// (script gstatic) non si carica, lancia ReferenceError "firebase is not defined".
-function _fbReady() { return typeof firebase !== 'undefined' && !!(firebase && firebase.apps && firebase.apps.length); }
 
 /**
  * Aggiorna la memoria locale dei risultati dello studio.
@@ -18,7 +15,7 @@ function _fbReady() { return typeof firebase !== 'undefined' && !!(firebase && f
  * @param {Object} stats { sessionCorrect, sessionWrong, sessionHard, pct }
  */
 export async function updateMemoryBank(deckId, stats) {
-    if (!window._fbUserId || !_fbReady()) return;
+    if (!window._fbUserId || !(typeof firebase !== 'undefined' && !!firebase.apps?.length)) return;
     const db = firebase.app().firestore();
     const memoryRef = db.collection('users').doc(window._fbUserId).collection('memory').doc(deckId.toString());
 
@@ -43,7 +40,7 @@ export async function updateMemoryBank(deckId, stats) {
  * Implementa un throttle di 24 ore per limitare le chiamate a Gemini.
  */
 export async function getCoachInsight() {
-    if (!window._fbUserId || !_fbReady()) return null;
+    if (!window._fbUserId || !(typeof firebase !== 'undefined' && !!firebase.apps?.length)) return null;
     const db = firebase.app().firestore();
     const userRef = db.collection('users').doc(window._fbUserId);
 

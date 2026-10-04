@@ -14,9 +14,6 @@ import { switchAccountScope } from '../core/scopeSwitch.js';
 import { readMeta, mergeCloudIntoLocal, decksToUpload, uploadPrecondition, recordUploaded, resolveUploadConflict } from '../core/syncMerge.js';
 import { deletedDeckIds, rememberDeletedDecks, withoutDeletedDecks } from '../core/deckDeletion.js';
 
-// 04/10/2026: `firebase?.apps` NON protegge da un identificatore non dichiarato: se l'SDK
-// (script gstatic) non si carica, lancia ReferenceError "firebase is not defined".
-function _fbReady() { return typeof firebase !== 'undefined' && !!(firebase && firebase.apps && firebase.apps.length); }
 
 const KEYS = APP_CONFIG.STORAGE_KEYS;
 
@@ -310,7 +307,7 @@ let _syncInFlight = false;
 let _syncPending = false;
 function _cleanForFs(v) { try { return v == null ? v : JSON.parse(JSON.stringify(v)); } catch (_) { return v; } }
 export async function syncToCloud(deckId = null) {
-    if (!_fbReady() || !window._fbUserId) return;
+    if (!(typeof firebase !== 'undefined' && !!firebase.apps?.length) || !window._fbUserId) return;
     const syncUid = window._fbUserId;
     await hydrateFromIDB();
     if (window._fbUserId !== syncUid) return;
@@ -471,7 +468,7 @@ function _reportSyncFailure(e) {
 }
 
 export async function loadFromCloud() {
-    if (!_fbReady() || !window._fbUserId) return;
+    if (!(typeof firebase !== 'undefined' && !!firebase.apps?.length) || !window._fbUserId) return;
     const uid = window._fbUserId;
     await hydrateFromIDB();
     if (window._fbUserId !== uid) return;
@@ -687,7 +684,7 @@ export async function loadFromCloud() {
  * Carica il contenuto completo di un mazzo (flashcard) dalla sub-collection.
  */
 export async function loadDeckFromSubcollection(deckId) {
-    if (!_fbReady() || !window._fbUserId) return null;
+    if (!(typeof firebase !== 'undefined' && !!firebase.apps?.length) || !window._fbUserId) return null;
     const _db = firebase.app().firestore();
     try {
         const deckRef = _db.collection('users').doc(window._fbUserId).collection('decks').doc(deckId.toString());
@@ -1026,7 +1023,7 @@ export async function submitFeedback() {
     if (text.length > 2000)          { if (window.showToast) window.showToast('Messaggio troppo lungo (max 2000 caratteri).', 'info'); return; }
 
     // Fallback: salva in localStorage se Firebase non disponibile
-    if (!_fbReady()) {
+    if (!(typeof firebase !== 'undefined' && !!firebase.apps?.length)) {
         const local = JSON.parse(localStorage.getItem('cortex_feedbacks_local') || '[]');
         local.unshift({ alias: alias || 'Anonimo', text, timestamp: now, local: true });
         localStorage.setItem('cortex_feedbacks_local', JSON.stringify(local.slice(0, 50)));
@@ -1054,15 +1051,15 @@ export async function submitFeedback() {
 
 export async function loadFeedbackMessages() {
     // Aspetta Firebase se non ancora pronto (max 3 secondi)
-    if (!_fbReady()) {
+    if (!(typeof firebase !== 'undefined' && !!firebase.apps?.length)) {
         let waited = 0;
         await new Promise(resolve => {
             const check = setInterval(() => {
                 waited += 200;
-                if (_fbReady() || waited >= 3000) { clearInterval(check); resolve(); }
+                if ((typeof firebase !== 'undefined' && !!firebase.apps?.length) || waited >= 3000) { clearInterval(check); resolve(); }
             }, 200);
         });
-        if (!_fbReady()) return;
+        if (!(typeof firebase !== 'undefined' && !!firebase.apps?.length)) return;
     }
     const container = document.getElementById('feedback-list');
     if (!container) return;
