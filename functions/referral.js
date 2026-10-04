@@ -14,7 +14,8 @@
  *    transazione → nessun doppio premio con retry o richieste concorrenti);
  *  - niente auto-invito, niente invito reciproco (A invita B e B invita A);
  *  - limite mensile di premi per chi invita (_referralStats/{referrerUid});
- *  - account in cancellazione esclusi.
+ *  - account in cancellazione esclusi; email di un account eliminato negli ultimi
+ *    12 mesi esclusa (impronta in _deletedIdentities, vedi accountDeletion.js).
  * Premi invariati rispetto al passato: 7 giorni Student a entrambi.
  */
 const REWARD_DAYS = 7;
@@ -46,6 +47,10 @@ async function claimReferral({ uid, code, token, authCreatedMs, deps }) {
   const claimRef = db.collection('_referralClaims').doc(uid);
   const existing = await claimRef.get();
   if (existing.exists) return { status: 'already_claimed' };
+  // Fase 3: un account eliminato e ricreato con la stessa email non riceve un nuovo premio.
+  if (deps.isRecreatedIdentity && await deps.isRecreatedIdentity(token.email)) {
+    throw new ReferralError('failed-precondition', 'recreated_account', 'Gli inviti valgono solo per il primo account creato con questa email.');
+  }
 
   if (!Number.isFinite(authCreatedMs) || now - authCreatedMs > NEW_ACCOUNT_MS) {
     throw new ReferralError('failed-precondition', 'not_new_account', 'Gli inviti valgono solo per account appena creati.');

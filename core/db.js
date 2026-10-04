@@ -106,7 +106,17 @@ export async function loadRecordings(scope = currentScope()) {
     return readList('recordings', scope);
 }
 
-/** Cancella i dati IndexedDB di uno scope (solo dopo una migrazione confermata). */
+/** Elenco delle chiavi (scope) presenti nell'archivio mazzi — per sapere quali account usano il dispositivo. */
+export async function listScopeKeys() {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const req = db.transaction('decks', 'readonly').objectStore('decks').getAllKeys();
+        req.onsuccess = () => resolve((req.result || []).map(String));
+        req.onerror = () => reject(req.error);
+    });
+}
+
+/** Cancella i dati IndexedDB di uno scope (migrazione confermata o account eliminato). */
 export async function deleteScopeData(scope) {
     const db = await openDB();
     await Promise.all(STORES.map(store => new Promise((resolve, reject) => {

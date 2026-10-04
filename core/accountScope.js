@@ -170,6 +170,60 @@ export function clearStash(scope, { archiveAs = null } = {}) {
     }
 }
 
+/**
+ * Chiavi di identità dell'account sul dispositivo (non dati di studio): rimosse
+ * quando l'account viene eliminato (fase 3). cx_vid = id anonimo della telemetria,
+ * rigenerato dopo l'eliminazione perché i suoi eventi sono stati cancellati.
+ */
+export const ACCOUNT_IDENTITY_KEYS = Object.freeze([
+    'cortex_uid', 'mm_user_email', 'mm_user_name', 'mm_user_avatar', 'mm_is_logged_in',
+    'cortex_username', 'cortex_photo', 'cortex_notif_token', 'cortex_is_tester',
+    'cortex_pending_ref', 'cortex_ref_tracked', 'cortex_feedbacks_local', 'cx_vid',
+]);
+
+/** Altri account (scope 'u:…') con dati su questo dispositivo, escluso `scope`. */
+export function otherAccountScopes(scope) {
+    const store = ls();
+    if (!store) return [];
+    const found = new Set();
+    for (let i = 0; i < store.length; i++) {
+        const k = store.key(i);
+        if (!k || !k.startsWith(STASH_PREFIX + 'u:')) continue;
+        const rest = k.slice(STASH_PREFIX.length + 2);
+        const uid = rest.slice(0, rest.indexOf(':'));
+        if (uid) found.add('u:' + uid);
+    }
+    for (const key of [ACTIVE_SCOPE_KEY, LEGACY_SCOPE_KEY]) {
+        const v = store.getItem(key);
+        if (isValidScope(v) && v.startsWith('u:')) found.add(v);
+    }
+    found.delete(scope);
+    return [...found];
+}
+
+/**
+ * Account eliminato: rimuove i suoi dati di studio in localStorage (attivi o nello
+ * stash) e le chiavi di identità; il dispositivo torna in modalità ospite con i dati
+ * dell'ospite, se presenti. Non tocca gli altri account.
+ */
+export function discardScopeLocal(scope) {
+    const store = ls();
+    if (!store || !isValidScope(scope) || scope === 'guest') return;
+    if (store.getItem(ACTIVE_SCOPE_KEY) === scope || _tabScope === scope) {
+        for (const k of activeKeys(store)) store.removeItem(k);
+        for (const k of stashedKeys(store, 'guest')) {
+            store.setItem(k, store.getItem(stashKey('guest', k)));
+            store.removeItem(stashKey('guest', k));
+        }
+        store.setItem(ACTIVE_SCOPE_KEY, 'guest');
+        _tabScope = 'guest';
+    }
+    clearStash(scope);
+    if ('u:' + store.getItem('mm_user_id') === scope) store.removeItem('mm_user_id');
+    if (store.getItem(LEGACY_SCOPE_KEY) === scope) store.setItem(LEGACY_SCOPE_KEY, 'guest');
+    for (const k of ACCOUNT_IDENTITY_KEYS) store.removeItem(k);
+}
+
 /** Unione di mazzi per id (idempotente): in caso di stesso id vince `primary`. */
 export function mergeDecksById(primary = [], secondary = []) {
     const out = [...(Array.isArray(primary) ? primary : [])];

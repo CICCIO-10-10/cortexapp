@@ -116,6 +116,7 @@ async function main(){
   // Contenimento F01: con _deletionLocks/{uid} nessun client ricrea dati per quell'uid.
   const c='carol-'+run,carol=jwt(c);
   await request('PATCH','users/'+c,{plan:'free',name:'Carol'},carol,200);
+  await request('PATCH','profiles/'+c,{uid:c,isPublic:true,followersCount:0,followingCount:0,friendsCount:0},carol,200);
   await request('PATCH','_deletionLocks/'+c,{lockedAt:1},carol,403); // il client non può creare/rimuovere il lucchetto
   await db.doc('_deletionLocks/'+c).set({lockedAt:Date.now()});
   await request('PATCH','users/'+c,{name:'Carol again'},carol,403);
@@ -125,6 +126,20 @@ async function main(){
   await request('PATCH','publicDecks/carol-'+run,{ownerId:c,name:'Deck',cardsCount:1},carol,403);
   await request('GET','users/'+c,null,carol,200); // la lettura resta possibile (nessun dato nascosto all'utente)
   await request('PATCH',`users/${a}/decks/two`,{name:'Other user unaffected'},alice,200);
+  // Fase 3: durante/dopo la cancellazione nessuna nuova relazione, feedback o segnalazione che riguardi l'account.
+  await request('PATCH','follows/'+a+'_'+b,{followerUid:a,followingUid:b},alice,200,'createdAt');      // controllo: consentito
+  await request('PATCH','follows/'+c+'_'+b,{followerUid:c,followingUid:b},carol,403,'createdAt');      // chi si cancella non segue
+  await request('PATCH','follows/'+a+'_'+c,{followerUid:a,followingUid:c},alice,403,'createdAt');      // nessuno segue chi si cancella
+  await request('PATCH','friendRequests/fr-ok-'+run,{fromUid:a,toUid:b,status:'pending'},alice,200,'createdAt');
+  await request('PATCH','friendRequests/fr-c1-'+run,{fromUid:c,toUid:b,status:'pending'},carol,403,'createdAt');
+  await request('PATCH','friendRequests/fr-c2-'+run,{fromUid:b,toUid:c,status:'pending'},bob,403,'createdAt');
+  await request('PATCH','feedbacks/carol-'+run,{userId:c,alias:'Carol',text:'Ciao'},carol,403,true);
+  await request('PATCH','deckReports/x_'+a,{reporterId:a,reason:'contenuto non adatto',deckId:'x'},alice,200);
+  await request('PATCH','deckReports/x_'+c,{reporterId:c,reason:'contenuto non adatto',deckId:'x'},carol,403);
+  for(const path of ['_accountDeletions/'+c,'_deletedIdentities/abc']){
+    await request('PATCH',path,{x:1},carol,403);
+    await request('GET',path,null,carol,403);
+  }
 
   const state='a'.repeat(64),ref=db.doc('_oauthStates/'+security.hash(state));
   await ref.set({credentialHash:'session',expiresAt:Date.now()+60000});

@@ -17,9 +17,10 @@ service cloud.firestore {
       return str is string && str.size() <= maxLength;
     }
 
-    // Contenimento F01 (audit 2026-10): durante/dopo l'eliminazione account il
+    // Audit 2026-10 (F01, fasi 1.2 e 3): durante/dopo l'eliminazione account il
     // server crea _deletionLocks/{uid}; da quel momento nessun client (anche con
-    // un token ancora valido in un'altra scheda) può ricreare dati per quell'uid.
+    // un token ancora valido in un'altra scheda) può ricreare dati per quell'uid,
+    // né creare relazioni/feedback/segnalazioni che lo riguardano.
     function notDeleting(uid) {
       return !exists(/databases/$(database)/documents/_deletionLocks/$(uid));
     }
@@ -57,6 +58,7 @@ service cloud.firestore {
     match /deckReports/{reportId} {
       allow create: if request.auth != null
         && request.resource.data.reporterId == request.auth.uid
+        && notDeleting(request.auth.uid)
         && isValidString(request.resource.data.reason, 500);
       allow read, update, delete: if isAdmin();
     }
@@ -153,6 +155,7 @@ service cloud.firestore {
       allow create: if request.auth != null &&
         request.resource.data.keys().hasOnly(['userId','alias','text','timestamp']) &&
         request.resource.data.userId == request.auth.uid &&
+        notDeleting(request.auth.uid) &&
         request.resource.data.timestamp == request.time &&
         isValidString(request.resource.data.text, 2048) &&
         isValidString(request.resource.data.alias, 100);
@@ -236,6 +239,8 @@ service cloud.firestore {
       allow create: if request.auth != null
         && request.resource.data.keys().hasOnly(['followerUid','followingUid','createdAt'])
         && request.resource.data.followerUid == request.auth.uid
+        && notDeleting(request.auth.uid)
+        && notDeleting(request.resource.data.followingUid)
         && request.resource.data.followingUid is string
         && request.resource.data.followingUid != request.auth.uid
         && followId == request.auth.uid + '_' + request.resource.data.followingUid
@@ -263,6 +268,8 @@ service cloud.firestore {
         && request.resource.data.uid1 != request.resource.data.uid2
         && friendshipId == request.resource.data.uid1 + '_' + request.resource.data.uid2
         && (request.resource.data.uid1 == request.auth.uid || request.resource.data.uid2 == request.auth.uid)
+        && notDeleting(request.resource.data.uid1)
+        && notDeleting(request.resource.data.uid2)
         && request.resource.data.requestId is string
         && exists(/databases/$(database)/documents/friendRequests/$(request.resource.data.requestId))
         && get(/databases/$(database)/documents/friendRequests/$(request.resource.data.requestId)).data.status == 'pending'
@@ -285,6 +292,8 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['fromUid','toUid','status','createdAt'])
         && request.resource.data.fromUid == request.auth.uid
         && request.resource.data.toUid != request.auth.uid
+        && notDeleting(request.auth.uid)
+        && notDeleting(request.resource.data.toUid)
         && isValidString(request.resource.data.fromUid, 128)
         && isValidString(request.resource.data.toUid, 128)
         && request.resource.data.status == 'pending'

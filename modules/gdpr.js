@@ -14,7 +14,8 @@ import { TRANSLATIONS } from '../data/translations.js';
 import { t } from '../core/i18n.js';
 import { state, hydrateFromIDB } from '../core/state.js';
 import { saveState } from './deckUtils.js';
-import { mergeListsUnique, currentScope } from '../core/accountScope.js';
+import { mergeListsUnique, currentScope, otherAccountScopes, discardScopeLocal, legacyScope } from '../core/accountScope.js';
+import { deleteScopeData, listScopeKeys } from '../core/db.js';
 import { buildBackup, parseBackup, planImport } from '../core/backup.js';
 import { APP_CONFIG } from '../js/config.js';
 const _t = () => (TRANSLATIONS[localStorage.getItem('mm_lang')||'it'] || TRANSLATIONS.it);
@@ -184,14 +185,15 @@ export function openDeleteAccountModal() {
                 </p>
                 <ul style="text-align:left; font-size:0.82rem; color:var(--text-muted); margin:12px 0 12px; padding-left:20px; line-height:1.8;">
                     <li>il profilo, i mazzi e lo storico di studio salvati sul cloud</li>
-                    <li>i mazzi pubblici che hai condiviso</li>
-                    <li>i dati salvati su questo dispositivo</li>
-                    <li>gli Sparks non ancora usati</li>
+                    <li>i mazzi pubblici, i feedback e le segnalazioni che hai inviato</li>
+                    <li>follow, amicizie e richieste, foto profilo e registrazioni caricate</li>
+                    <li>i dati di questo account salvati su questo dispositivo</li>
+                    <li>gli Sparks non ancora usati e l’accesso con questo account</li>
                 </ul>
                 <p style="text-align:left; font-size:0.78rem; color:var(--text-muted); line-height:1.6; margin-bottom:20px;">
                     Un abbonamento Stripe attivo viene annullato (nessun nuovo addebito).
                     Un abbonamento Google Play va annullato prima dal Play Store.
-                    Alla fine ti mostriamo l’esito e cosa resta ancora da rimuovere.
+                    Alla fine ti mostriamo l’esito e cosa conserviamo per obblighi di legge o anti-abuso.
                 </p>
                 <div id="gdpr-delete-status" role="status" aria-live="polite" style="font-size:0.82rem; line-height:1.6; margin-bottom:12px; display:none;"></div>
                 <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:24px;">
@@ -222,27 +224,46 @@ export function openDeleteAccountModal() {
     document.body.appendChild(modal);
 }
 
-/** Cancella i dati locali di Cortex su questo dispositivo (solo dopo esito positivo del server). */
-async function clearLocalCortexData() {
-    try { localStorage.clear(); } catch (_) {}
-    try { sessionStorage.clear(); } catch (_) {}
-    for (const name of ['cortex_db', 'cortex-audio', 'cortex_lessons']) {
-        try {
-            await new Promise((resolve) => {
-                const req = indexedDB.deleteDatabase(name);
-                req.onsuccess = req.onerror = req.onblocked = () => resolve();
-            });
-        } catch (_) {}
+/** Cancella i dati locali di Cortex su questo dispositivo (solo dopo esito positivo del server).
+ * Fase 3: se sul dispositivo ci sono dati di ALTRI account, si eliminano solo quelli
+ * dell'account cancellato (prima si svuotava tutto, compresi i dati degli altri).
+ * @returns {Promise<{mode:'full'|'selective'}>}
+ */
+async function clearLocalCortexData(uid) {
+    const scope = 'u:' + uid;
+    let others = [];
+    try { others = otherAccountScopes(scope); } catch (_) {}
+    try { others = others.concat((await listScopeKeys()).filter(k => k.startsWith('u:') && k !== scope)); } catch (_) {}
+    if (!others.length) {
+        try { localStorage.clear(); } catch (_) {}
+        try { sessionStorage.clear(); } catch (_) {}
+        for (const name of ['cortex_db', 'cortex-audio', 'cortex_lessons']) {
+            try {
+                await new Promise((resolve) => {
+                    const req = indexedDB.deleteDatabase(name);
+                    req.onsuccess = req.onerror = req.onblocked = () => resolve();
+                });
+            } catch (_) {}
+        }
+        return { mode: 'full' };
     }
+    // Dispositivo condiviso: solo i dati di questo account.
+    let wasLegacyOwner = false;
+    try { wasLegacyOwner = legacyScope() === scope; } catch (_) {}
+    try { await deleteScopeData(scope); } catch (_) {}
+    if (wasLegacyOwner) { try { await deleteScopeData('all'); await deleteScopeData('legacy'); } catch (_) {} }
+    try { discardScopeLocal(scope); } catch (_) {}
+    try { sessionStorage.clear(); } catch (_) {}
+    return { mode: 'selective' };
 }
 
 const _escDel = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 /**
- * Unico percorso di eliminazione account (contenimento F01, audit 2026-10).
- * Il browser NON cancella più dati né l'identità: chiama deleteUserAccount sul
- * server e mostra l'esito reale. In caso di errore non tocca i dati locali.
- * @returns {Promise<{ok:boolean, result?:object, reason?:string, message?:string}>}
+ * Unico percorso di eliminazione account (audit 2026-10, fasi 1.2 e 3).
+ * Il browser NON cancella dati sul server né l'identità: chiama deleteUserAccount
+ * e mostra l'esito reale. In caso di errore non tocca i dati locali.
+ * @returns {Promise<{ok:boolean, result?:object, local?:object, reason?:string, message?:string}>}
  */
 export async function requestAccountDeletion() {
     const fb = window.firebase;
@@ -250,15 +271,18 @@ export async function requestAccountDeletion() {
     if (!user || user.isAnonymous) {
         return { ok: false, reason: 'not_signed_in', message: 'Accedi con il tuo account per eliminarlo.' };
     }
+    // Id anonimo della telemetria di questo dispositivo: il server elimina anche quei dati.
+    const visitorIds = [];
+    try { const v = localStorage.getItem('cx_vid'); if (v) visitorIds.push(v); } catch (_) {}
     try {
         const call = fb.functions().httpsCallable('deleteUserAccount');
-        const { data } = await call({});
-        if (!data || data.status !== 'core_deleted') {
+        const { data } = await call({ visitorIds });
+        if (!data || (data.status !== 'deleted' && data.status !== 'core_deleted')) {
             return { ok: false, reason: 'unexpected', message: 'Risposta inattesa dal server: nessun dato locale è stato rimosso. Riprova.' };
         }
-        await clearLocalCortexData();
+        const local = await clearLocalCortexData(user.uid);
         try { await fb.auth().signOut(); } catch (_) {}
-        return { ok: true, result: data };
+        return { ok: true, result: data, local };
     } catch (err) {
         const reason = err?.details?.reason || String(err?.code || '').replace('functions/', '') || 'unknown';
         return { ok: false, reason, message: err?.message || 'Eliminazione non riuscita. Riprova.' };
@@ -275,12 +299,16 @@ function renderDeletionOutcome(statusEl, outcome) {
     }
     const r = outcome.result || {};
     const sub = r.subscription || {};
-    const lines = ['✅ Profilo, mazzi e storico sul cloud eliminati; accesso disattivato; dati di questo dispositivo rimossi.'];
+    const lines = r.status === 'deleted'
+        ? ['✅ Account eliminato: profilo, mazzi, storico, file caricati, relazioni con altri utenti e accesso. Dati di questo account rimossi da questo dispositivo.']
+        : ['✅ Profilo, mazzi e storico sul cloud eliminati; accesso disattivato; dati di questo dispositivo rimossi.'];
+    if (outcome.local && outcome.local.mode === 'selective') {
+        lines.push('Su questo dispositivo ci sono altri account: i loro dati non sono stati toccati. Registrazioni audio e lezioni salvate qui non sono legate a un account: eliminale dall’app se vuoi.');
+    }
     if (sub.stripe === 'canceled') lines.push('Abbonamento Stripe annullato: non ci saranno nuovi addebiti.');
     if (sub.play === 'not_renewing') lines.push('Il tuo abbonamento Google Play era già senza rinnovo.');
-    if (Array.isArray(r.pending) && r.pending.length) {
-        lines.push('Ancora da rimuovere (richiesta registrata): ' + r.pending.join('; ') + '.');
-    }
+    if (Array.isArray(r.retained) && r.retained.length) lines.push('Conserviamo solo: ' + r.retained.join('; ') + '.');
+    if (Array.isArray(r.pending) && r.pending.length) lines.push('Ancora da rimuovere (richiesta registrata): ' + r.pending.join('; ') + '.');
     lines.push('Per domande: info@cortexapp.it');
     statusEl.style.color = 'var(--text)';
     statusEl.innerHTML = lines.map(l => '<p style="margin:0 0 6px;">' + _escDel(l) + '</p>').join('');

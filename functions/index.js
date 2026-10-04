@@ -708,24 +708,34 @@ exports.getEntitlements = functions.https.onCall(async (data, context) => {
 
 
 /**
- * deleteUserAccount — GDPR Right to Erasure (CONTENIMENTO, non ancora completo)
- * Unico ingresso per l'eliminazione: gestisce gli abbonamenti, elimina i dati
- * principali, disabilita l'accesso e restituisce un esito veritiero con l'elenco
- * dei dati non ancora coperti. Dettagli: functions/accountDeletion.js.
+ * deleteUserAccount — GDPR Right to Erasure (audit 2026-10, fase 3: cancellazione completa)
+ * Unico ingresso per l'eliminazione: gestisce gli abbonamenti, elimina tutti i dati
+ * riconducibili all'account (Firestore, Storage, relazioni, telemetria indicata dal
+ * client), elimina l'identità di accesso e restituisce un esito veritiero.
+ * Dettagli e ordine dei passi: functions/accountDeletion.js.
  */
-exports.deleteUserAccount = functions.https.onCall(async (data, context) => {
+function deletionDeps() {
+  return {
+    db, admin, security, entitlements, getStripe,
+    readPlaySubscription: (sku, token) => readPlayPurchase(getPlayApi(), sku, token),
+    bucket: () => admin.storage().bucket(),
+    identitySecret: () => process.env.DASHBOARD_SECRET || null,
+    // Email di conferma: SPENTA finché DELETION_EMAIL_ENABLED non vale '1'.
+    sendConfirmation: process.env.DELETION_EMAIL_ENABLED === '1' ? (to) => inviaEmail(to, 'account_deleted') : null,
+  };
+}
+
+exports.deleteUserAccount = functions.runWith({ timeoutSeconds: 300, memory: '512MB' }).https.onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'Accesso richiesto.');
   }
-  // Contenimento F01 (audit 2026-10): logica in functions/accountDeletion.js.
   try {
     return await accountDeletion.runAccountDeletion({
       uid: context.auth.uid,
       authTime: Number(context.auth.token && context.auth.token.auth_time),
-      deps: {
-        db, admin, security, entitlements, getStripe,
-        readPlaySubscription: (sku, token) => readPlayPurchase(getPlayApi(), sku, token),
-      },
+      email: (context.auth.token && context.auth.token.email) || null,
+      visitorIds: data && data.visitorIds,
+      deps: deletionDeps(),
     });
   } catch (err) {
     if (err instanceof accountDeletion.DeletionError) {
@@ -735,6 +745,16 @@ exports.deleteUserAccount = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('internal', 'Eliminazione non riuscita. Riprova; se il problema continua scrivi a info@cortexapp.it.', { reason: 'unexpected' });
   }
 });
+
+// Completa le cancellazioni rimaste a metà, esegue il passaggio finale (2 h dopo) e
+// scarta le impronte email scadute (12 mesi). Vedi resumeAccountDeletions.
+exports.resumeAccountDeletions = functions.runWith({ timeoutSeconds: 540, memory: '512MB' })
+  .pubsub.schedule('every 60 minutes').timeZone('Europe/Rome')
+  .onRun(async () => {
+    const r = await accountDeletion.resumeAccountDeletions({ deps: { ...deletionDeps(), sendConfirmation: null } });
+    console.log('[GDPR] resumeAccountDeletions', JSON.stringify(r));
+    return null;
+  });
 
 
 
@@ -934,7 +954,9 @@ exports.claimReferral = functions.https.onCall(async (data, context) => {
   try {
     let authCreatedMs = NaN;
     try { authCreatedMs = Date.parse((await admin.auth().getUser(uid)).metadata.creationTime); } catch (_) {}
-    return await referral.claimReferral({ uid, code: data && data.code, token: context.auth.token, authCreatedMs, deps: { db, admin } });
+    return await referral.claimReferral({ uid, code: data && data.code, token: context.auth.token, authCreatedMs, deps: { db, admin,
+      // Account eliminato e ricreato con la stessa email: niente nuovo premio (fase 3).
+      isRecreatedIdentity: (email) => accountDeletion.isRecentlyDeletedIdentity({ db, email, secret: process.env.DASHBOARD_SECRET || null }) } });
   } catch (err) {
     if (err instanceof referral.ReferralError) throw new functions.https.HttpsError(err.code, err.message, { reason: err.reason });
     if (err && /already exists|ALREADY_EXISTS/i.test(String(err.message || err.code))) return { status: 'already_claimed' };
@@ -1957,6 +1979,19 @@ function emailLayout(titolo, corpoHtml, ctaTesto, ctaUrl) {
 }
 
 const EMAILS = {
+  // Conferma di cancellazione account (fase 3): inviata solo con DELETION_EMAIL_ENABLED=1.
+  // Testo neutro: nessun invito a tornare, nessun piè di pagina "hai un account".
+  account_deleted: {
+    subject: 'Il tuo account Cortex è stato eliminato',
+    html: `<div style="margin:0;padding:24px;background:#0f1020;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;">
+    <div style="max-width:520px;margin:0 auto;background:#16172a;border:1px solid #26263a;border-radius:16px;padding:26px 28px;color:#c7c7d6;font-size:15px;line-height:1.65;">
+      <h1 style="font-size:20px;margin:0 0 12px;color:#fff;">Account eliminato</h1>
+      <p>Abbiamo eliminato il tuo account Cortex e i dati collegati (profilo, mazzi, storico, file caricati, relazioni con altri utenti).</p>
+      <p>Conserviamo solo quanto indicato nell’informativa privacy: il registro della richiesta, le ricevute degli acquisti in forma cifrata e, per 12 mesi, un’impronta cifrata di questa email usata solo per impedire il riuso degli inviti. I dati fiscali dei pagamenti restano presso Stripe o Google Play.</p>
+      <p>Se non hai chiesto tu l’eliminazione, rispondi a questa email.</p>
+      <p style="font-size:12px;color:#6b6b82;margin-top:18px;">Cortex · cortexapp.it — messaggio di servizio, inviato una sola volta.</p>
+    </div></div>`,
+  },
   welcome: {
     subject: 'Benvenuto in Cortex',
     html: emailLayout('Benvenuto in Cortex',

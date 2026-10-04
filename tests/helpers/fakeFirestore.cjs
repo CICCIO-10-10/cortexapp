@@ -1,6 +1,6 @@
 'use strict';
 // Firestore finto in memoria per test unitari del backend (nessuna rete).
-// Supporta: collection/doc, get/set(merge)/update/delete, where(==, !=)+select,
+// Supporta: collection/doc, get/set(merge)/update/delete, where(==, !=, >=, <, in)+select,
 // runTransaction (letture/scritture applicate al commit), sentinel
 // increment / arrayUnion / serverTimestamp / delete, Timestamp.fromMillis.
 const DOC_ID = '__name__';
@@ -69,6 +69,7 @@ function createFakeFirestore({ now = () => Date.now() } = {}) {
           if (op === '!=') return x !== v && x !== undefined;
           if (op === '>=') return x !== undefined && x >= v;
           if (op === '<') return x !== undefined && x < v;
+          if (op === 'in') return Array.isArray(v) && v.includes(x);
           return false;
         }))
         .map(([p]) => snap(p.split('/').at(-1), p));
