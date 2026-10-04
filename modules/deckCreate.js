@@ -127,7 +127,30 @@ export function toggleFlashcards(forceOpen = false) {
 
 // ── AI Generation ─────────────────────────────────────────────────────────────
 
+// 04/10/2026: una sola generazione alla volta (doppio clic, ripresa dopo login) e motivo
+// del fallimento misurato (prima questo percorso non inviava né avvio né errore).
+let _generating = false;
+function _deckGenFailReason(err) {
+    try {
+        if (err?.isGuestGate) return 'guest_gate';
+        if (err?.isPaywall) return 'paywall';
+        if (typeof navigator !== 'undefined' && !navigator.onLine) return 'offline';
+        if (err?.isTimeout) return 'timeout';
+        if (err?.isInvalidOutput) return 'invalid_output';
+        if (err?.isDown) return 'ai_down';
+        if (err?.isRateLimit || /rate limit/i.test(String(err?.message || ''))) return 'rate_limit';
+    } catch (_) {}
+    return 'other';
+}
+function _setSaveLocked(locked) {
+    try {
+        window.__cxAiGenerating = !!locked;
+        document.querySelectorAll('[data-fn="saveDeck"]').forEach(b => { b.disabled = !!locked; b.setAttribute('aria-disabled', locked ? 'true' : 'false'); });
+    } catch (_) {}
+}
+
 export async function autoGenerateFlashcards() {
+    if (_generating) { _deps.showToast('La generazione è già in corso: attendi qualche secondo.', 'info'); return; }
     const rawText      = document.getElementById('deck-text').value;
     const instructions = document.getElementById('ai-custom-instructions').value.trim();
     const btn          = document.getElementById('btn-generate-ai');
@@ -151,7 +174,10 @@ export async function autoGenerateFlashcards() {
     const originalBtnText = btn.innerHTML;
     btn.innerHTML = (_t().ai_processing||"✨ L'IA sta elaborando...");
     btn.disabled  = true;
-    _deps.showToast(t('deck_ai_generating'), "info");
+    _generating = true;
+    // "Salva Materia" durante la generazione salvava il mazzo SENZA le carte in arrivo.
+    _setSaveLocked(true);
+    _deps.showToast(t('deck_ai_generating') + ' Può richiedere fino a un minuto.', "info");
 
     // AUTO-RESUME: salva l'input PRIMA di chiamare l'AI, cosi' sopravvive al
     // reload del login (il gate ospite promette "il tuo materiale resta").
@@ -165,6 +191,8 @@ export async function autoGenerateFlashcards() {
     if (_tolcErrorFlow) {
         try { track('tolc_error_cards_generation_started'); } catch (_) {}
     }
+    const _flow = _tolcErrorFlow ? 'tolc_errors_ai' : 'deck_ai';
+    try { track('cards_generation_started', { flow: _flow }); } catch (_) {}
 
     try {
         const result = await generateAIContent(text, instructions);
@@ -210,8 +238,9 @@ export async function autoGenerateFlashcards() {
             try { localStorage.removeItem('cortex_pending_ai'); } catch (_) {}
         }
     } catch (e) {
+        try { track('cards_generation_failed', { flow: _flow, reason: _deckGenFailReason(e) }); } catch (_) {}
         if (_tolcErrorFlow) {
-            try { track('tolc_error_cards_generation_failed'); } catch (_) {}
+            try { track('tolc_error_cards_generation_failed', { reason: _deckGenFailReason(e) }); } catch (_) {}
         }
         if (!(e && (e.isGuestGate || e.message === 'GUEST_LOGIN_REQUIRED'))) {
             try { localStorage.removeItem('cortex_pending_ai'); } catch (_) {}
@@ -221,6 +250,8 @@ export async function autoGenerateFlashcards() {
         if (_tolcErrorFlow) { try { localStorage.removeItem('cortex_tolc_error_generation_pending'); } catch (_) {} }
         btn.innerHTML = originalBtnText;
         btn.disabled  = false;
+        _generating = false;
+        _setSaveLocked(false);
     }
 }
 
@@ -280,12 +311,16 @@ Assicurati che il JSON sia valido.`;
         responseMimeType: 'application/json'
     });
 
-    try {
-        return JSON.parse(rawJson);
-    } catch (e) {
-        console.error("Failed to parse AI JSON", e);
-        return null;
+    // 04/10/2026: prima un JSON non valido (es. risposta troncata) restituiva null e
+    // l'interfaccia non diceva nulla: ora è un errore riconoscibile, con nuovo tentativo.
+    let parsed = null;
+    try { parsed = JSON.parse(rawJson); } catch (e) { console.error("Failed to parse AI JSON", e); }
+    if (!parsed || typeof parsed !== 'object') {
+        const err = new Error('AI_INVALID_OUTPUT');
+        err.isInvalidOutput = true;
+        throw err;
     }
+    return parsed;
 }
 
 function generateSimpleFlashcards(text) {

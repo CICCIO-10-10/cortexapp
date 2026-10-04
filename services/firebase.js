@@ -1360,15 +1360,35 @@ export async function callGemini(promptOrContents, options = {}) {
             // Token fresco — forza refresh per evitare token scaduti
             const idToken = await user.getIdToken(true);
 
-            const res = await fetch('/api/gemini', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${idToken}`
-                },
-                body: JSON.stringify({ model, contents, generationConfig }),
-                signal: AbortSignal.timeout(25000)
-            });
+            // 04/10/2026: prima 25 s. Nei log di callGeminiHttp (30 giorni) 9 risposte sono
+            // arrivate tra 28 e 46 s con esito 200: il server rispondeva (e scalava la quota) ma
+            // il client aveva già mostrato "Generazione flashcard fallita". Hosting → Functions
+            // chiude a 60 s, quindi si aspetta fino a 58 s. Niente AbortSignal.timeout: manca
+            // su Safari < 16 (iPhone con iOS 15) e lì ogni generazione falliva subito.
+            const timeoutMs = Number.isFinite(options.timeoutMs) ? options.timeoutMs : 58000;
+            const ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+            const timer = ctrl ? setTimeout(() => { try { ctrl.abort(); } catch (_) {} }, timeoutMs) : null;
+            let res;
+            try {
+                res = await fetch('/api/gemini', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${idToken}`
+                    },
+                    body: JSON.stringify({ model, contents, generationConfig }),
+                    ...(ctrl ? { signal: ctrl.signal } : {})
+                });
+            } catch (fetchErr) {
+                if (ctrl && ctrl.signal.aborted) {
+                    const te = new Error('AI_TIMEOUT');
+                    te.isTimeout = true;
+                    throw te;
+                }
+                throw fetchErr;
+            } finally {
+                if (timer) clearTimeout(timer);
+            }
 
             if (res.status === 429) {
                 const body = await res.json().catch(() => ({}));
@@ -1383,6 +1403,7 @@ export async function callGemini(promptOrContents, options = {}) {
                 const body = await res.json().catch(() => ({}));
                 const proxyErr = new Error(body.error || `Proxy HTTP ${res.status}`);
                 proxyErr.proxyStatus = res.status;
+                if (res.status >= 500) proxyErr.isDown = true;   // "Errore AI" del proxy = servizio non riuscito
                 throw proxyErr;
             }
 
@@ -1393,7 +1414,7 @@ export async function callGemini(promptOrContents, options = {}) {
         } catch (err) {
             if (err.message === 'NO_USER') {
                 // Non loggato: caduta sul percorso 2
-            } else if (err.isPaywall) {
+            } else if (err.isPaywall || err.isTimeout) {
                 throw err;
             } else if (err.proxyStatus === 404) {
                 // Endpoint /api/gemini non disponibile (es. dev locale senza funzioni

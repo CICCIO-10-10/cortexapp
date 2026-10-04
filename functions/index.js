@@ -199,11 +199,12 @@ exports.callGeminiHttp = functions.runWith({ maxInstances: 20 }).https.onRequest
     const normalizedContents = (contents || []).map(c => ({ role: c.role || 'user', parts: c.parts || [] }));
 
     // Try v1 first (stable), then v1beta fallback
-    const apis = [
+    // 04/10/2026: con responseMimeType (JSON) v1 risponde sempre 400 "JSON mode is not enabled
+    // for api version v1" (visto nei log a ogni generazione): si va diretti su v1beta.
+    const apis = (normalizedConfig.responseMimeType ? [] : [
       // Chiave nell'header x-goog-api-key, non nell'URL (non finisce in log/errori).
       `https://generativelanguage.googleapis.com/v1/models/${modelName}:generateContent`,
-      `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`,
-    ];
+    ]).concat([`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`]);
 
     let text = null;
     let lastError = null;

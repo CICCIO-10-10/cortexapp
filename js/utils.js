@@ -114,6 +114,16 @@ export function handleAIError(err, context = '', showToast = window.showToast) {
         return;
     }
 
+    // 04/10/2026: prima finivano nel messaggio generico "… fallita. Riprova tra qualche secondo."
+    if (err?.isTimeout) {
+        toast('⏳ L\'AI ci sta mettendo più del solito (testo lungo). Il tuo testo è ancora qui: riprova, oppure dividilo in parti più corte.', 'error');
+        return;
+    }
+    if (err?.isInvalidOutput) {
+        toast('⚠️ L\'AI ha risposto in un formato non valido. Il tuo testo è ancora qui: riprova.', 'error');
+        return;
+    }
+
     if (err?.isDown || err?.message?.includes('503') || err?.message?.includes('500')) {
         toast('🔧 Gemini è momentaneamente irraggiungibile. Riprova tra qualche minuto — nel frattempo puoi studiare normalmente.', 'error');
         return;

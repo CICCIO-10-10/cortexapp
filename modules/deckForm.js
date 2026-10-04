@@ -219,10 +219,16 @@ export function buildDeckObject() {
     };
 }
 
+let _savingDeck = false;
 export async function saveDeck() {
+    // 04/10/2026: durante la generazione AI il salvataggio perdeva le carte in arrivo;
+    // doppio clic = un solo salvataggio.
+    if (typeof window !== 'undefined' && window.__cxAiGenerating) { _deps.showToast('Aspetta la fine della generazione: poi salvi la materia con le flashcard.', 'info'); return; }
+    if (_savingDeck) return;
     const deck = buildDeckObject();
     if (!deck) return;
 
+    _savingDeck = true;
     const btn = document.querySelector('[data-fn="saveDeck"]');
     const originalText = btn ? btn.innerHTML : '';
     if (btn) {
@@ -281,6 +287,7 @@ export async function saveDeck() {
         console.error('[DeckForm] Error saving deck:', e);
         _deps.showToast(t('err_save'), 'error');
     } finally {
+        _savingDeck = false;
         if (btn) {
             btn.disabled = false;
             btn.innerHTML = originalText;
