@@ -32,6 +32,9 @@
     var script = document.createElement('script');
     script.async = true;
     script.src = 'https://www.clarity.ms/tag/' + CLARITY_ID;
+    // 04/10/2026: con crossorigin gli errori di questo script non arrivano più come "Script error."
+    // (il server risponde con Access-Control-Allow-Origin: *, verificato).
+    script.crossOrigin = 'anonymous';
     document.head.appendChild(script);
     c('consentv2', { ad_Storage: 'denied', analytics_Storage: 'granted' });
   }
@@ -52,6 +55,7 @@
     var script = document.createElement('script');
     script.async = true;
     script.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA_ID;
+    script.crossOrigin = 'anonymous';   // CORS verificato (Access-Control-Allow-Origin restituito)
     document.head.appendChild(script);
   }
 

@@ -1406,7 +1406,14 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
         const ts = (x.ts && x.ts.toMillis) ? x.ts.toMillis() : (x.t_client || 0);
         // 25/09/2026 v3: teniamo solo i campi meta utili al funnel (niente contenuti utente)
         const _m = x.meta || {};
-        const meta = { reason: _m.reason || null, stage: _m.stage || null, test: _m.test || _m.direct || null, step: (_m.step != null ? _m.step : (_m.last_step != null ? _m.last_step : null)), answered: (typeof _m.answered === 'number' ? _m.answered : null), platform: ['android_twa', 'android_web', 'mobile_web', 'tablet_web', 'desktop_web'].includes(_m.platform) ? _m.platform : null, acquisition_source: String(_m.acquisition_source || '').slice(0, 40) || null, acquisition_campaign: String(_m.acquisition_campaign || '').slice(0, 80) || null, auth_created_recently: _m.auth_created_recently === true };
+        const meta = { reason: _m.reason || null, stage: _m.stage || null, test: _m.test || _m.direct || null, step: (_m.step != null ? _m.step : (_m.last_step != null ? _m.last_step : null)), answered: (typeof _m.answered === 'number' ? _m.answered : null), platform: ['android_twa', 'android_web', 'mobile_web', 'tablet_web', 'desktop_web'].includes(_m.platform) ? _m.platform : null, acquisition_source: String(_m.acquisition_source || '').slice(0, 40) || null, acquisition_campaign: String(_m.acquisition_campaign || '').slice(0, 80) || null, auth_created_recently: _m.auth_created_recently === true,
+          // 04/10/2026: senza questi campi la dashboard non vedeva i tentativi TOLC (attempt), il percorso
+          // della generazione (flow), le versioni dell'onboarding (variant), il tipo di mazzo/browser (type),
+          // il ritorno (days_after) e il punto dell'errore (at). Solo codici e numeri, mai testi.
+          attempt: typeof _m.attempt === 'string' ? _m.attempt.slice(0, 80) : null, flow: typeof _m.flow === 'string' ? _m.flow.slice(0, 40) : null,
+          variant: typeof _m.variant === 'string' ? _m.variant.slice(0, 40) : null, type: typeof _m.type === 'string' ? _m.type.slice(0, 40) : null,
+          days_after: typeof _m.days_after === 'number' ? _m.days_after : null, how: typeof _m.how === 'string' ? _m.how.slice(0, 20) : null,
+          at: typeof _m.at === 'string' ? _m.at.slice(0, 80) : null };
         (byVid[vid] = byVid[vid] || []).push({ type: x.type || '', page: x.page || '', ts, source: x.source || (x.meta && x.meta.source) || null, meta });
       });
       const STAGES = ['landing_view', 'app_open', 'onboarding_start', 'cards_generated', 'study_session_start', 'activated', 'tolc_sim_open', 'tolc_sim_complete'];

@@ -694,16 +694,14 @@ window.addEventListener('unhandledrejection', (e) => {
     const msg = e.reason instanceof Error ? e.reason.message : String(e.reason);
     // Filtra errori noti non-critici (ResizeObserver, caricamento asincrono)
     if (msg && !msg.includes('ResizeObserver') && !msg.includes('Loading chunk') && !msg.includes('NetworkError')) {
-        try { track('js_error', { type: 'unhandledrejection', message: msg.slice(0, 200) }); } catch(_) {}
+        // 04/10/2026: l'errore lo registra già core/analytics.js (un solo js_error, con contesto).
         if (typeof showToast !== 'undefined') {
             showToast('⚠️ Qualcosa è andato storto. Ricarica se necessario.', 'error');
         }
     }
 });
-window.onerror = (msg, src, line, col, err) => {
-    try { track('js_error', { type: 'onerror', message: String(msg).slice(0, 200), line: line || 0 }); } catch(_) {}
-    return false;
-};
+// 04/10/2026: il vecchio window.onerror mandava un secondo js_error per ogni errore (con un
+// 'message' che il server scarta → motivo "n/d"). Ora c'è un solo registro, in core/analytics.js.
 
 // ── Espone loadFromCloud su window — necessario per riconnessione online ──────
 // ui.js chiama window.loadFromCloud() quando la rete si ripristina.

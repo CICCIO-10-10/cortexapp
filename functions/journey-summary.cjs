@@ -180,7 +180,9 @@ function summarizeJourneys(events, coverage = {}, now = Date.now()) {
   // ── Errori da utenti reali (26/09/2026), ultimi 7 giorni: eventi, browser distinti, motivi ──
   const ERR_TYPES = ['cloud_sync_failed', 'js_error', 'cards_generation_failed', 'firebase_sdk_unavailable', 'tolc_error_deck_failed'];
   const errSince = Date.now() - 7 * 24 * 3600 * 1000;
-  const errors = { since: errSince, events: {}, browsers: {}, reasons: {} };
+  // 04/10/2026: per js_error anche il contesto (tipo di browser, ultimo passo, punto) — serve a
+  // capire i "Script error." che da soli non dicono nulla.
+  const errors = { since: errSince, events: {}, browsers: {}, reasons: {}, context: { js_error: { browser: {}, step: {}, at: {} } } };
   ERR_TYPES.forEach(t => { errors.events[t] = 0; errors.browsers[t] = 0; errors.reasons[t] = {}; });
   for (const visitorEvents of byVisitor.values()) {
     const hit = new Set();
@@ -190,6 +192,11 @@ function summarizeJourneys(events, coverage = {}, now = Date.now()) {
       hit.add(e.type);
       const r = String(((e.meta || {}).reason) || 'n/d').slice(0, 80);
       errors.reasons[e.type][r] = (errors.reasons[e.type][r] || 0) + 1;
+      if (e.type === 'js_error') {
+        const m = e.meta || {}, c = errors.context.js_error;
+        const add = (o, k) => { k = String(k == null || k === '' ? 'n/d' : k).slice(0, 80); o[k] = (o[k] || 0) + 1; };
+        add(c.browser, m.type); add(c.step, m.step); add(c.at, m.at);
+      }
     }
     hit.forEach(t => { errors.browsers[t]++; });
   }
