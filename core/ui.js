@@ -78,12 +78,12 @@ export function showPaywall(reason = 'ai') {
             <div class="paywall-plan-toggle">
                 <button class="paywall-plan-btn active" id="paywall-plan-monthly">Mensile</button>
                 <button class="paywall-plan-btn" id="paywall-plan-yearly">
-                    Annuale <span class="paywall-save-badge">-33%</span>
+                    Annuale <span class="paywall-save-badge">-16%</span>
                 </button>
             </div>
 
             <button class="paywall-btn-upgrade" id="paywall-stripe-btn">
-                🎓 Passa a Student — <span id="paywall-price">€4,99/mese</span>
+                🎓 Passa a Student — <span id="paywall-price">€3,99/mese</span>
             </button>
             <p class="paywall-price-note" id="paywall-price-note">Puoi annullare in qualsiasi momento.</p>
             <button class="paywall-btn-close" onclick="this.closest('.paywall-gate').classList.remove('active')">
@@ -104,7 +104,7 @@ export function showPaywall(reason = 'ai') {
         selectedPlan = 'student_monthly';
         btnMonthly.classList.add('active');
         btnYearly.classList.remove('active');
-        priceLabel.textContent = '€4,99/mese';
+        priceLabel.textContent = '€3,99/mese';
         priceNote.textContent  = t('pricing_cancel_note');
     });
     btnYearly.addEventListener('click', () => {

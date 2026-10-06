@@ -460,6 +460,15 @@ export async function openMaterialSummary() {
     }
 }
 
+// 06/10/2026: durante la generazione (anteprima da testo/file) "Salva Materia" sotto la finestra
+// resta bloccato, come nel percorso di deckCreate: salverebbe la materia senza le carte in arrivo.
+function _lockSave(locked) {
+    try {
+        window.__cxAiGenerating = !!locked;
+        document.querySelectorAll('[data-fn="saveDeck"]').forEach(b => { b.disabled = !!locked; b.setAttribute('aria-disabled', locked ? 'true' : 'false'); });
+    } catch (_) {}
+}
+
 // ─── Entrypoint Pubblico ───────────────────────────────────────────────────────
 
 /**
@@ -471,6 +480,7 @@ export async function openPdfAIFromFile(file) {
     _outputMode = 'flashcards';
     _generatedCards = [];
     _generating = true;
+    _lockSave(true);
 
     ensureOverlay();
     showOverlay();
@@ -519,7 +529,7 @@ export async function openPdfAIFromFile(file) {
         document.getElementById('pdfai-footer').style.display = 'flex';
         document.getElementById('pdfai-save-btn').style.display = 'none';
         if (window.showToast) window.showToast('Errore: ' + err.message, 'error');
-    } finally { _generating = false; }
+    } finally { _generating = false; _lockSave(false); }
 }
 
 /**
@@ -535,6 +545,7 @@ export async function openPdfAIFromText(text, suggestedName = '', mode = 'flashc
     }
 
     _generating = true;
+    _lockSave(true);
     _outputMode = mode;
     _generatedCards = [];
     ensureOverlay();
@@ -568,7 +579,7 @@ export async function openPdfAIFromText(text, suggestedName = '', mode = 'flashc
         document.getElementById('pdfai-form-area').style.display = 'block';
         document.getElementById('pdfai-footer').style.display = 'flex';
         if (window.showToast) window.showToast('Errore: ' + err.message, 'error');
-    } finally { _generating = false; }
+    } finally { _generating = false; _lockSave(false); }
 }
 
 export function validateStudyCards(cards, mode) {

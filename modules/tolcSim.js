@@ -302,7 +302,7 @@ function _confirmFinish() {
       '<div style="font-size:2.2rem;">\uD83D\uDCDD</div>' +
       '<h2 style="font-family:Outfit,sans-serif;font-weight:900;margin:10px 0 6px;font-size:1.5rem;">Consegni il test?</h2>' +
       '<p style="color:rgba(255,255,255,.72);margin:0 0 4px;font-weight:600;">Hai risposto a ' + answered + ' su ' + tot + ' domande.</p>' +
-      '<p style="color:rgba(255,255,255,.5);margin:0 0 22px;font-size:.9rem;">Dopo la consegna vedi subito il tuo risultato. Le domande senza risposta contano come sbagliate.</p>' +
+      '<p style="color:rgba(255,255,255,.5);margin:0 0 22px;font-size:.9rem;">Dopo la consegna vedi subito il tuo risultato. Le domande senza risposta valgono 0 punti e non finiscono nel ripasso degli errori.</p>' +
       '<button id="tolc-consegna" style="width:100%;padding:14px;border-radius:12px;border:none;font-weight:800;font-size:1rem;color:#fff;background:linear-gradient(135deg,#a855f7,#6366f1);cursor:pointer;">\u2713 Consegna e vedi il risultato</button>' +
       '<button id="tolc-annulla-consegna" style="width:100%;padding:11px;margin-top:9px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(255,255,255,.6);font-weight:700;cursor:pointer;">\u2190 Torna al test</button>' +
     '</div>'
@@ -366,7 +366,7 @@ function _renderResult() {
   // 04/10/2026: UNA azione principale. "Trasforma in flashcard" faceva pensare all'AI e al
   // login; il mazzo e' locale: domanda + risposta corretta + risposta data, subito.
   var genBtn = nWrong > 0
-    ? '<button id="tolc-gen-errors" style="width:100%;padding:15px;border-radius:12px;border:none;font-weight:800;font-size:1rem;color:#fff;background:linear-gradient(135deg,#16a34a,#22c55e);cursor:pointer;box-shadow:0 10px 30px rgba(34,197,94,.25);">🎯 Ripassa i tuoi ' + nWrong + (nWrong === 1 ? ' errore' : ' errori') + '</button>' +
+    ? '<button id="tolc-gen-errors" style="width:100%;padding:15px;border-radius:12px;border:none;font-weight:800;font-size:1rem;color:#fff;background:linear-gradient(135deg,#16a34a,#22c55e);cursor:pointer;box-shadow:0 10px 30px rgba(34,197,94,.25);">🎯 ' + (nWrong === 1 ? 'Ripassa il tuo errore' : 'Ripassa i tuoi ' + nWrong + ' errori') + '</button>' +
       '<div style="text-align:center;font-size:.76rem;color:rgba(255,255,255,.6);margin:6px 0 12px;line-height:1.45;">Per ogni errore vedi la risposta giusta accanto alla tua, poi lo ripassi. Gratis, senza account.</div>'
     : '<div role="status" style="text-align:center;padding:12px;margin:8px 0 12px;border-radius:12px;background:rgba(34,197,94,.1);color:#86efac;font-weight:700;">Nessun errore da ripassare — ottimo risultato!</div>';
   // Accesso facoltativo: prima di aprirlo il risultato e il mazzo degli errori vengono messi al sicuro.

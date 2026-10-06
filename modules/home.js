@@ -495,7 +495,7 @@ export function renderHome() {
                     background:var(--accent); color:#fff; border-radius:20px;
                     padding:8px 18px; font-size:0.8rem; font-weight:800;
                     white-space:nowrap; flex-shrink:0;
-                ">€4,99/mese →</div>
+                ">€3,99/mese →</div>
             </div>
             ` : ''}
 

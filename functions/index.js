@@ -1129,6 +1129,9 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
     let usersWithFCM = 0;
     let usersWithSparks = 0;
     let usersActivated = 0;   // activation VERA (activation.activated) da services/activation.js
+    // 06/10/2026: dal 06/10 'attivato' = primo ripasso completato (anche errori TOLC). La regola
+    // precedente (3 generate + 3 studiate + 1 valutata) resta contata a parte per il confronto.
+    let usersAiActivated = 0;
     // 04/10/2026: tappe di STUDIO (services/activation.js): primo ripasso completato e ritorno a
     // studiare in un giorno successivo. Al contrario di usersReturned/usersActive7d (Firebase Auth:
     // lastSignInTime/lastRefreshTime, che si aggiornano anche solo aprendo l'app o rinnovando il
@@ -1153,6 +1156,7 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
       if (typeof d.fcmToken === 'string' && d.fcmToken.trim()) usersWithFCM++;
       if (typeof d.sparksBalance === 'number' && Number.isFinite(d.sparksBalance) && d.sparksBalance > 0) usersWithSparks++;
       if (d.activation && d.activation.activated === true) usersActivated++;
+      if (d.activation && (d.activation.aiActivated === true || (d.activation.activated === true && !d.activation.activatedVia))) usersAiActivated++;
       if (d.activation && d.activation.firstReviewCompletedAt) usersFirstReview++;
       if (d.activation && d.activation.studyReturnedAt) usersStudyReturned++;
       if (typeof d.email !== 'string' || !d.email.trim()) usersNoEmail++;
@@ -1555,6 +1559,7 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
         usersWithFCM,
         usersWithSparks,
         usersActivated,
+        usersAiActivated,
         usersFirstReview,
         usersStudyReturned,
         usersNoEmail,

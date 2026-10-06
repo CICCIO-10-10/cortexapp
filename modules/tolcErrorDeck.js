@@ -302,6 +302,10 @@ export function requestAiExplanation(deck) {
         if (typeof window.__resumePendingAI === 'function') window.__resumePendingAI();
         return;
     }
+    // 06/10/2026: per l'ospite stesso riquadro della generazione AI ("Accedi" / "Non ora"),
+    // non un salto diretto al login. "Non ora" cancella la richiesta in sospeso.
+    try { sessionStorage.removeItem('cx_glg_dismissed'); } catch (_) {}
+    if (typeof window.showGuestLoginGate === 'function') { window.showGuestLoginGate('tolc_errors'); return; }
     if (typeof window.__guestLogin === 'function') window.__guestLogin();
     else if (typeof window.loginWithGoogle === 'function') window.loginWithGoogle();
 }

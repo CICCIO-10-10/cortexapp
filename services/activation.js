@@ -2,8 +2,12 @@
  * services/activation.js — Activation & retention tracking
  * Fonte di verita': Firestore (serverTimestamp + increment atomici + transaction).
  *
- * Definizione activation (CONGELATA):
- *   >=3 card generate + >=3 card studiate + >=1 risposta valutata.
+ * Definizione activation (06/10/2026, decisione del titolare — "scelta A"):
+ *   ATTIVATO = primo ripasso completato (sessione arrivata in fondo con almeno una carta),
+ *   su qualunque mazzo — anche gli errori del TOLC, che non usano l'AI — esclusi i mazzi demo.
+ *   Origine in activation.activatedVia ('tolc_errors' | 'deck').
+ * La regola precedente (>=3 card generate + >=3 studiate + >=1 valutata) resta misurata a
+ * parte come activation.aiActivated, per confrontare i numeri con prima.
  *
  * Scrive SOLO su users/{uid}, campo `activation` (owner-locked dalle Security Rules;
  * NON tra i _billingProtetti, quindi l'update passa). Guest (no uid) -> no-op:
@@ -43,7 +47,7 @@ function _localDay() {
  * @param {'cardsGenerated'|'cardsStudied'|'ratingsGiven'} field
  * @param {number} n
  */
-export async function bumpActivation(field, n) {
+export async function bumpActivation(field, n, ctx = {}) {
   try {
     if (!n || n <= 0 || VALID.indexOf(field) === -1) return;
     if (_noTrack()) return;
@@ -80,16 +84,23 @@ export async function bumpActivation(field, n) {
       }
 
       let activatedNow = false;
-      if (!cur.activated && gen >= T_GEN && stu >= T_STU && rate >= T_RATE) {
+      const flow = ctx && typeof ctx.flow === 'string' ? ctx.flow : 'deck';
+      if (!cur.activated && field === 'cardsStudied' && flow !== 'demo') {
         activation.activated = true;
         activation.activatedAt = FV.serverTimestamp();
+        activation.activatedVia = flow === 'tolc_errors' ? 'tolc_errors' : 'deck';
         activatedNow = true;
+      }
+      // Regola precedente, solo per confronto (non decide più "attivato").
+      if (!cur.aiActivated && gen >= T_GEN && stu >= T_STU && rate >= T_RATE) {
+        activation.aiActivated = true;
+        activation.aiActivatedAt = FV.serverTimestamp();
       }
       tx.set(ref, { activation }, { merge: true });
       return activatedNow;
     });
 
-    if (didActivate) { try { track('activated', {}); } catch (_) {} }
+    if (didActivate) { try { track('activated', { flow: (ctx && ctx.flow) || 'deck' }); } catch (_) {} }
   } catch (_) { /* silenzioso: mai rompere il flusso utente */ }
 }
 

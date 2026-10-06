@@ -287,7 +287,7 @@ export const TRANSLATIONS = {
         onboarding_ig_subtitle: "Studia meno, ricorda di più. Cortex trasforma i tuoi appunti in flashcard AI in 5 secondi.",
         onboarding_ig_cta: "Inizia subito 🎓",
         pricing_cancel_note: "Puoi annullare in qualsiasi momento.",
-        pricing_annual_savings: "Equivale a €3,33/mese — risparmi €19,89 vs mensile.",
+        pricing_annual_savings: "Equivale a €3,33/mese — risparmi €7,89 vs mensile.",
     
         // — AUTO-GENERATED i18n keys —
         tech_muzii_credit: '🏆 Ispirato ai metodi pubblici di <strong>Andrea Muzii</strong> — Campione del Mondo di Memoria',
@@ -780,7 +780,7 @@ export const TRANSLATIONS = {
         onboarding_ig_subtitle: "Study less, remember more. Cortex turns your notes into AI flashcards in 5 seconds.",
         onboarding_ig_cta: "Start now 🎓",
         pricing_cancel_note: "You can cancel at any time.",
-        pricing_annual_savings: "Equivalent to €3.33/month — save €19.89 vs monthly.",
+        pricing_annual_savings: "Equivalent to €3.33/month — save €7.89 vs monthly.",
     
         // — AUTO-GENERATED i18n keys —
         tech_muzii_credit: '🏆 Inspired by the public methods of <strong>Andrea Muzii</strong> — World Memory Champion',
@@ -1273,7 +1273,7 @@ export const TRANSLATIONS = {
         onboarding_ig_subtitle: "Estudia menos, recuerda más. Cortex transforma tus apuntes en flashcards IA en 5 segundos.",
         onboarding_ig_cta: "Empezar ahora 🎓",
         pricing_cancel_note: "Puedes cancelar en cualquier momento.",
-        pricing_annual_savings: "Equivale a €3,33/mes — ahorras €19,89 vs mensual.",
+        pricing_annual_savings: "Equivale a €3,33/mes — ahorras €7,89 vs mensual.",
     
         // — AUTO-GENERATED i18n keys —
         tech_muzii_credit: '🏆 Inspirado en los métodos públicos de <strong>Andrea Muzii</strong> — Campeón Mundial de Memoria',
@@ -1766,7 +1766,7 @@ export const TRANSLATIONS = {
         onboarding_ig_subtitle: "Étudiez moins, mémorisez plus. Cortex transforme vos notes en flashcards IA en 5 secondes.",
         onboarding_ig_cta: "Commencer maintenant 🎓",
         pricing_cancel_note: "Vous pouvez annuler à tout moment.",
-        pricing_annual_savings: "Équivalent à €3,33/mois — économisez €19,89 vs mensuel.",
+        pricing_annual_savings: "Équivalent à €3,33/mois — économisez €7,89 vs mensuel.",
     
         // — AUTO-GENERATED i18n keys —
         tech_muzii_credit: '🏆 Inspiriert von den öffentlichen Methoden von <strong>Andrea Muzii</strong> — Weltgedächtnismeister',
@@ -2345,7 +2345,7 @@ export const TRANSLATIONS = {
         onboarding_ig_subtitle: "Weniger lernen, mehr behalten. Cortex verwandelt deine Notizen in KI-Flashcards in 5 Sekunden.",
         onboarding_ig_cta: "Jetzt starten 🎓",
         pricing_cancel_note: "Du kannst jederzeit kündigen.",
-        pricing_annual_savings: "Entspricht €3,33/Monat — spare €19,89 vs. monatlich.",
+        pricing_annual_savings: "Entspricht €3,33/Monat — spare €7,89 vs. monatlich.",
     
         // — AUTO-GENERATED i18n keys —
         tech_muzii_credit: '🏆 Inspiriert von den öffentlichen Methoden von <strong>Andrea Muzii</strong> — Weltgedächtnismeister',

@@ -346,7 +346,7 @@ export function renderPlanSection() {
     if (plan === 'free') {
         actionButtons = `
             <div style="display:flex; flex-direction:column; gap:10px; margin-top:16px;">
-                <button class="btn btn-primary" onclick="showUpgradeModal('student_monthly')" style="width:100%; border-radius:12px; padding:12px; font-weight:700;">⚡ Passa a Student — €4.99/mese</button>
+                <button class="btn btn-primary" onclick="showUpgradeModal('student_monthly')" style="width:100%; border-radius:12px; padding:12px; font-weight:700;">⚡ Passa a Student — €3.99/mese</button>
                 <button class="btn btn-outline" onclick="showUpgradeModal('student_yearly')" style="width:100%; border-radius:12px; padding:12px; font-weight:700; border-color:rgba(139,92,246,0.5); color:var(--accent);">🏷️ Piano Annuale — €3.33/mese <span style="font-size:0.75rem; opacity:0.7;">(€39.99/anno)</span></button>
             </div>
         `;

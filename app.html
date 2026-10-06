@@ -1052,11 +1052,11 @@ document.body.prepend(b);setTimeout(function(){try{var e=document.getElementById
             </div>
 
             <div class="session-done glass" id="session-done"
-                style="display:none; padding:48px; border-radius:32px; border:1px solid rgba(255,255,255,0.1); text-align:center; background:rgba(255,255,255,0.03);">
+                style="display:none; padding:clamp(20px,6vw,48px); border-radius:32px; border:1px solid rgba(255,255,255,0.1); text-align:center; background:rgba(255,255,255,0.03); max-width:100%; box-sizing:border-box;">
                 <div style="font-size:4rem; margin-bottom:24px;">🎉</div>
                 <h3 style="font-size:1.8rem; margin-bottom:12px;">Grande Sessione!</h3>
                 <p style="color:var(--text-muted); margin-bottom:32px;">La tua memoria sta diventando d'acciaio.</p>
-                <div id="session-stats" style="display:flex; justify-content:center; gap:24px; margin-bottom:32px;">
+                <div id="session-stats" style="display:flex; flex-wrap:wrap; justify-content:center; gap:14px 20px; margin-bottom:32px; max-width:100%;">
                 </div>
                 <button class="btn btn-primary" data-fn="closeStudy"
                     style="padding:12px 48px; border-radius:100px;">Continua 🚀</button>

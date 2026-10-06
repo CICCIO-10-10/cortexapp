@@ -277,7 +277,7 @@ async function _sendUpsellNotification() {
     const upsells = [
         { title: '🚀 Sblocca Boss Mode', body: 'Interrogazione AI illimitata con Student Plan. Provalo gratis 7 giorni.' },
         { title: '⚡ Neural Sparks disponibili', body: 'Usa l\'AI senza limiti. Aggiorna a Student Plan.' },
-        { title: '🏆 I tuoi compagni studiano di più', body: 'Con Student Plan: AI illimitata, mazzi illimitati, Neural Duels. Da €4.99/mese.' },
+        { title: '🏆 I tuoi compagni studiano di più', body: 'Con Student Plan: AI illimitata, mazzi illimitati, Neural Duels. Da €3.99/mese.' },
     ];
 
     const msg = upsells[Math.floor(Math.random() * upsells.length)];

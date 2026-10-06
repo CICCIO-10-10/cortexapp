@@ -353,7 +353,7 @@ function endSession() {
         }
     } catch (_) {}
     _sessionEnded = true;
-    if (totalCards > 0) bumpActivation('cardsStudied', totalCards);
+    if (totalCards > 0) bumpActivation('cardsStudied', totalCards, { flow: _studyFlow((_deps.state.decks || []).find(d => String(d.id) === String(activeDeckId))) });
     _tolcErrorHook('completed', _deps.state.decks.find(d => String(d.id) === String(activeDeckId)), { count: totalCards });
 
     let motivationalMsg = t('study_msg_good');

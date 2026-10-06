@@ -167,6 +167,69 @@ const scenarios = {
     out.notes.push('eventi: ' + out.events.filter(e => /study_start|study_session_start/.test(e.type)).map(e => e.type + (e.meta.reason ? ':' + e.meta.reason : '')).join(', '));
     return out;
   },
+  // 06/10/2026 (report di verifica): ospite, TOLC con 1 errore → "Ripassa il tuo errore" → ripasso completato →
+  // riepilogo leggibile a 320/360/390 px → "Spiegami gli errori con l'AI" apre il riquadro con "Non ora".
+  async tolc_guest_ai(browser, ua) {
+    const { page, out } = await newCtx(browser, { ua });
+    await page.goto(BASE + '/app?sim=tolc-lp', { waitUntil: 'load' }); await page.waitForTimeout(2500);
+    // una risposta sbagliata, poi consegna
+    await page.evaluate(() => { const st = 0; const o = document.querySelectorAll('#tolc-sim-overlay .tolc-opt'); if (o[0]) o[0].click(); });
+    await page.evaluate(() => { const o = Array.from(document.querySelectorAll('#tolc-sim-overlay .tolc-opt')); });
+    for (let k = 0; k < 90; k++) { const c = await page.$('#tolc-consegna'); if (c) { await c.click(); break; } await page.evaluate(() => { const x = document.getElementById('tolc-next'); if (x) x.click(); }); await page.waitForTimeout(10); }
+    await page.waitForTimeout(400);
+    const label = await page.evaluate(() => (document.getElementById('tolc-gen-errors') || {}).textContent || '');
+    out.notes.push('pulsante: ' + label.trim());
+    await page.evaluate(() => { const b = document.getElementById('tolc-gen-errors'); if (b) b.click(); });
+    await page.waitForTimeout(1500);
+    out.notes.push('studio aperto: ' + await page.evaluate(() => JSON.stringify({ studio: document.getElementById('study-overlay').classList.contains('active'), carte: (document.getElementById('study-card-front') || document.querySelector('.card-front') || {}).textContent ? 'sì' : '?', bottoni: document.querySelectorAll('#rating-buttons button').length })));
+    for (let i = 0; i < 12; i++) {
+      const done = await page.evaluate(() => { const d = document.getElementById('session-done'); return !!d && d.style.display === 'block'; });
+      if (done) break;
+      await page.evaluate(() => { const f = document.querySelector('[data-fn="flipCard"]'); if (f) f.click(); else if (typeof window.flipCard === 'function') window.flipCard(); });
+      await page.waitForTimeout(250);
+      await page.evaluate(() => { const b = document.querySelector('#rating-buttons .btn-good'); if (b) b.click(); });
+      await page.waitForTimeout(400);
+    }
+    const widths = [];
+    for (const w of [320, 360, 390]) {
+      await page.setViewportSize({ width: w, height: 800 }); await page.waitForTimeout(200);
+      widths.push(w + 'px: ' + JSON.stringify(await page.evaluate(() => { const d = document.getElementById('session-done'); const st = document.getElementById('session-stats');
+        const r = d.getBoundingClientRect(); const boxes = Array.from(st.children).map(c => c.getBoundingClientRect());
+        return { tagliati: boxes.filter(b => b.right > window.innerWidth + 1 || b.left < -1).length, riquadri: boxes.length, pagina_larga: document.documentElement.scrollWidth > window.innerWidth }; })));
+    }
+    out.notes.push('riepilogo sessione → ' + widths.join(' · '));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(3500);
+    out.notes.push('proposta dopo il ripasso: ' + !!(await page.$('#tolc-save-prompt')));
+    await page.evaluate(() => { const b = document.getElementById('tsp-ai'); if (b) b.click(); });
+    await page.waitForTimeout(600);
+    out.notes.push('dopo "Spiegami con l\'AI": riquadro accesso = ' + !!(await page.$('#guest-login-gate')) + ', "Non ora" = ' + !!(await page.$('#glg-dismiss')));
+    const d = await page.$('#glg-dismiss'); if (d) await d.click();
+    await page.waitForTimeout(400);
+    out.notes.push('dopo "Non ora": riquadro = ' + !!(await page.$('#guest-login-gate')) + ', richiesta in sospeso = ' + await page.evaluate(() => !!localStorage.getItem('cortex_pending_ai')));
+    out.ok = /il tuo errore/.test(label) && !!(await page.$('#guest-login-gate')) === false;
+    return out;
+  },
+  // 06/10/2026: anteprima flashcard da testo (Nuova Materia → genera): "Salva Materia" bloccato finché l'AI risponde.
+  async preview_lock(browser, ua) {
+    const gemini = async r => { await new Promise(res => setTimeout(res, 4000)); return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify({ title: 'Ohm', cards: [{ front: 'Legge di Ohm?', back: 'V = R·I' }] }) }] } }] }) }); };
+    const { page, out } = await newCtx(browser, { ua, gemini, emulator: true });
+    await page.goto(BASE + '/app', { waitUntil: 'load' }); await page.waitForTimeout(2500);
+    const uid = 'pl' + Date.now().toString(36);
+    await page.evaluate(async uid => { const c = firebase.auth.GoogleAuthProvider.credential(JSON.stringify({ sub: uid, email: uid + '@example.com', email_verified: true })); await firebase.auth().signInWithCredential(c); }, uid);
+    await page.waitForTimeout(4000);
+    await page.evaluate(() => { const o = document.getElementById('onboarding-overlay'); if (o && o.style.display === 'flex') document.querySelector('#onboarding-overlay [data-fn=closeOnboarding]').click(); });
+    await page.evaluate(() => { localStorage.setItem('cortex_ai_consent', 'true'); if (window.showPage) window.showPage('materiale'); if (window.showView) window.showView('create-deck'); });
+    await page.waitForTimeout(600);
+    const state = () => page.evaluate(() => ({ generando: !!window.__cxAiGenerating, salvaBloccato: Array.from(document.querySelectorAll('[data-fn="saveDeck"]')).every(b => b.disabled) }));
+    await page.evaluate(() => { document.getElementById('deck-text').value = 'La legge di Ohm lega tensione, corrente e resistenza: V = R·I.'; const b = document.querySelector('[data-fn="openPdfAIFromText"]') || document.getElementById('btn-generate-ai'); window.__out_btn = b ? (b.id || b.getAttribute('data-fn')) : 'nessuno'; if (b) b.click(); });
+    const p = page.waitForTimeout(4500);
+    await page.waitForTimeout(1500);
+    out.notes.push('durante la generazione: ' + JSON.stringify(await state()));
+    await p; await page.waitForTimeout(500);
+    out.notes.push('dopo la risposta: ' + JSON.stringify(await state()) + ', anteprima carte: ' + await page.evaluate(() => document.querySelectorAll('#pdfai-cards-list > div').length));
+    return out;
+  },
 };
 
 (async () => {
