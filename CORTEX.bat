@@ -1,12 +1,11 @@
 @echo off
 chcp 65001 >nul
-REM 06/10/2026: il menu di Cortex e' il file CORTEX.bat sul Desktop.
-REM Questo file apre quello (stessa cartella di lavoro: questa).
-if exist "%USERPROFILE%\Desktop\CORTEX.bat" (
-  call "%USERPROFILE%\Desktop\CORTEX.bat"
+REM 06/10/2026: pubblicazione e strumenti di Cortex sono nel menu HQ (MENU.bat -> 1 CORTEX).
+if exist "%USERPROFILE%\Desktop\MENU.bat" (
+  call "%USERPROFILE%\Desktop\MENU.bat"
 ) else (
   echo.
-  echo   Usa il file CORTEX.bat sul Desktop.
+  echo   Usa MENU.bat sul Desktop, voce 1 CORTEX.
   echo.
   pause
 )
