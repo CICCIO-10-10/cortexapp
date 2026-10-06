@@ -97,3 +97,7 @@ cookies.txt
 # backup locali delle modifiche
 _backup_*/
 __pycache__/
+
+# 06/10/2026: materiale dell audit di sicurezza solo in locale (il repo GitHub e pubblico)
+docs/audit-2026-10/
+scripts/audit-2026-10/
