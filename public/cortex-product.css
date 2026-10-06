@@ -157,3 +157,9 @@ body.cortex-product .notif-banner{position:fixed;left:50%;transform:translateX(-
    quindi padding/width dei contenitori si animavano al primo render = salti di layout.
    Sui contenitori di pagina lasciamo animare solo opacity/transform. */
 @media (max-width:800px){body.cortex-product #app-root,body.cortex-product .page,body.cortex-product .page-content,body.cortex-product .dashboard-nebula,body.cortex-product .dashboard-nebula>section,body.cortex-product .hero-nebula{transition-property:opacity,transform!important}}
+
+/* 06/10/2026: i pulsanti tondi della barra (impostazioni, lingua) erano 38x44 → ovali, con la
+   bandiera stirata e più grande dell'ingranaggio. Ora quadrati 44x44 (area di tocco invariata)
+   e bandiera tonda 24px, stesso peso visivo dell'icona impostazioni. */
+body.cortex-product .nav-actions .nav-action-btn:not(.focus-trigger){width:44px!important;min-width:44px!important;height:44px!important;min-height:44px!important;border-radius:50%!important}
+body.cortex-product #lang-btn img{width:24px!important;height:24px!important;border-radius:50%!important;object-fit:cover!important;opacity:1!important}

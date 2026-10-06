@@ -21,4 +21,11 @@ for(const file of files){
 assert(fs.readFileSync(path.join(dist,'app.html'),'utf8').includes('/cortex-telemetry.js'),'Missing app telemetry sender');
 assert(fs.readFileSync(path.join(dist,'index.html'),'utf8').includes('/cortex-telemetry.js'),'Missing landing telemetry sender');
 assert(!fs.readFileSync(path.join(dist,'admin-tiktok.html'),'utf8').includes("localStorage.setItem('cortex_admin_key'"),'Admin key persisted');
+// 06/10/2026: le immagini sono escluse da git (.gitignore *.png/*.ico): un clone pulito pubblicava il sito
+// senza logo, favicon, icone PWA/notifiche e anteprima social (l'hosting rispondeva con la pagina HTML).
+for(const img of ['LOGO_APP_144.png','LOGO_SQUARE.png','favicon.ico','favicon-32x32.png','pwa-192x192.png','pwa-512x512.png','og-image.png']){
+  const f=path.join(dist,img);
+  assert(fs.existsSync(f)&&fs.statSync(f).size>200,'Immagine mancante nella build: '+img+' (copiala in public/ prima di pubblicare)');
+}
+assert(fs.readdirSync(path.join(dist,'assets')).some(n=>/^bg-.*\.(webp|png)$/.test(n)),'Sfondo media/nebula/bg mancante nella build');
 console.log(`${files.length} production text files checked; legacy tracker absent; ${secrets.length} configured server secrets absent.`);
