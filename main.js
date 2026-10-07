@@ -792,6 +792,8 @@ hydrateFromIDB().then((updated) => {
     if (rawSim !== 'tolc' && rawSim.indexOf('tolc-') !== 0) return;
     // La chiave in TOLC_TESTS è proprio "tolc-i", "tolc-psi", ecc. (minuscolo, col prefisso).
     const tolcCode = rawSim.indexOf('tolc-') === 0 ? rawSim.toLowerCase() : null;
+    // 07/10/2026: &veloce=1 apre la prova veloce (10 domande) invece del test completo.
+    const tolcQuick = params.get('veloce') === '1';
     try { localStorage.setItem('cortex_guest', '1'); } catch (e) {}
     window.history.replaceState({}, '', '/app');
     let tries = 0;
@@ -800,7 +802,7 @@ hydrateFromIDB().then((updated) => {
         if (typeof window.openTolcSim === 'function') {
             clearInterval(iv);
             try {
-                if (tolcCode && typeof window.startTolcDirect === 'function') window.startTolcDirect(tolcCode);
+                if (tolcCode && typeof window.startTolcDirect === 'function') window.startTolcDirect(tolcCode, { quick: tolcQuick });
                 else window.openTolcSim();
             } catch (e) { try { window.openTolcSim(); } catch (_e) {} }
             var _sp = document.getElementById('sim-boot-splash');

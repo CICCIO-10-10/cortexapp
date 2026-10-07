@@ -53,7 +53,9 @@ const CLARITY_STEPS = new Set(['app_open', 'onboarding_start', 'onboarding_shown
     'tolc_test_hidden', 'tolc_test_resumed', 'tolc_result_login_click', 'tolc_resume_click', 'review_first_completed', 'study_returned_next_day',
     'onboarding_step_viewed', 'onboarding_finished', 'onboarding_skipped', 'onboarding_goal_selected',
     'cards_generation_started', 'cards_generation_failed', 'generated_cards_discarded', 'cloud_sync_failed',
-    'material_first_answer', 'material_practice_completed']);
+    'material_first_answer', 'material_practice_completed',
+    // 07/10/2026: prova veloce TOLC (10 domande)
+    'tolc_quick_start', 'tolc_quick_complete']);
 const CLARITY_ANDROID_STEPS = new Set(['app_open', 'onboarding_shown', 'onboarding_finished', 'onboarding_skipped',
     'cards_generation_started', 'cards_generated', 'generated_cards_saved', 'study_session_start',
     'study_session_completed', 'activated', 'tolc_sim_complete', 'tolc_errors_generate_click',

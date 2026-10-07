@@ -1,10 +1,6 @@
 <!DOCTYPE html>
 <html lang="it"><head>
 <script>/* cx-journey-lite: primo tocco per-visitatore, guest inclusi */(function(){try{if(localStorage.getItem('cortex_no_track')==='1')return;var K='cx_vid',v=localStorage.getItem(K);if(!v){v=(window.crypto&&crypto.randomUUID?crypto.randomUUID():'v-'+Date.now().toString(36)+Math.random().toString(36).slice(2,10));try{localStorage.setItem(K,v);}catch(e){}}var s=localStorage.getItem('cx_src0');if(!s){var qs=new URLSearchParams(location.search),r=document.referrer||'';s=qs.get('utm_source')||qs.get('src')||(!r?'diretto':/tiktok/i.test(r)?'tiktok':/instagram/i.test(r)?'instagram':/youtube/i.test(r)?'youtube':/google\./i.test(r)?'google':/reddit/i.test(r)?'reddit':/cortexapp\.it/i.test(r)?'interno':'referral');s=String(s).slice(0,40);try{localStorage.setItem('cx_src0',s);}catch(e){}}var b={fields:{type:{stringValue:'landing_view'},page:{stringValue:location.pathname.slice(0,120)},source:{stringValue:s},referrer:{stringValue:(document.referrer||'').slice(0,200)},ts:{timestampValue:new Date().toISOString()}}};fetch('https://firestore.googleapis.com/v1/projects/cortex-74a4e/databases/(default)/documents/journeys/'+encodeURIComponent(v)+'/events?key=AIzaSyA2Nnu6CYVauecQZQhvr4mud3aYJbdDVx0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b),keepalive:true}).catch(function(){});}catch(e){}})();</script>
- <script async src="https://www.googletagmanager.com/gtag/js?id=G-DFJ42477QK"></script>
- <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}
- var _nt=false;try{if(new URLSearchParams(location.search).get('notrack')==='1')localStorage.setItem('cortex_no_track','1');_nt=localStorage.getItem('cortex_no_track')==='1';}catch(e){}
- if(!_nt){gtag('js',new Date());gtag('config','G-DFJ42477QK');}</script>
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -69,6 +65,7 @@ footer a{color:var(--a2)}
 .badge{display:inline-block;font-size:.72rem;font-weight:800;color:#4ade80;background:rgba(34,197,94,.14);border-radius:999px;padding:3px 10px;vertical-align:middle}
 </style>
 
+  <script src="/cortex-consent.js" defer></script>
 </head><body>
 <header><div class="wrap">
   <a class="logo" href="/">C<b>ortex</b></a>
@@ -90,4 +87,5 @@ footer a{color:var(--a2)}
   <p><b>Cortex</b> — simulazioni TOLC gratis, con la struttura ufficiale CISIA. Soglie, materie e modalità <b>variano per ateneo</b>: fa fede sempre il bando ufficiale (<a href="https://www.cisiaonline.it" rel="noopener">CISIA</a>).</p>
   <p style="margin-top:8px"><a href="/simulazione-tolc">Tutti i TOLC</a> · <a href="/quiz-logica-tolc">Quiz di logica</a> · <a href="/app?guest=1&sim=tolc">Prova gratis</a></p>
 </div></footer>
+<script src="/cortex-android.js" defer></script>
 </body></html>

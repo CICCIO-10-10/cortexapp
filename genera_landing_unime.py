@@ -133,12 +133,7 @@ def build_page(corso, ins_list, correlati=None, canon_slug=None):
     return f"""<!DOCTYPE html>
 <html lang="it">
 <head>
-<script type="text/javascript">(function(c,l,a,r,i,t,y){{c[a]=c[a]||function(){{(c[a].q=c[a].q||[]).push(arguments)}};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);}})(window, document, "clarity", "script", "y5ldvczo6y");</script>
 <script src="/cortex-consent.js" defer></script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-DFJ42477QK"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){{dataLayer.push(arguments);}}
-var _nt=false;try{{if(new URLSearchParams(location.search).get('notrack')==='1')localStorage.setItem('cortex_no_track','1');_nt=localStorage.getItem('cortex_no_track')==='1';}}catch(e){{}}
-if(!_nt){{gtag('js',new Date());gtag('config','G-DFJ42477QK');}}</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{esc(title)}</title>
@@ -194,6 +189,7 @@ if(!_nt){{gtag('js',new Date());gtag('config','G-DFJ42477QK');}}</script>
 <div><h4>Cortex</h4><a href="/">Home</a><a href="/privacy">Privacy</a><a href="/terms">Termini</a></div>
 </div><p style="text-align:center;color:var(--muted2);margin-top:36px;font-size:.8rem">© 2026 Cortex — cortexapp.it · Dati dal catalogo dell'Università di Messina; possibili variazioni per anno accademico.</p></footer>
 {gls.FX}
+<script src="/cortex-android.js" defer></script>
 </body>
 </html>"""
 
@@ -219,12 +215,7 @@ def build_hub(voci):
     return f"""<!DOCTYPE html>
 <html lang="it">
 <head>
-<script type="text/javascript">(function(c,l,a,r,i,t,y){{c[a]=c[a]||function(){{(c[a].q=c[a].q||[]).push(arguments)}};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);}})(window, document, "clarity", "script", "y5ldvczo6y");</script>
 <script src="/cortex-consent.js" defer></script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-DFJ42477QK"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){{dataLayer.push(arguments);}}
-var _nt=false;try{{if(new URLSearchParams(location.search).get('notrack')==='1')localStorage.setItem('cortex_no_track','1');_nt=localStorage.getItem('cortex_no_track')==='1';}}catch(e){{}}
-if(!_nt){{gtag('js',new Date());gtag('config','G-DFJ42477QK');}}</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{esc(title)}</title>
@@ -259,6 +250,7 @@ if(!_nt){{gtag('js',new Date());gtag('config','G-DFJ42477QK');}}</script>
 <div><h4>Cortex</h4><a href="/">Home</a><a href="/privacy">Privacy</a><a href="/terms">Termini</a></div>
 </div><p style="text-align:center;color:var(--muted2);margin-top:36px;font-size:.8rem">© 2026 Cortex — cortexapp.it · Dati dal catalogo dell'Università di Messina.</p></footer>
 {gls.FX}
+<script src="/cortex-android.js" defer></script>
 </body>
 </html>"""
 

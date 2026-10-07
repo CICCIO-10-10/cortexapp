@@ -1,7 +1,9 @@
 /* Only visual properties: never override hidden screens, disclosure state or handlers. */
 /* Full landing rollout: cover directory, quiz, legal and entry templates. */
 [data-cortex-seo="entry-hub"]{--bg0:var(--cx-bg);--bg1:var(--cx-panel);--bg2:var(--cx-raised);--border:var(--cx-line);--t1:var(--cx-ink);--t2:var(--cx-muted);--t3:var(--cx-muted);--purple:var(--cx-accent);padding-top:48px}
-[data-cortex-seo="entry-hub"] :is(.bg-orb,.bg-particles){display:none}
+/* 07/10/2026: sulla pagina d'ingresso tornano i bagliori viola e le particelle (erano stati spenti col restyling del 27/09) */
+[data-cortex-seo="entry-hub"]{background:radial-gradient(1200px 600px at 50% -10%,rgba(124,58,237,.18),transparent),var(--cx-bg)}
+[data-cortex-seo="entry-hub"] .bg-orb{opacity:.26}
 [data-cortex-seo="entry-hub"] :is(.name,.tt){font-family:var(--cx-heading);font-weight:600}
 [data-cortex-seo="entry-hub"] .logo{box-shadow:none;background:var(--cx-panel)}
 [data-cortex-seo="entry-hub"] .tile.wide{background:#1d1729;border-color:#685777}

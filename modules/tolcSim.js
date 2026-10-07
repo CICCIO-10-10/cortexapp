@@ -65,7 +65,7 @@ export function openTolcSim() {
 
 // Deep-link: apre DRITTO un TOLC specifico sulla prima domanda (salta selettore + intro).
 // Usato dai CTA "Simula il TOLC-X" via ?sim=tolc-<codice>: meno attrito = più attivazione.
-export function startTolcDirect(key) {
+export function startTolcDirect(key, opts) {
   const t = TOLC_TESTS[key];
   // Codice inesistente o banca non pronta → ripiega sul selettore, niente schermata rotta.
   if (!t || !t.banca || !t.banca.length) { openTolcSim(); return; }
@@ -79,8 +79,9 @@ export function startTolcDirect(key) {
     if (_state && (_state.running || _state.finished)) return;
     _remove();
   });
-  track('tolc_sim_open', { direct: key });
-  _start(key);
+  var quick = !!(opts && opts.quick);
+  track('tolc_sim_open', { direct: key, mode: quick ? 'quick' : 'full' });
+  _start(key, quick);
 }
 
 function _selectorHTML() {
@@ -159,41 +160,101 @@ function _intro(key) {
     (warn ? '<p style="font-size:.72rem;color:rgba(255,255,255,.4);margin:0 0 16px;line-height:1.5;">' + warn + '</p>' : '') +
     '<p style="font-size:.68rem;color:rgba(255,255,255,.4);line-height:1.5;margin:0 0 14px;">Punteggio CISIA: +1 corretta, -0,25 errata, 0 non data (Inglese senza penalita’, a parte). Le regole di ammissione (soglie/OFA) variano per ateneo.</p>' +
     '<button id="tolc-start" data-key="' + key + '" ' + (ready ? '' : 'disabled') + ' style="width:100%;padding:14px;border-radius:12px;border:none;font-weight:800;font-size:1rem;color:#fff;background:' + startStyle + ';cursor:' + startCur + ';">' + startTxt + '</button>' +
+    (ready ? '<button id="tolc-start-quick" data-key="' + key + '" style="width:100%;padding:12px;margin-top:9px;border-radius:12px;border:1px solid rgba(168,85,247,.5);background:rgba(168,85,247,.12);color:#c084fc;font-weight:800;font-size:.95rem;cursor:pointer;line-height:1.3;">⚡ Prova veloce<span style="display:block;font-size:.74rem;font-weight:700;color:rgba(196,181,253,.75);margin-top:2px;pointer-events:none;">10 domande · circa ' + _quickMinutes(t) + ' minuti</span></button>' : '') +
     '<button id="tolc-back" style="width:100%;padding:11px;margin-top:9px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(255,255,255,.6);font-weight:700;cursor:pointer;">← Scegli un altro TOLC</button>'
   );
 }
 
 function _shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var x = a[i]; a[i] = a[j]; a[j] = x; } return a; }
-function _sample(t) {
+// 07/10/2026 PROVA VELOCE: 10 domande (8 delle sezioni + 2 di Inglese). Dati Cortex 30/09-07/10:
+// 13 prove complete iniziate, 4 finite; chi non arriva in fondo non vede il ripasso degli errori.
+var QUICK_BASE = 8, QUICK_ENG = 2;
+// Quante domande prendere da ogni sezione nella prova veloce: proporzionale ai quesiti del test
+// completo (resti piu' grandi), almeno 1 per sezione finche' ce ne sono.
+function _quickPlan(full, total) {
+  var sum = full.reduce(function (a, n) { return a + n; }, 0);
+  if (!sum) return full.map(function () { return 0; });
+  total = Math.min(total, sum);
+  var plan = full.map(function (n) { return n > 0 ? 1 : 0; });
+  var used = plan.reduce(function (a, n) { return a + n; }, 0);
+  if (used > total) {                                  // piu' sezioni che domande: le prime 'total'
+    var k = 0; return plan.map(function (n) { if (n && k < total) { k++; return 1; } return 0; });
+  }
+  var rest = total - used;
+  var exact = full.map(function (n, i) { return n > 0 ? Math.max(0, n * total / sum - 1) : 0; });
+  var add = exact.map(function (x, i) { return Math.min(Math.floor(x), full[i] - plan[i]); });
+  add.forEach(function (a, i) { plan[i] += a; rest -= a; });
+  var order = exact.map(function (x, i) { return [x - Math.floor(x), i]; }).sort(function (a, b) { return b[0] - a[0]; });
+  for (var r = 0; rest > 0 && r < order.length * 2; r++) {
+    var i = order[r % order.length][1];
+    if (plan[i] < full[i]) { plan[i]++; rest--; }
+  }
+  return plan;
+}
+// 07/10/2026: nelle banche la risposta giusta e' quasi sempre B o C (72% su 390 domande, E solo 3%)
+// e l'ordine era sempre quello: chi se ne accorge indovina. Ora le opzioni si mescolano a ogni prova
+// (copia della domanda, la banca non cambia). "Nessuna (delle precedenti)" resta in fondo.
+var _PIN_LAST = /^\s*nessun|precedent/i;
+function _shuffleOpts(q) {
+  if (!q || !Array.isArray(q.o) || q.o.length < 2 || !(q.c >= 0 && q.c < q.o.length)) return q;
+  var n = q.o.length;
+  var pinLast = _PIN_LAST.test(String(q.o[n - 1]));
+  var idx = []; for (var i = 0; i < (pinLast ? n - 1 : n); i++) idx.push(i);
+  _shuffle(idx);
+  if (pinLast) idx.push(n - 1);
+  return { s: q.s, q: q.q, o: idx.map(function (k) { return q.o[k]; }), c: idx.indexOf(q.c) };
+}
+function _sample(t, quick) {
   // Campiona una "versione" del test: per ogni sezione prende (a caso) fino al
   // numero ufficiale di quesiti disponibili nella banca. Ogni run e' diverso.
   var bySec = {};
   t.banca.forEach(function (q) { (bySec[q.s] = bySec[q.s] || []).push(q); });
-  var out = [];
-  t.sezioni.forEach(function (sec) {
+  var pools = t.sezioni.map(function (sec) {
     var pool = _shuffle((bySec[sec.n] || []).slice());
-    var take = sec.q ? Math.min(sec.q, pool.length) : pool.length;
-    out = out.concat(pool.slice(0, take));
+    return pool.slice(0, sec.q ? Math.min(sec.q, pool.length) : pool.length);
   });
-  if (!out.length) out = _shuffle(t.banca.slice());
+  var fullBase = pools.reduce(function (a, p) { return a + p.length; }, 0);
+  if (quick) {
+    var plan = _quickPlan(pools.map(function (p) { return p.length; }), QUICK_BASE);
+    pools = pools.map(function (p, i) { return p.slice(0, plan[i]); });
+  }
+  var out = [];
+  pools.forEach(function (p) { out = out.concat(p); });
+  if (!out.length) { out = _shuffle(t.banca.slice()); if (quick) out = out.slice(0, QUICK_BASE); }
   // Sezione Inglese: comune a tutti i TOLC, sempre in fondo
-  var eng = _shuffle(TOLC_ENG_BANCA.slice()).slice(0, Math.min(t.engQ || TOLC_ENG_BANCA.length, TOLC_ENG_BANCA.length));
-  return { qs: out.concat(eng), nBase: out.length, nEng: eng.length };
+  var engFull = Math.min(t.engQ || TOLC_ENG_BANCA.length, TOLC_ENG_BANCA.length);
+  var eng = _shuffle(TOLC_ENG_BANCA.slice()).slice(0, quick ? Math.min(QUICK_ENG, engFull) : engFull);
+  return { qs: out.concat(eng).map(_shuffleOpts), nBase: out.length, nEng: eng.length, fullBase: fullBase || out.length, fullEng: engFull };
 }
-function _start(key) {
+// Secondi a disposizione: stesso tempo per domanda del test completo (tempi ufficiali CISIA).
+function _secsFor(t, smp) {
+  // Senza tempi ufficiali per sezione: 1,5 minuti a domanda. Prima il calcolo divideva per il
+  // numero ufficiale di quesiti (es. 50 nel TOLC-PSI) invece che per quelli serviti (22): ~40 s a domanda.
+  const totMin = tolcTotMin(t);
+  const perBase = totMin ? totMin * 60 / (tolcTotQ(t) || smp.fullBase) : 90;
+  const perEng = (t.engMin || 15) * 60 / (t.engQ || smp.fullEng || 1);
+  return Math.max(180, Math.round(perBase * smp.nBase + perEng * smp.nEng));
+}
+// Minuti della prova veloce mostrati sul pulsante, arrotondati a 5.
+function _quickMinutes(t) {
+  try {
+    var smp = _sample(t, true);
+    return Math.max(5, Math.round(_secsFor(t, smp) / 60 / 5) * 5);
+  } catch (e) { return 15; }
+}
+function _start(key, quick) {
   const t = TOLC_TESTS[key];
   if (!t.banca || !t.banca.length) return;
-  const smp = _sample(t);
+  quick = !!quick;
+  const smp = _sample(t, quick);
   const qs = smp.qs;
-  const totMin = tolcTotMin(t) || (smp.nBase * 1.5);
-  const baseSecs = Math.round(totMin * 60 * smp.nBase / (tolcTotQ(t) || smp.nBase));
-  const engSecs = Math.round((t.engMin || 15) * 60 * smp.nEng / (t.engQ || smp.nEng || 1));
-  const secs = Math.max(180, baseSecs + engSecs);
+  const secs = _secsFor(t, smp);
   // attemptId: identifica QUESTO tentativo -> al massimo un mazzo errori per tentativo.
   const attemptId = key + '-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7);
-  _state = { key: key, test: t, qs: qs, i: 0, answers: new Array(qs.length).fill(null), checked: new Array(qs.length).fill(false), left: secs, running: true, attemptId: attemptId };
+  _state = { key: key, test: t, qs: qs, i: 0, answers: new Array(qs.length).fill(null), checked: new Array(qs.length).fill(false), left: secs, running: true, attemptId: attemptId, quick: quick };
   _renderQ();
-  track('tolc_test_start', { test: key, attempt: attemptId });   // avvio REALE della prova (1a domanda mostrata), distinto da tolc_sim_open (= apertura selettore)
+  track('tolc_test_start', { test: key, attempt: attemptId, mode: quick ? 'quick' : 'full' });
+  if (quick) track('tolc_quick_start', { test: key, attempt: attemptId });   // avvio REALE della prova (1a domanda mostrata), distinto da tolc_sim_open (= apertura selettore)
   _clearTimer();
   _timer = setInterval(function () {
     if (!_state) return;
@@ -342,7 +403,8 @@ function _finish() {
   if (!st.scoreMode) st.scoreMode = 'cisia';
   var correct = _sectionStats(st).reduce(function (a, g) { return a + g.ok; }, 0);
   var pct = Math.max(0, Math.round(correct / (st.qs.length || 1) * 100));
-  track('tolc_sim_complete', { test: st.key, correct: correct, pct: pct, attempt: st.attemptId });
+  track('tolc_sim_complete', { test: st.key, correct: correct, pct: pct, attempt: st.attemptId, mode: st.quick ? 'quick' : 'full' });
+  if (st.quick) track('tolc_quick_complete', { test: st.key, correct: correct, pct: pct, attempt: st.attemptId });
   try { if (window.addXP) window.addXP(correct * 5); } catch (e) {}
   _renderResult();
 }
@@ -398,7 +460,7 @@ function _renderResult() {
     '</div>' +
     '<div style="text-align:center;margin-bottom:12px;">' +
       '<div style="font-size:1.9rem;">' + emoji + '</div>' +
-      '<h2 style="font-family:Outfit,sans-serif;font-weight:900;margin:6px 0 2px;font-size:1.5rem;">Esito ' + st.test.nome + '</h2>' +
+      '<h2 style="font-family:Outfit,sans-serif;font-weight:900;margin:6px 0 2px;font-size:1.5rem;">Esito ' + st.test.nome + (st.quick ? ' · prova veloce' : '') + '</h2>' +
       '<p style="color:rgba(255,255,255,.6);margin:0;font-size:.86rem;">Punteggio totale test: <b style="color:#fff;">' + _fmtScore(totScore) + '</b> / ' + totQ + (eng ? '  ·  Inglese: <b style="color:#fff;">' + _fmtScore(_secScore(eng, mode)) + '</b> / ' + eng.n : '') + '</p>' +
     '</div>' +
     // Porta il passaggio verso le flashcard subito sotto al punteggio: su mobile
@@ -433,6 +495,7 @@ function _renderResult() {
         '</tr>' : '') +
       '</tfoot>' +
     '</table>' +
+    (st.quick ? '<p style="font-size:.72rem;color:rgba(255,255,255,.55);line-height:1.5;margin:8px 0 0;">La prova veloce ha ' + st.qs.length + ' domande: d&agrave; un&rsquo;idea, non il punteggio del test vero. <button id="tolc-full-after-quick" data-key="' + st.key + '" style="border:none;background:transparent;padding:0;color:#c4b5fd;font-weight:800;font-size:.72rem;line-height:inherit;font-family:inherit;vertical-align:baseline;text-decoration:underline;text-underline-offset:3px;cursor:pointer;">Fai il test completo</button></p>' : '') +
     '<p style="font-size:.66rem;color:rgba(255,255,255,.4);line-height:1.55;margin:8px 0 14px;">' + note +
       ' Le regole di ammissione (soglie, OFA, uso dell’inglese, penalita’ in graduatoria) <b>variano per ateneo</b>: fa fede il bando. Fonte: CISIA.' +
     '</p>' +
@@ -591,7 +654,9 @@ document.addEventListener('click', function (e) {
   if (id === 'tolc-share') { _shareTolc(); return; }
   if (id === 'tolc-back') { _clearTimer(); _state = null; ov.innerHTML = _selectorHTML(); return; }
   if (id === 'tolc-start' && !e.target.disabled) return _start(e.target.getAttribute('data-key'));
-  if (id === 'tolc-retry') return _start(e.target.getAttribute('data-key'));
+  if (id === 'tolc-start-quick') return _start(e.target.getAttribute('data-key'), true);
+  if (id === 'tolc-full-after-quick') return _start(e.target.getAttribute('data-key'));
+  if (id === 'tolc-retry') return _start(e.target.getAttribute('data-key'), _state && _state.quick);
   if (id === 'tolc-skip') { if (_state) { if (!_state.checked[_state.i]) _state.answers[_state.i] = null; _next(); } return; }
   if (id === 'tolc-consegna') return _finish();
   if (id === 'tolc-annulla-consegna') { if (_state) _renderQ(); return; }

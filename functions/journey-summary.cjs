@@ -42,7 +42,8 @@ function summarizeJourneys(events, coverage = {}, now = Date.now()) {
   const BRANCHES = ['tolc_selector_closed', 'tolc_test_quit', 'tolc_errors_login_completed', 'onboarding_skipped', 'cards_generation_failed', 'generated_cards_discarded',
     'tolc_error_deck_login_completed', 'tolc_error_save_prompt_shown', 'tolc_error_save_prompt_login_click', 'tolc_error_save_prompt_ai_click',
     'onboarding_bypassed', 'study_session_abandoned', 'tolc_error_deck_failed', 'guest_login_not_completed', 'tolc_resume_dismiss',
-    'tolc_test_hidden', 'tolc_test_resumed', 'study_start_failed', 'guest_ai_gate_dismiss', 'guest_save_click'];
+    'tolc_test_hidden', 'tolc_test_resumed', 'study_start_failed', 'guest_ai_gate_dismiss', 'guest_save_click',
+    'tolc_quick_start', 'tolc_quick_complete'];
   const V3 = [...Object.values(PATHS).flat(), ...BRANCHES, 'onboarding_step_viewed'];
   const v3 = { steps: {}, paths: {}, breakdown: { gen_fail_reason: {}, tolc_closed_stage: {}, onboarding_skip_step: {}, tolc_quit_answered: [], tolc_deck_type: {},
     onboarding_variant: {}, onboarding_bypass_reason: {}, review_first_type: {}, review_first_flow: {}, returned_days_after: {}, returned_type: {},

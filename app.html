@@ -225,6 +225,20 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js" integrity="sha384-yTXgVdKIoM5XuQZ1AGw9zFUgmu45OeHYpGDbbWtXHu/qOJxneVAXbw5Rh5CGninE" crossorigin="anonymous"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-functions-compat.js" crossorigin="anonymous"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js" crossorigin="anonymous"></script>
+    <script>
+    /* 07/10/2026: se www.gstatic.com non risponde (rete scolastica, blocco pubblicità, DNS)
+       l'app partiva senza Firebase: niente login né salvataggio sul cloud. Riserva: la stessa
+       versione 10.8.0 servita da cortexapp.it (file identici, stesso hash). */
+    (function () {
+      var need = [];
+      var f = window.firebase;
+      if (!f || typeof f.initializeApp !== 'function') need = ['app', 'auth', 'firestore', 'storage', 'functions', 'messaging'];
+      else ['auth', 'firestore', 'storage', 'functions', 'messaging'].forEach(function (m) { if (typeof f[m] !== 'function') need.push(m); });
+      if (!need.length) return;
+      window.__cxFirebaseFallback = need.join(',');
+      for (var i = 0; i < need.length; i++) document.write('<script src="/vendor/firebase/10.8.0/firebase-' + need[i] + '-compat.js"><\/script>');
+    })();
+    </script>
     <!-- App Check rimosso: enforcement Firestore/Functions disabilitato in Console.
          Il reCAPTCHA v3 bloccava client-side tutte le chiamate Firebase (Functions incluse).
          Da riabilitare solo dopo aver risolto il token reCAPTCHA Enterprise. -->
@@ -1064,6 +1078,12 @@ document.body.prepend(b);setTimeout(function(){try{var e=document.getElementById
                     <a href="javascript:void(0)" onclick="if(window.requestNotifications) window.requestNotifications()" 
                        style="font-size:0.8rem; color:var(--text-muted); text-decoration:underline;">Ricevi promemoria di domani 🔔</a>
                 </div>
+                <!-- 07/10/2026: solo su Android nel browser (non dentro l'app). Nessun popup. -->
+                <div id="cx-play-link" style="margin-top:10px; display:none;">
+                    <a href="https://play.google.com/store/apps/details?id=app.web.cortex_app.twa&amp;referrer=utm_source%3Dsito%26utm_medium%3Dfine_sessione" target="_blank" rel="noopener"
+                       style="font-size:0.8rem; color:var(--text-muted); text-decoration:underline;">📲 Ripassa dal telefono: scarica Cortex da Google Play</a>
+                </div>
+                <script>(function(){try{var a=/Android/i.test(navigator.userAgent),app=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||/^android-app:/.test(document.referrer)||sessionStorage.getItem('cx_platform')==='android_twa';if(a&&!app)document.getElementById('cx-play-link').style.display='';}catch(e){}})();</script>
             </div>
         </div>
     </div>
