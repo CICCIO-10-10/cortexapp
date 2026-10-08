@@ -893,37 +893,9 @@
   }
   track('landing_view', { page: 'index' });
 
-  // ── Cortex Analytics Tracker ──────────────────────────────────────
-  (function() {
-    try {
-      var db = firebase.firestore();
-      // Browser dell'admin (flag settato al login nell'app): non tracciare
-      if (localStorage.getItem('cortex_no_track') === '1') return;
-      var params = new URLSearchParams(window.location.search);
-      var source = params.get('utm_source') || params.get('ref') || 'direct';
-      var campaign = params.get('utm_campaign') || '';
-      var sid = 'landing_' + Math.random().toString(36).slice(2) + '_' + Date.now();
-      // Data odierna in timezone Europe/Rome (non UTC), per allinearsi alla dashboard
-      var _romeNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Rome' }));
-      var today = _romeNow.getFullYear() + '-' + String(_romeNow.getMonth() + 1).padStart(2, '0') + '-' + String(_romeNow.getDate()).padStart(2, '0');
-
-      // Presenza: aggiorna ogni 2 min, usata per "online ora"
-      function heartbeat() {
-        db.collection('analytics').doc('presence').collection('sessions').doc(sid).set({
-          page: 'landing', source: source, campaign: campaign,
-          lastSeen: firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge: true });
-      }
-      heartbeat();
-      setInterval(heartbeat, 120000);
-
-      // Visite giornaliere: incremento atomico
-      db.collection('analytics').doc('pageviews_' + today).set({
-        landing: firebase.firestore.FieldValue.increment(1),
-        ['src_' + source]: firebase.firestore.FieldValue.increment(1)
-      }, { merge: true });
-    } catch(e) {}
-  })();
+  // 08/10/2026: tolto il vecchio contatore che scriveva direttamente su Firestore (analytics/presence e
+  // pageviews): le regole lo rifiutano dal 03/10 (si scrive solo dal backend) e a ogni visita dava
+  // l'errore "Missing or insufficient permissions". Le visite si misurano con GA4 e con il tracker dell'app.
 
   // Clear stale redirect flag older than 5 min
   var _rts = parseInt(localStorage.getItem('cortex_redirect_ts') || '0');

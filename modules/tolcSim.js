@@ -6,7 +6,7 @@
  * Strutture e banche in data/tolc.js. Domande ORIGINALI in stile TOLC.
  */
 
-import { TOLC_TESTS, TOLC_ENG_BANCA, tolcTotQ, tolcTotMin } from '../data/tolc.js';
+import { TOLC_TESTS, TOLC_ENG_BANCA, tolcTotQ, tolcTotMin, loadTolcNuove, loadTolcSpiegazioni, getTolcSpiegazione } from '../data/tolc.js';
 import { track } from '../core/analytics.js';
 import { createAndStudyTolcErrorDeck, saveTolcResultAndLogin } from './tolcErrorDeck.js';
 
@@ -14,6 +14,17 @@ let _state = null;
 let _timer = null;
 
 function _el(id) { return document.getElementById(id); }
+function _esc(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+// Copia delle domande con la spiegazione (campo p) per il mazzo degli errori.
+// 08/10/2026: storico dei punteggi per TOLC, solo su questo dispositivo (nessun dato inviato).
+// Serve a dare un motivo per tornare: "la volta scorsa 12, oggi 18".
+var HIST_KEY = 'cortex_tolc_history';
+function _histLoad() { try { var a = JSON.parse(localStorage.getItem(HIST_KEY) || '[]'); return Array.isArray(a) ? a.filter(function (r) { return r && typeof r.k === 'string' && Number.isFinite(r.s); }) : []; } catch (e) { return []; } }
+function _histSave(rec) { try { var a = _histLoad(); a.push(rec); if (a.length > 60) a = a.slice(-60); localStorage.setItem(HIST_KEY, JSON.stringify(a)); } catch (e) {} }
+function _histFor(key, quick) { return _histLoad().filter(function (r) { return r.k === key && !!r.q === !!quick; }); }
+function _day(ts) { var d = new Date(ts); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function _ddmm(ts) { var d = new Date(ts); return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0'); }
+function _withWhy(qs) { return (qs || []).map(function (q) { var p = getTolcSpiegazione(q); return p ? Object.assign({}, q, { p: p }) : q; }); }
 function _fmt(sec) { const m = Math.floor(sec / 60), s = sec % 60; return m + ':' + String(s).padStart(2, '0'); }
 var _SUP = {'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','+':'⁺','-':'⁻','n':'ⁿ','x':'ˣ','a':'ᵃ','b':'ᵇ','i':'ⁱ'};
 var _SUB = {'0':'₀','1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉','n':'ₙ','x':'ₓ','i':'ᵢ'};
@@ -61,6 +72,10 @@ export function openTolcSim() {
   });
   track('tolc_sim_open');
   track('tolc_selector_viewed');   // v3 25/09: selettore davvero mostrato
+  if (!TOLC_TESTS.__nuove) loadTolcNuove().then(function () {
+    var o = _el('tolc-sim-overlay');
+    if (o && !_state && o.querySelector('.tolc-pick')) o.innerHTML = _selectorHTML();   // conteggi aggiornati
+  });
 }
 
 // Deep-link: apre DRITTO un TOLC specifico sulla prima domanda (salta selettore + intro).
@@ -80,8 +95,12 @@ export function startTolcDirect(key, opts) {
     _remove();
   });
   var quick = !!(opts && opts.quick);
-  track('tolc_sim_open', { direct: key, mode: quick ? 'quick' : 'full' });
-  _start(key, quick);
+  // 08/10/2026: dai link "Inizia la simulazione" delle pagine TOLC partiva subito il test completo
+  // (quasi 2 ore): 7 tentativi su 8 abbandonati e la prova veloce mai vista. Ora si mostra prima la
+  // scheda del TOLC con la scelta: test completo o prova veloce. &veloce=1 resta diretto alla veloce.
+  track('tolc_sim_open', { direct: key, mode: quick ? 'quick' : 'choice' });
+  if (quick) { _start(key, true); return; }
+  _intro(key);
 }
 
 function _selectorHTML() {
@@ -112,8 +131,21 @@ function _selectorHTML() {
   );
 }
 
-function _intro(key) {
+function _introHist(key) {
+  var f = _histFor(key, false), q = _histFor(key, true), parts = [];
+  if (f.length) { var a = f[f.length - 1]; parts.push('completa <b style="color:#fff;">' + _fmtScore(a.s) + '</b> / ' + a.n + ' (' + _ddmm(a.t) + ')'); }
+  if (q.length) { var b = q[q.length - 1]; parts.push('veloce <b style="color:#fff;">' + _fmtScore(b.s) + '</b> / ' + b.n + ' (' + _ddmm(b.t) + ')'); }
+  if (!parts.length) return '';
+  return '<p style="font-size:.8rem;color:rgba(255,255,255,.7);margin:0 0 12px;text-align:center;">📈 La tua ultima prova: ' + parts.join(' · ') + ' — prova a migliorare.</p>';
+}
+
+function _durata(min) { var h = Math.floor(min / 60), m = min % 60; return h ? h + ' h' + (m ? ' ' + (m < 10 ? '0' : '') + m + ' min' : '') : m + ' min'; }
+function _intro(key, refresh) {
   const t = TOLC_TESTS[key];
+  if (!TOLC_TESTS.__nuove) loadTolcNuove().then(function () {   // conteggi aggiornati appena arrivano le domande nuove
+    var o = _el('tolc-sim-overlay');
+    if (o && !_state && o.querySelector('#tolc-start[data-key="' + key + '"]')) _intro(key, true);
+  });
   const totQ = tolcTotQ(t), totMin = tolcTotMin(t);
   // Conteggio reale dei quesiti per sezione dalla banca: per i TOLC le cui
   // sezioni non hanno il numero ufficiale (q:null), la simulazione serve tutta
@@ -136,11 +168,12 @@ function _intro(key) {
   }).join('');
   const ready = (t.banca && t.banca.length > 0);
   const ov = _el('tolc-sim-overlay'); if (!ov) return;
-  try { track('tolc_intro_viewed', { test: key }); } catch (e3) {}
+  if (!refresh) { try { track('tolc_intro_viewed', { test: key }); } catch (e3) {} }
   const warn = ready ? '' : '<br><b style="color:#fbbf24;">Banca domande in arrivo per questo TOLC</b> — al momento e provabile solo il TOLC-I.';
   const startStyle = ready ? 'linear-gradient(135deg,#a855f7,#6366f1)' : 'rgba(255,255,255,.08)';
   const startCur = ready ? 'pointer' : 'not-allowed';
-  const startTxt = ready ? 'Inizia la simulazione →' : 'Domande non ancora disponibili';
+  // numeri ufficiali (la banca nuova arriva dopo un attimo: prima si vedevano per un secondo numeri più bassi)
+  const startTxt = ready ? 'Test completo →<span style="display:block;font-size:.74rem;font-weight:700;opacity:.8;margin-top:2px;pointer-events:none;">come quello vero · ' + tolcTotQ(t) + ' + ' + (t.engQ || realEng) + ' domande' + (totMin ? ' · ' + _durata(totMin + (t.engMin || 0)) : '') + '</span>' : 'Domande non ancora disponibili';
   ov.innerHTML = _shell(
     '<div style="text-align:center;margin-bottom:14px;">' +
       '<div style="font-size:1.6rem;">' + t.emoji + '</div>' +
@@ -158,6 +191,7 @@ function _intro(key) {
       '</tr></tfoot>' +
     '</table>' +
     (warn ? '<p style="font-size:.72rem;color:rgba(255,255,255,.4);margin:0 0 16px;line-height:1.5;">' + warn + '</p>' : '') +
+    _introHist(key) +
     '<p style="font-size:.68rem;color:rgba(255,255,255,.4);line-height:1.5;margin:0 0 14px;">Punteggio CISIA: +1 corretta, -0,25 errata, 0 non data (Inglese senza penalita’, a parte). Le regole di ammissione (soglie/OFA) variano per ateneo.</p>' +
     '<button id="tolc-start" data-key="' + key + '" ' + (ready ? '' : 'disabled') + ' style="width:100%;padding:14px;border-radius:12px;border:none;font-weight:800;font-size:1rem;color:#fff;background:' + startStyle + ';cursor:' + startCur + ';">' + startTxt + '</button>' +
     (ready ? '<button id="tolc-start-quick" data-key="' + key + '" style="width:100%;padding:12px;margin-top:9px;border-radius:12px;border:1px solid rgba(168,85,247,.5);background:rgba(168,85,247,.12);color:#c084fc;font-weight:800;font-size:.95rem;cursor:pointer;line-height:1.3;">⚡ Prova veloce<span style="display:block;font-size:.74rem;font-weight:700;color:rgba(196,181,253,.75);margin-top:2px;pointer-events:none;">10 domande · circa ' + _quickMinutes(t) + ' minuti</span></button>' : '') +
@@ -242,7 +276,17 @@ function _quickMinutes(t) {
     return Math.max(5, Math.round(_secsFor(t, smp) / 60 / 5) * 5);
   } catch (e) { return 15; }
 }
+// 07/10/2026: prima di iniziare servono le domande nuove (caricate a parte). Di solito sono
+// già pronte (si caricano all'apertura del simulatore); se no, breve attesa con un messaggio.
+// Se il caricamento non riesce (offline) si parte con la banca di base.
 function _start(key, quick) {
+  try { loadTolcSpiegazioni(); } catch (eS) {}   // 08/10: spiegazioni in background, non bloccano
+  if (TOLC_TESTS.__nuove) return _startNow(key, quick);
+  const ov = _el('tolc-sim-overlay');
+  if (ov) ov.innerHTML = _shell('<div style="text-align:center;padding:30px 0;color:rgba(255,255,255,.7);font-weight:700;">Preparo le domande…</div>');
+  loadTolcNuove().then(function () { if (_el('tolc-sim-overlay')) _startNow(key, quick); });
+}
+function _startNow(key, quick) {
   const t = TOLC_TESTS[key];
   if (!t.banca || !t.banca.length) return;
   quick = !!quick;
@@ -254,6 +298,13 @@ function _start(key, quick) {
   _state = { key: key, test: t, qs: qs, i: 0, answers: new Array(qs.length).fill(null), checked: new Array(qs.length).fill(false), left: secs, running: true, attemptId: attemptId, quick: quick };
   _renderQ();
   track('tolc_test_start', { test: key, attempt: attemptId, mode: quick ? 'quick' : 'full' });
+  try {
+    var _h = _histLoad().filter(function (r) { return r.k === key; });
+    var _last = _h[_h.length - 1];
+    if (_last && _day(_last.t) !== _day(Date.now())) {
+      track('tolc_returned', { test: key, mode: quick ? 'quick' : 'full', days_after: Math.max(1, Math.round((Date.now() - _last.t) / 864e5)), n: _h.length });
+    }
+  } catch (eR) {}
   if (quick) track('tolc_quick_start', { test: key, attempt: attemptId });   // avvio REALE della prova (1a domanda mostrata), distinto da tolc_sim_open (= apertura selettore)
   _clearTimer();
   _timer = setInterval(function () {
@@ -286,6 +337,9 @@ function _renderQ() {
   const fb = !isChecked ? '' : (st.answers[st.i] === d.c
     ? '<div style="margin-top:12px;padding:10px 14px;border-radius:12px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.4);color:#4ade80;font-weight:700;font-size:.9rem;">✔ Corretta</div>'
     : '<div style="margin-top:12px;padding:10px 14px;border-radius:12px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);color:#f87171;font-weight:700;font-size:.9rem;">✘ Sbagliata — la risposta corretta è ' + String.fromCharCode(65 + d.c) + '</div>');
+  // 08/10/2026: "perché è giusta" sotto l'esito della verifica (se la spiegazione è già arrivata).
+  const _why = isChecked ? getTolcSpiegazione(d) : '';
+  const why = _why ? '<div class="selectable-text" style="margin-top:8px;padding:10px 14px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.8);font-size:.86rem;line-height:1.5;"><b style="color:#c4b5fd;">Perché:</b> ' + _math(_esc(_why)) + '</div>' : '';
   const canCheck = st.answers[st.i] !== null && !isChecked;
   const nextTxt = (st.i === st.qs.length - 1) ? 'Termina ✓' : 'Prossima →';
   // Dashboard navigazione ad accordion: chip sezioni colorate; clic su una
@@ -340,7 +394,7 @@ function _renderQ() {
     '<div style="height:5px;background:rgba(255,255,255,.08);border-radius:4px;margin-bottom:16px;overflow:hidden;"><div style="height:100%;width:' + prog + '%;background:linear-gradient(90deg,#a855f7,#6366f1);"></div></div>' +
     '<div style="font-size:.78rem;color:rgba(255,255,255,.45);margin-bottom:6px;">Domanda ' + (st.i + 1) + ' di ' + st.qs.length + '</div>' +
     '<h3 class="selectable-text" style="font-size:1.1rem;font-weight:700;line-height:1.4;margin:0 0 16px;">' + _math(d.q) + '</h3>' +
-    '<div style="display:flex;flex-direction:column;gap:9px;">' + opts + '</div>' + fb +
+    '<div style="display:flex;flex-direction:column;gap:9px;">' + opts + '</div>' + fb + why +
     '<div style="display:flex;gap:10px;margin-top:18px;">' +
       '<button id="tolc-skip" style="flex:1;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(255,255,255,.6);font-weight:700;cursor:pointer;">Salta</button>' +
       (canCheck ? '<button id="tolc-check" style="flex:1;padding:12px;border-radius:12px;border:1px solid rgba(34,197,94,.5);background:rgba(34,197,94,.12);color:#4ade80;font-weight:800;cursor:pointer;">Verifica ✓</button>' : '') +
@@ -388,7 +442,7 @@ function _sectionStats(st) {
 function _fmtScore(v) {
   var r = Math.round(v * 100) / 100;
   if (Number.isInteger(r)) return String(r);
-  return r.toFixed(2).replace(/0$/, '');
+  return r.toFixed(2).replace(/0$/, '').replace('.', ',');   // 08/10: virgola decimale italiana
 }
 function _secScore(g, mode) {
   if (g.name === 'Inglese') return g.ok;          // inglese: mai penalita'
@@ -406,7 +460,27 @@ function _finish() {
   track('tolc_sim_complete', { test: st.key, correct: correct, pct: pct, attempt: st.attemptId, mode: st.quick ? 'quick' : 'full' });
   if (st.quick) track('tolc_quick_complete', { test: st.key, correct: correct, pct: pct, attempt: st.attemptId });
   try { if (window.addXP) window.addXP(correct * 5); } catch (e) {}
+  try {
+    var _base = _sectionStats(st).filter(function (g) { return g.name !== 'Inglese'; });
+    st._histScore = _base.reduce(function (a, g) { return a + _secScore(g, 'cisia'); }, 0);
+    st._histN = _base.reduce(function (a, g) { return a + g.n; }, 0);
+    st._prevHist = _histFor(st.key, st.quick);
+    _histSave({ k: st.key, q: !!st.quick, s: Math.round(st._histScore * 100) / 100, n: st._histN, t: Date.now() });
+  } catch (eH) {}
   _renderResult();
+}
+
+function _histHTML(st) {
+  if (!Number.isFinite(st._histScore)) return '';
+  var prev = (st._prevHist || []).slice(-4), tipo = st.quick ? 'veloci' : 'complete';
+  var box = 'margin:0 0 12px;padding:10px 12px;border-radius:12px;background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.25);font-size:.8rem;line-height:1.5;color:rgba(255,255,255,.8);text-align:center;';
+  if (!prev.length) return '<div style="' + box + '">📈 Prima prova ' + tipo + ' ' + st.test.nome + ' salvata. <b>Rifalla nei prossimi giorni</b>: qui vedrai se migliori (le domande cambiano ogni volta).</div>';
+  var last = prev[prev.length - 1], diff = Math.round((st._histScore - last.s) * 100) / 100;
+  var seq = prev.map(function (r) { return '<span title="' + _ddmm(r.t) + '">' + _fmtScore(r.s) + '</span>'; }).join(' → ') + ' → <b style="color:#fff;">' + _fmtScore(st._histScore) + '</b>';
+  var msg = diff > 0 ? '<b style="color:#4ade80;">+' + _fmtScore(diff) + '</b> rispetto alla volta scorsa (' + _ddmm(last.t) + ')'
+    : diff < 0 ? '<b style="color:#fbbf24;">' + _fmtScore(diff) + '</b> rispetto alla volta scorsa (' + _ddmm(last.t) + '): ripassa gli errori e riprova'
+    : 'come la volta scorsa (' + _ddmm(last.t) + ')';
+  return '<div style="' + box + '">📈 Le tue prove ' + tipo + ' ' + st.test.nome + ': ' + seq + '<br>' + msg + '</div>';
 }
 
 function _renderResult() {
@@ -429,7 +503,7 @@ function _renderResult() {
   // login; il mazzo e' locale: domanda + risposta corretta + risposta data, subito.
   var genBtn = nWrong > 0
     ? '<button id="tolc-gen-errors" style="width:100%;padding:15px;border-radius:12px;border:none;font-weight:800;font-size:1rem;color:#fff;background:linear-gradient(135deg,#16a34a,#22c55e);cursor:pointer;box-shadow:0 10px 30px rgba(34,197,94,.25);">🎯 ' + (nWrong === 1 ? 'Ripassa il tuo errore' : 'Ripassa i tuoi ' + nWrong + ' errori') + '</button>' +
-      '<div style="text-align:center;font-size:.76rem;color:rgba(255,255,255,.6);margin:6px 0 12px;line-height:1.45;">Per ogni errore vedi la risposta giusta accanto alla tua, poi lo ripassi. Gratis, senza account.</div>'
+      '<div style="text-align:center;font-size:.76rem;color:rgba(255,255,255,.6);margin:6px 0 12px;line-height:1.45;">Per ogni errore vedi la risposta giusta accanto alla tua e il perché, poi lo ripassi. Gratis, senza account.</div>'
     : '<div role="status" style="text-align:center;padding:12px;margin:8px 0 12px;border-radius:12px;background:rgba(34,197,94,.1);color:#86efac;font-weight:700;">Nessun errore da ripassare — ottimo risultato!</div>';
   // Accesso facoltativo: prima di aprirlo il risultato e il mazzo degli errori vengono messi al sicuro.
   var enterBtn = '<button id="tolc-enter" style="width:100%;padding:10px;margin-top:10px;border:none;background:transparent;color:#c4b5fd;font-weight:700;font-size:.86rem;text-decoration:underline;text-underline-offset:3px;cursor:pointer;">Salva il risultato nel tuo account Google</button>';
@@ -463,6 +537,7 @@ function _renderResult() {
       '<h2 style="font-family:Outfit,sans-serif;font-weight:900;margin:6px 0 2px;font-size:1.5rem;">Esito ' + st.test.nome + (st.quick ? ' · prova veloce' : '') + '</h2>' +
       '<p style="color:rgba(255,255,255,.6);margin:0;font-size:.86rem;">Punteggio totale test: <b style="color:#fff;">' + _fmtScore(totScore) + '</b> / ' + totQ + (eng ? '  ·  Inglese: <b style="color:#fff;">' + _fmtScore(_secScore(eng, mode)) + '</b> / ' + eng.n : '') + '</p>' +
     '</div>' +
+    _histHTML(st) +
     // Porta il passaggio verso le flashcard subito sotto al punteggio: su mobile
     // la tabella dei risultati non deve nascondere l'azione principale in fondo.
     genBtn +
@@ -616,7 +691,7 @@ document.addEventListener('click', function (e) {
     // salvati prima, e al ritorno compare "Riprendi il ripasso" (tolcErrorDeck.js).
     var stE = _state;
     if (stE && stE.finished && (typeof window.__guestLogin === 'function' || typeof window.loginWithGoogle === 'function')) {
-      saveTolcResultAndLogin({ attemptId: stE.attemptId, key: stE.key, test: stE.test, qs: stE.qs, answers: stE.answers }, _math,
+      saveTolcResultAndLogin({ attemptId: stE.attemptId, key: stE.key, test: stE.test, qs: _withWhy(stE.qs), answers: stE.answers }, _math,
         { correct: stE._correct || 0, total: (stE.qs || []).length, nWrong: stE._nWrong || 0 });
       return;
     }
@@ -638,7 +713,7 @@ document.addEventListener('click', function (e) {
     if (!nWrongNow) { if (window.showToast) window.showToast('Nessun errore da ripassare — ottimo! \uD83C\uDF89', 'success'); return; }
     if (st2._errorDeckPending) return;               // doppio click
     st2._errorDeckPending = true;
-    var snapshot = { attemptId: st2.attemptId, key: st2.key, test: st2.test, qs: st2.qs, answers: st2.answers };
+    var snapshot = { attemptId: st2.attemptId, key: st2.key, test: st2.test, qs: _withWhy(st2.qs), answers: st2.answers };
     createAndStudyTolcErrorDeck(snapshot, _math).then(function (res) {
       if (res && res.ok) { _remove(); return; }
       if (_state === st2) st2._errorDeckPending = false;

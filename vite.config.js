@@ -56,7 +56,8 @@ export default defineConfig({
           // cachea a lungo separatamente dal resto dell'app. Split piu'
           // aggressivi (core/services/modules) creano cicli tra i chunk e
           // sono stati scartati per non rischiare l'ordine di esecuzione.
-          if (!id.includes('node_modules') && id.includes('/data/')) {
+          // 07/10/2026: la banca nuova dei TOLC si carica a parte (import dinamico), non all'avvio.
+          if (!id.includes('node_modules') && id.includes('/data/') && !id.includes('tolc_banca_') && !id.includes('tolc_spiegazioni_')) {
             return 'data';
           }
         }

@@ -42,6 +42,97 @@ def splita_arg(t):
         parts = [p.strip() for p in re.split(r"\.\s+(?=[A-ZÀ-Ù])", t) if len(p.strip()) > 3]
     return parts[:14]
 
+# 08/10/2026: quale test d'ingresso serve per ogni corso (scheda CISIA dell'Università di Messina,
+# https://www.cisiaonline.it/atenei/universita-degli-studi-di-messina , letta l'8/10/2026).
+# Solo i corsi della sede di Messina che compaiono nella scheda: per gli altri non si mostra nulla.
+TOLC_VERIFICA = "8 ottobre 2026"
+TOLC_UNIME = {
+    # nome normalizzato: (test, accesso, altri test riconosciuti)
+    "ingegneria elettronica e informatica": ("TOLC-I", "libero", []),
+    "ingegneria biomedica": ("TOLC-I", "libero", []),
+    "ingegneria civile": ("TOLC-I", "libero", []),
+    "ingegneria industriale": ("TOLC-I", "libero", []),
+    "ingegneria gestionale": ("TOLC-I", "libero", []),
+    "economia aziendale": ("TOLC-E", "libero", []),
+    "economia banca e finanza": ("TOLC-E", "libero", []),
+    "management d impresa": ("TOLC-E", "libero", []),
+    "big data per le scienze economiche": ("TOLC-E", "libero", []),
+    "scienze ambientali marine e terrestri": ("TOLC-S", "libero", ["TOLC-B"]),
+    "informatica": ("TOLC-S", "libero", ["TOLC-I"]),
+    "matematica": ("TOLC-S", "libero", ["TOLC-I"]),
+    "fisica": ("TOLC-S", "libero", ["TOLC-I"]),
+    "chimica": ("TOLC-S", "libero", []),
+    "scienze e tecnologie della navigazione": ("TOLC-S", "libero", ["TOLC-I"]),
+    "scienze biologiche": ("TOLC-B", "libero", ["TOLC-S"]),
+    "scienze nutraceutiche e alimenti funzionali": ("TOLC-F", "libero", ["TOLC-B", "TOLC-S"]),
+    "chimica e tecnologia farmaceutiche": ("TOLC-F", "libero", ["TOLC-B"]),
+    "scienze gastronomiche": ("TOLC-F", "libero", []),
+    "farmacia": ("TOLC-F", "libero", ["TOLC-B"]),
+    "scienze motorie sport e salute": ("TOLC-F", "programmato", []),
+    "archeologia e storia dell arte": ("TOLC-SU", "libero", []),
+    "scienze della formazione e della comunicazione": ("TOLC-SU", "libero", []),
+    "consulente del lavoro e scienze dei servizi giuridici": ("TOLC-SU", "libero", []),
+    "filosofia": ("TOLC-SU", "libero", []),
+    "discipline delle arti della musica e dello spettacolo": ("TOLC-SU", "libero", []),
+    "lettere": ("TOLC-SU", "libero", []),
+    "scienze dell informazione tecniche giornalistiche e social media": ("TOLC-SU", "libero", []),
+    "scienze del turismo della cultura e dell impresa": ("TOLC-SU", "libero", []),
+    "lingue letterature straniere e tecniche della mediazione linguistica": ("TOLC-SU", "libero", []),
+    "giurisprudenza": ("TOLC-SU", "libero", []),
+    "scienze e tecniche psicologiche": ("TOLC-PSI", "programmato", []),
+    "scienze e tecniche psicologiche cliniche e preventive": ("TOLC-PSI", "programmato", []),
+    "scienze e tecnologie agrarie per la transizione ecologica": ("TOLC-AV", "libero", ["TOLC-F"]),
+    "scienze tecnologie e sicurezza delle produzioni animali": ("TOLC-AV", "libero", ["TOLC-F"]),
+    "heritage innovation engineering": ("CEnT-S", "libero", []),
+    "marine biology and blue biotechnologies": ("CEnT-S", "libero", []),
+}
+
+def _norm(n):
+    import unicodedata
+    n = unicodedata.normalize("NFKD", n.replace("’", " ")).encode("ascii", "ignore").decode().lower()
+    return " ".join(re.sub(r"[^a-z0-9]+", " ", n).split())
+
+def tolc_info(corso):
+    """(test, accesso, altri) per i corsi della sede di Messina presenti nella scheda CISIA, altrimenti None."""
+    if (corso.get("sede") or "MESSINA").strip() != "MESSINA":
+        return None
+    if (corso.get("gruppo") or "").lower() not in ("triennale", "magistrale a ciclo unico"):
+        return None
+    return TOLC_UNIME.get(_norm(corso["nome"]))
+
+def tolc_box(corso, nome_h, sl):
+    t = tolc_info(corso)
+    if not t:
+        return ""
+    test, acc, altri = t
+    acc_h = "accesso libero" if acc == "libero" else "accesso programmato (numero chiuso)"
+    if test == "CEnT-S":
+        test_h = "il <strong>CEnT-S</strong> (il test CISIA in inglese)"
+        cta = ""
+    else:
+        k = test.lower()
+        test_h = f'il <a href="/{k}" style="color:#c084fc"><strong>{test}</strong></a>'
+        cta = (f'<a class="mcta" href="/app?guest=1&sim={k}&veloce=1&utm_source=seo&utm_campaign={sl}&utm_content=corso_tolc">'
+               f'Prova il {test}: 10 domande veloci, gratis →</a>')
+    alt = (" Vale anche il " + " o il ".join(altri) + ".") if altri else ""
+    nota = (" Nei corsi ad accesso libero il test non esclude nessuno: serve a verificare la preparazione iniziale e, sotto la soglia, il bando può prevedere obblighi formativi aggiuntivi (OFA)."
+            if acc == "libero" else " Il punteggio serve per la graduatoria: posti e soglie sono nel bando del corso.")
+    return (f'\n<div class="card tolcbox" style="margin:22px 0 6px;padding:18px 20px">'
+            f'<p style="font-size:.78rem;color:#a78bfa;font-weight:700;margin:0 0 6px">🎯 TEST D\'INGRESSO</p>'
+            f'<p style="margin:0">Per entrare a <strong>{esc(nome_h)}</strong> a Messina serve {test_h} · {acc_h}.{alt}{nota}</p>'
+            f'{cta}'
+            f'<p class="hint" style="margin:8px 0 0">Fonte: scheda CISIA dell\'Università di Messina, verificata l\'{TOLC_VERIFICA}. Fa sempre fede il bando UniMe del corso.</p></div>')
+
+def tolc_faq(corso, nome_h):
+    t = tolc_info(corso)
+    if not t:
+        return None
+    test, acc, altri = t
+    alt = (" Vale anche il " + " o il ".join(altri) + ".") if altri else ""
+    acc_h = "Il corso è ad accesso libero: il test serve a verificare la preparazione iniziale e, sotto la soglia, il bando può prevedere obblighi formativi aggiuntivi (OFA)." if acc == "libero" else "Il corso è ad accesso programmato: il punteggio serve per la graduatoria."
+    q = f"Che TOLC serve per {nome_h} a Messina?" if test != "CEnT-S" else f"Che test serve per {nome_h} a Messina?"
+    return (q, f"Serve il {test}.{alt} {acc_h} Fonte: scheda CISIA dell'Università di Messina; fa fede il bando UniMe.")
+
 def build_page(corso, ins_list, correlati=None, canon_slug=None):
     nome = corso["nome"]
     nome_h = nome.title() if nome.isupper() else nome
@@ -114,6 +205,9 @@ def build_page(corso, ins_list, correlati=None, canon_slug=None):
         ("Come posso ripassare per gli esami?",
          "Con Cortex apri un insegnamento e l'AI genera flashcard con ripetizione spaziata dal programma reale e dai tuoi appunti. Gratis, senza registrarti."),
     ]
+    _tf = tolc_faq(corso, nome_h)
+    if _tf:
+        faqs.insert(0, _tf)
     faq_html = "".join(f'<details><summary>{q}</summary><p style="margin-top:10px">{a}</p></details>' for q, a in faqs)
     ld = {"@context": "https://schema.org", "@type": "FAQPage",
           "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in faqs]}
@@ -162,7 +256,7 @@ def build_page(corso, ins_list, correlati=None, canon_slug=None):
 <h1>{esc(nome_h)}: <span class="grad">esami e programma</span></h1>
 <p class="sub">Tutti gli insegnamenti del corso di <strong>{esc(nome_h)}</strong> all'Università di Messina, con CFU e argomenti del programma. Ripassa ogni esame con le flashcard AI di Cortex — gratis, senza registrarti.</p>
 <a class="btn btn-p btn-xl" href="/unime?utm_source=seo&utm_campaign={sl}">Apri il tuo corso su Cortex →</a>
-
+{tolc_box(corso, nome_h, sl)}
 <h2>Gli insegnamenti del corso ({n_ins})</h2>
 <p>Apri un insegnamento per vedere CFU, docenti e argomenti — e generare le flashcard su quelli dove hai più difficoltà.</p>
 <p class="hint">📅 Dati dal catalogo ufficiale UNIME, Anno Accademico 2026/2027. Docenti e programmi possono cambiare di anno in anno.</p>

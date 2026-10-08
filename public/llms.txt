@@ -1,0 +1,45 @@
+# Cortex
+
+> Cortex (cortexapp.it) è un'app gratuita per prepararsi ai test d'ingresso universitari italiani TOLC del CISIA: simulazioni a tempo con la struttura ufficiale, prova veloce da 10 domande, ripasso degli errori con flashcard e ripetizione spaziata. Le domande sono originali in stile TOLC, non quesiti ufficiali CISIA.
+
+Dati ufficiali sui TOLC (fonte: pagine "Struttura della prova e sillabo" su cisiaonline.it, verificate il 7 ottobre 2026). Punteggio: +1 risposta corretta, 0 non data, −0,25 errata; la prova di Inglese (30 quesiti, 15 minuti) è senza penalità. Iscrizione: 35 euro a prova (2026). Lo stesso tipo di TOLC si può sostenere una volta per mese solare.
+
+| TOLC | Area | Quesiti | Minuti | Durata con inglese |
+|---|---|---|---|---|
+| TOLC-I | Ingegneria | 50 | 110 | 2 h 05 min |
+| TOLC-E | Economia | 36 | 90 | 1 h 45 min |
+| TOLC-F | Farmacia | 50 | 72 | 1 h 27 min |
+| TOLC-B | Biologia | 50 | 110 | 2 h 05 min |
+| TOLC-S | Scienze | 55 | 120 | 2 h 15 min |
+| TOLC-SU | Studi umanistici | 50 | 100 | 1 h 55 min |
+| TOLC-PSI | Psicologia | 50 | 100 | 1 h 55 min |
+| TOLC-SPS | Scienze politiche | 40 | 90 | 1 h 45 min |
+| TOLC-LP | Lauree professionalizzanti | 30 | 90 | 1 h 45 min |
+| TOLC-AV | Agraria e veterinaria | 50 | 100 | 1 h 55 min |
+
+## Guide
+
+- [Come funziona il TOLC e quanto dura](https://cortexapp.it/come-funziona-il-tolc): tipologie, durata di ogni TOLC, giorno della prova, punteggio
+- [Quante volte si può fare il TOLC](https://cortexapp.it/ripetere-il-tolc): regola del mese solare e quale punteggio conta
+- [Punteggio TOLC](https://cortexapp.it/punteggio-tolc): come si calcola e soglie (variano per ateneo)
+- [Iscrizione al TOLC](https://cortexapp.it/iscrizione-tolc): passi sul sito CISIA, costo, TOLC@CASA e TOLC all'università
+- [Quale TOLC scegliere](https://cortexapp.it/quale-tolc-scegliere): quale test serve per quale corso
+
+## Pagine per tipo di TOLC (struttura ufficiale, domande d'esempio, simulazione gratuita)
+
+- [TOLC-I](https://cortexapp.it/tolc-i)
+- [TOLC-E](https://cortexapp.it/tolc-e)
+- [TOLC-F](https://cortexapp.it/tolc-f)
+- [TOLC-B](https://cortexapp.it/tolc-b)
+- [TOLC-S](https://cortexapp.it/tolc-s)
+- [TOLC-SU](https://cortexapp.it/tolc-su)
+- [TOLC-PSI](https://cortexapp.it/tolc-psi)
+- [TOLC-SPS](https://cortexapp.it/tolc-sps)
+- [TOLC-LP](https://cortexapp.it/tolc-lp)
+- [TOLC-AV](https://cortexapp.it/tolc-av)
+
+## Simulazioni ed esercizi
+
+- [Simulazione TOLC gratis](https://cortexapp.it/simulazione-tolc): tutti i TOLC, a tempo, senza registrazione
+- [Quiz di logica TOLC](https://cortexapp.it/quiz-logica-tolc): domande di logica con soluzione spiegata
+- [App Cortex](https://cortexapp.it/app): simulazioni, prova veloce, flashcard

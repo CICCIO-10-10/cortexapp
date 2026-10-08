@@ -37,6 +37,8 @@ describe('riepilogo errori — contesto dei js_error', () => {
     expect(r.errors.context.js_error.browser).toEqual({ inapp_tiktok: 2 });
     expect(r.errors.context.js_error.step).toEqual({ tolc_test_start: 1, app_open: 1 });
     expect(r.errors.reasons.js_error).toEqual({ script_error_cross_origin: 2 });
+    expect(r.errors.lastAt.js_error).toBe(now - 1000);          // 08/10: ora dell'ultimo errore
+    expect(r.errors.lastAt.firebase_sdk_unavailable).toBeNull();
   });
 });
 

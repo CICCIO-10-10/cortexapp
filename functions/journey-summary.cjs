@@ -43,7 +43,7 @@ function summarizeJourneys(events, coverage = {}, now = Date.now()) {
     'tolc_error_deck_login_completed', 'tolc_error_save_prompt_shown', 'tolc_error_save_prompt_login_click', 'tolc_error_save_prompt_ai_click',
     'onboarding_bypassed', 'study_session_abandoned', 'tolc_error_deck_failed', 'guest_login_not_completed', 'tolc_resume_dismiss',
     'tolc_test_hidden', 'tolc_test_resumed', 'study_start_failed', 'guest_ai_gate_dismiss', 'guest_save_click',
-    'tolc_quick_start', 'tolc_quick_complete'];
+    'tolc_quick_start', 'tolc_quick_complete', 'tolc_returned'];
   const V3 = [...Object.values(PATHS).flat(), ...BRANCHES, 'onboarding_step_viewed'];
   const v3 = { steps: {}, paths: {}, breakdown: { gen_fail_reason: {}, tolc_closed_stage: {}, onboarding_skip_step: {}, tolc_quit_answered: [], tolc_deck_type: {},
     onboarding_variant: {}, onboarding_bypass_reason: {}, review_first_type: {}, review_first_flow: {}, returned_days_after: {}, returned_type: {},
@@ -183,13 +183,15 @@ function summarizeJourneys(events, coverage = {}, now = Date.now()) {
   const errSince = Date.now() - 7 * 24 * 3600 * 1000;
   // 04/10/2026: per js_error anche il contesto (tipo di browser, ultimo passo, punto) — serve a
   // capire i "Script error." che da soli non dicono nulla.
-  const errors = { since: errSince, events: {}, browsers: {}, reasons: {}, context: { js_error: { browser: {}, step: {}, at: {} } } };
-  ERR_TYPES.forEach(t => { errors.events[t] = 0; errors.browsers[t] = 0; errors.reasons[t] = {}; });
+  // 08/10/2026: lastAt = ora dell'ultimo evento per tipo, per vedere se un errore è ancora attivo dopo una correzione.
+  const errors = { since: errSince, events: {}, browsers: {}, reasons: {}, lastAt: {}, context: { js_error: { browser: {}, step: {}, at: {} } } };
+  ERR_TYPES.forEach(t => { errors.events[t] = 0; errors.browsers[t] = 0; errors.reasons[t] = {}; errors.lastAt[t] = null; });
   for (const visitorEvents of byVisitor.values()) {
     const hit = new Set();
     for (const e of visitorEvents) {
       if (!ERR_TYPES.includes(e.type) || e.ts < errSince) continue;
       errors.events[e.type]++;
+      if (!errors.lastAt[e.type] || e.ts > errors.lastAt[e.type]) errors.lastAt[e.type] = e.ts;
       hit.add(e.type);
       const r = String(((e.meta || {}).reason) || 'n/d').slice(0, 80);
       errors.reasons[e.type][r] = (errors.reasons[e.type][r] || 0) + 1;

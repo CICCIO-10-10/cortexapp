@@ -31,6 +31,9 @@ const AGE_CHECK_KEY  = 'cortex_age_verified';
  * Mostra il cookie banner se l'utente non ha ancora scelto.
  * Chiamare all'avvio dell'app (bootApp o DOMContentLoaded).
  */
+// 08/10/2026: il banner stava SOTTO la simulazione TOLC (stesso z-index 99999, aggiunta dopo):
+// chi arrivava da un link "Inizia la simulazione" non poteva scegliere i cookie, quindi né GA né
+// Clarity né il nostro tracker lo contavano. Ora sta sopra a tutto, come il banner delle pagine del sito.
 export function initCookieBanner() {
     if (localStorage.getItem(COOKIE_KEY)) return; // già scelto
     if (document.getElementById('gdpr-cookie-banner')) return;
@@ -41,7 +44,7 @@ export function initCookieBanner() {
     banner.setAttribute('aria-label', 'Consenso cookie');
     banner.innerHTML = `
         <div style="
-            position:fixed; bottom:0; left:0; right:0; z-index:99999;
+            position:fixed; bottom:0; left:0; right:0; z-index:2147483000;
             background:rgba(10,10,20,0.97); backdrop-filter:blur(20px);
             border-top:1px solid rgba(124,106,247,0.3);
             padding:16px 20px; display:flex; align-items:center;

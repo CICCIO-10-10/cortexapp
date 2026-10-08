@@ -20,7 +20,7 @@ import { saveState } from './deckUtils.js';
 import { startStudyById } from './study.js';
 import { track } from '../core/analytics.js';
 import { todayStr } from '../js/utils.js';
-import { collectWrongAnswers, buildTolcErrorDeck, findDeckForAttempt, isTolcErrorDeck, aiNotesFromDeck, TOLC_ERROR_NO_EXPLANATION, TOLC_RESUME_KEY, buildResumeRecord, parseResumeRecord } from './tolcErrorCards.js';
+import { collectWrongAnswers, buildTolcErrorDeck, findDeckForAttempt, isTolcErrorDeck, aiNotesFromDeck, TOLC_ERROR_NO_EXPLANATION, TOLC_ERROR_WITH_EXPLANATION, TOLC_RESUME_KEY, buildResumeRecord, parseResumeRecord } from './tolcErrorCards.js';
 
 const FUNNEL_KEY = 'cortex_tolc_error_funnel';
 const FUNNEL_TTL = 30 * 24 * 60 * 60 * 1000;
@@ -256,7 +256,9 @@ export function showTolcSavePrompt(deck) {
         const title = guest ? 'Vuoi ritrovare questo mazzo domani?' : 'Vuoi capire meglio i tuoi errori?';
         const body = guest
             ? 'Accedi con Google per salvarlo e sincronizzare i progressi. Puoi anche continuare come ospite: il mazzo resta su questo dispositivo.'
-            : TOLC_ERROR_NO_EXPLANATION + ' Se vuoi, l’AI può crearti carte con la spiegazione.';
+            : (deck && deck.text === TOLC_ERROR_WITH_EXPLANATION
+                ? 'Ogni carta ha già il perché della risposta giusta. Se vuoi, l’AI può crearti altre carte per approfondire.'
+                : TOLC_ERROR_NO_EXPLANATION + ' Se vuoi, l’AI può crearti carte con la spiegazione.');
         box.innerHTML =
             '<div style="font-weight:800;font-size:.98rem;margin-bottom:6px;">' + title + '</div>' +
             '<div style="font-size:.82rem;color:rgba(255,255,255,.65);line-height:1.5;margin-bottom:12px;">' + body + '</div>' +

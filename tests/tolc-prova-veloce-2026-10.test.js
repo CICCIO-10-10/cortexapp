@@ -65,21 +65,26 @@ describe('prova veloce — scelta delle domande', () => {
   });
 });
 
-describe('tempo dei TOLC senza tempi ufficiali per sezione (PSI, SPS, LP, AV)', () => {
+describe('tempo dei TOLC senza tempi ufficiali per sezione', () => {
   const api = loadSampler();
-  it('1,5 minuti a domanda servita, non diviso per i 50 quesiti ufficiali', () => {
-    const t = TOLC_TESTS['tolc-psi'];
+  it('senza minuti per sezione: 1,5 minuti a domanda servita (non diviso per i quesiti ufficiali)', () => {
+    const t = { sezioni: [{ n: 'A', q: null, min: null }], totQ: 50, engQ: 30, engMin: 15,
+      banca: Array.from({ length: 22 }, (_, i) => ({ s: 'A', q: 'q' + i, o: ['1', '2', '3', '4', '5'], c: 0 })) };
     const full = api._sample(t, false);
-    expect(api._secsFor(t, full)).toBe(full.nBase * 90 + full.nEng * 30);
+    expect(api._secsFor(t, full)).toBe(22 * 90 + full.nEng * 30);
+  });
+  it('TOLC-PSI ora ha i tempi ufficiali CISIA (100 minuti per 50 quesiti)', () => {
+    const t = TOLC_TESTS['tolc-psi'];
+    expect(tolcTotMin(t)).toBe(100);
+    expect(tolcTotQ(t)).toBe(50);
     const quick = api._sample(t, true);
-    expect(api._secsFor(t, quick)).toBe(8 * 90 + 2 * 30);
-    expect(api._quickMinutes(t)).toBe(15);
+    expect(api._secsFor(t, quick)).toBe(8 * 120 + 2 * 30);
   });
 });
 
 describe('prova veloce — pulsanti, risultato, link e misure', () => {
   it('intro: pulsante "Prova veloce" sotto quello del test completo, solo se la banca è pronta', () => {
-    const intro = between('function _intro(key)', 'function _shuffle(a)');
+    const intro = between('function _intro(key, refresh)', 'function _shuffle(a)');
     expect(intro.indexOf('id="tolc-start-quick"')).toBeGreaterThan(intro.indexOf('id="tolc-start"'));
     expect(intro).toContain("(ready ? '<button id=\"tolc-start-quick\"");
     expect(intro).toContain('⚡ Prova veloce<span');
@@ -106,7 +111,7 @@ describe('prova veloce — pulsanti, risultato, link e misure', () => {
     expect(src).toContain("track('tolc_quick_start'");
     expect(src).toContain("track('tolc_quick_complete'");
     const js = fs.readFileSync(new URL('../functions/journey-summary.cjs', import.meta.url), 'utf8');
-    expect(js).toContain("'tolc_quick_start', 'tolc_quick_complete'];");
+    expect(js).toContain("'tolc_quick_start', 'tolc_quick_complete', 'tolc_returned'];");
   });
 });
 
@@ -151,5 +156,26 @@ describe('risposte mescolate a ogni prova (07/10/2026)', () => {
       expect(s.o[s.o.length - 1]).toBe(q.o[q.o.length - 1]);
       expect(s.o[s.c]).toBe(q.o[q.c]);
     }
+  });
+});
+
+describe('link diretti ?sim=tolc-x: prima la scelta (08/10/2026)', () => {
+  const direct = between('export function startTolcDirect(key, opts)', 'function _selectorHTML()');
+  it('senza &veloce=1 mostra la scheda del TOLC con test completo e prova veloce (non parte più il test di 2 ore)', () => {
+    expect(direct).toContain('if (quick) { _start(key, true); return; }');
+    expect(direct).toContain('_intro(key);');
+    expect(direct).not.toMatch(/_start\(key, quick\);\s*\}/);
+    expect(direct).toContain("mode: quick ? 'quick' : 'choice'");
+  });
+  it('il pulsante del test completo dice quanto dura', () => {
+    const intro = between('function _intro(key, refresh)', 'function _shuffle(a)');
+    expect(intro).toContain("'Test completo →");
+    expect(intro).toContain("_durata(totMin + (t.engMin || 0))");
+    const ctx = vm.createContext({});
+    vm.runInContext(between('function _durata(min)', 'function _intro(key, refresh)') + '\nthis.d=_durata;', ctx);
+    expect(ctx.d(115)).toBe('1 h 55 min');
+    expect(ctx.d(105)).toBe('1 h 45 min');
+    expect(ctx.d(120)).toBe('2 h');
+    expect(ctx.d(45)).toBe('45 min');
   });
 });

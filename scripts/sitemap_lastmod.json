@@ -1,0 +1,542 @@
+{
+ "/": {
+  "date": "2026-10-07",
+  "sha": "c56e4b9e2e9ca83fae61c4be44fad294c10a8525eb1256080396f21924f94d67"
+ },
+ "/archeologia-e-storia-dell-arte-messina": {
+  "date": "2026-10-08",
+  "sha": "f670e9591e29b834dca9b0df68adc6209a177a1b162cd3e78e48288c734a7a47"
+ },
+ "/big-data-per-le-scienze-economiche-messina": {
+  "date": "2026-10-08",
+  "sha": "8044f71a7445a928ecc46c549f210b74a5b0b8e98a85d042a67e8f9f1ff8eaab"
+ },
+ "/bioingegneria-messina": {
+  "date": "2026-10-07",
+  "sha": "ad23651b56aa076249b46ecfd20ba1762f7864690a540ea2b9759104983d6064"
+ },
+ "/biologia-della-salute-delle-tecnologie-applicate-e-della-nutrizione-messina": {
+  "date": "2026-10-07",
+  "sha": "8028c2654fdf9cf506a6539d27d0b08f084251510c1435292f6e25959653f750"
+ },
+ "/biologia-ed-ecologia-dell-ambiente-marino-costiero-messina": {
+  "date": "2026-10-07",
+  "sha": "dc5fcdcbdbe4fb4c1266c39ac2a4951fde9e58f9f40e681c0ee02284a7b0a4e6"
+ },
+ "/biotecnologie-mediche-messina": {
+  "date": "2026-10-07",
+  "sha": "2a3c5af37e1609d4ffecea5866b02397d5643fade2bb26790c393d1bd5357c1a"
+ },
+ "/biotecnologie-veterinarie-messina": {
+  "date": "2026-10-07",
+  "sha": "d57c7eaf71dffbedd1e93f0a69c51c2fee84fcb0032f60179cdaecb108bf541a"
+ },
+ "/chimica-e-tecnologia-farmaceutiche-messina": {
+  "date": "2026-10-08",
+  "sha": "632519c48b56394e0134fcfe4a91dea9ab460653dbaadaedbec5f17b661aa273"
+ },
+ "/chimica-magistrale-messina": {
+  "date": "2026-10-07",
+  "sha": "c25485f89ea1c71b111693822b61cc63d64fd7d71729fc19a05335a201336dbe"
+ },
+ "/chimica-messina": {
+  "date": "2026-10-08",
+  "sha": "34a0c852dc1d97478a176e05c14b14661a0c277d238dbad02d403089be76954b"
+ },
+ "/civilta-letteraria-dell-italia-medievale-e-moderna-messina": {
+  "date": "2026-10-07",
+  "sha": "eecbff5f7e927ff110056de3670b065b2b15b25f61ac9869fa8dfc67819f68f2"
+ },
+ "/cognitive-science-and-theory-of-communication-messina": {
+  "date": "2026-10-07",
+  "sha": "cb34519c78d31a63c0d94c813214e31162e6a1585fa2ff936c959428c56cd7b7"
+ },
+ "/come-funziona-il-tolc": {
+  "date": "2026-10-08",
+  "sha": "adc7bfb1ab74c2686ccf73c93bc4c5117409787ac97e6555445f1563babbdec0"
+ },
+ "/comunicazione-digitale-e-linguaggi-del-giornalismo-messina": {
+  "date": "2026-10-07",
+  "sha": "ce44c36c7e076b6282cac820e54fbc6bee8643fab50ea4c28570a2ed4729ccd3"
+ },
+ "/consulente-del-lavoro-e-scienze-dei-servizi-giuridici-messina": {
+  "date": "2026-10-08",
+  "sha": "cb5035c52313833a58a44135359c7168b0babfce2e76341bef4c108f6eaddae8"
+ },
+ "/consulenza-e-gestione-di-impresa-messina": {
+  "date": "2026-10-07",
+  "sha": "af41aa07706ddb3d0087440943f0b1992ce6a25675000759634118ada63916b2"
+ },
+ "/corsi-unime-messina": {
+  "date": "2026-10-07",
+  "sha": "05054c4ef975aed0e2f889d036b452679baead379b8f3819158b29394844f60d"
+ },
+ "/cortex-vs-anki-vs-quizlet": {
+  "date": "2026-10-07",
+  "sha": "99b753957eab030f8b8dd86b55d87ec2d873fb3d389dcd0dbf3b7fd0021d8e67"
+ },
+ "/data-science-messina": {
+  "date": "2026-10-07",
+  "sha": "43bb42f897c8c57d656e4da710eb3eafb536edf29e13428a7d03ac5c80a9256e"
+ },
+ "/demo": {
+  "date": "2026-09-30",
+  "sha": "6da40f5c5f1b337dd2dcef3e26694c9b4f7ec86695077a99f6024115bbaf61a0"
+ },
+ "/digital-transformation-e-innovation-management-messina": {
+  "date": "2026-10-07",
+  "sha": "6202dd32765e1fcae560905a9d10b712b120372645c390af6e8fbfec41f9aafe"
+ },
+ "/diritto-dell-innovazione-e-della-sostenibilita-messina": {
+  "date": "2026-10-07",
+  "sha": "99bdb0a81bb4d78d13445ecad845031b3593de2936bcccb553c0bf6b2439689f"
+ },
+ "/discipline-delle-arti-della-musica-e-dello-spettacolo-messina": {
+  "date": "2026-10-08",
+  "sha": "72991f85b528340805bfda327fbcfd8d726086b92869430e734e7209f1a0bff8"
+ },
+ "/economia-aziendale-messina": {
+  "date": "2026-10-08",
+  "sha": "f32bc3e01572d1706ba85a0e475ed70a784b0012a9abf4ddb3b3b5b96431bf8a"
+ },
+ "/economia-banca-e-finanza-messina": {
+  "date": "2026-10-08",
+  "sha": "d6819dbd5041a1271a0c9ad84d4dfe89cb54ee8bd60d5121836e724bbdda737e"
+ },
+ "/engineering-in-computer-science-messina": {
+  "date": "2026-10-07",
+  "sha": "ad9ed203f197a8e01db179957f72bdcb0f5634dcfb0da20606aa169c7e4d3ced"
+ },
+ "/farmacia-messina": {
+  "date": "2026-10-08",
+  "sha": "ab680c27043747618ec953037298a3919ec8bab8a03c1e55e7ba0947dc4f4fdd"
+ },
+ "/filosofia-contemporanea-messina": {
+  "date": "2026-10-07",
+  "sha": "a6add21f1967a89ee4471ebaf99642cb877176626118c351f62017a9f2cca0a9"
+ },
+ "/filosofia-messina": {
+  "date": "2026-10-08",
+  "sha": "7c56d4ced4be00f3ad99521b711b101ff8f13218fac81023f8256077d7ad88e0"
+ },
+ "/fisica-messina": {
+  "date": "2026-10-08",
+  "sha": "774aa71a6fabaacbeac3fa366b2db10d4cbd06b73d3f0f401de2aa631315669e"
+ },
+ "/fisioterapia-messina": {
+  "date": "2026-10-07",
+  "sha": "bbf9cf73ac8b963deec53041ebedfb01d475f031755af862edde97be6593dd1e"
+ },
+ "/geophysical-sciences-for-seismic-risk-messina": {
+  "date": "2026-10-07",
+  "sha": "4f17aabf0c389d87b686ff0b87404c4d44cf9a9833f10f2fdc5eab3b191beceb"
+ },
+ "/giurisprudenza-messina": {
+  "date": "2026-10-08",
+  "sha": "5952d5ad0f4090c1f52208c3d6f86f4f63cb99d8e7b45f21ea39644a87b1fc9c"
+ },
+ "/global-security-studies-messina": {
+  "date": "2026-10-07",
+  "sha": "50f5f5d42c1980b264ec0cb71204a49a5b80afecf0a0b5716fe913003e4d8839"
+ },
+ "/heritage-innovation-engineering-messina": {
+  "date": "2026-10-08",
+  "sha": "ea1ddb4c0b8da4821cdee2b3d4d6625c02d8f2675419792615c02ed972e9961a"
+ },
+ "/home": {
+  "date": "2026-10-08",
+  "sha": "bd92b122fea3577dbd2e74d7ae576932742bcb12a63c745d21efd55c729281d4"
+ },
+ "/infermieristica-messina": {
+  "date": "2026-10-07",
+  "sha": "e77bc7a969b7bfb0e91e4af2cedbaf7522875ea4196cb07d97d3822952147e9e"
+ },
+ "/informatica-messina": {
+  "date": "2026-10-08",
+  "sha": "eb3f67784eb01c2799450d1ddd211025262a8aef8fca1992cd0fb2d19aec968b"
+ },
+ "/ingegneria-biomedica-messina": {
+  "date": "2026-10-08",
+  "sha": "3153d3039e4012122d078c5583fe0150e3bf96fbb264c44ef90bdc404d7c030f"
+ },
+ "/ingegneria-civile-magistrale-messina": {
+  "date": "2026-10-07",
+  "sha": "20d488bb1c14e940d9e1eaba0ab91e8e574c6f1851cd476978b454ad231a8cec"
+ },
+ "/ingegneria-civile-messina": {
+  "date": "2026-10-08",
+  "sha": "41757f4753855c9aebaca3c212c13a4856060d9d74bbc4827c7e790c33e41f35"
+ },
+ "/ingegneria-elettronica-e-informatica-messina": {
+  "date": "2026-10-08",
+  "sha": "4dea18dca73c7655dbb80fcf47411f3041ff4fca15aa2d398dbc684f9cf71823"
+ },
+ "/ingegneria-elettronica-per-l-industria-messina": {
+  "date": "2026-10-07",
+  "sha": "7c126871c44feaee82e80aad076e54670f2eaca64df83355a570d020c473ed35"
+ },
+ "/ingegneria-gestionale-magistrale-messina": {
+  "date": "2026-10-07",
+  "sha": "a2a6a759c7c3df1f34d7824e2378ad47fb8136bc153a608c28d5f8e49553fccc"
+ },
+ "/ingegneria-gestionale-messina": {
+  "date": "2026-10-08",
+  "sha": "52a88b8edd0c1281d7ee55a3823588b044158f503218a8de4097180b3050f119"
+ },
+ "/ingegneria-industriale-messina": {
+  "date": "2026-10-08",
+  "sha": "c2154d42361c360ce99537c0344cf64a13c0cfec88188dcd64834f8dbe65638c"
+ },
+ "/ingegneria-meccanica-messina": {
+  "date": "2026-10-07",
+  "sha": "9364928373a4e426abf18170e118413ee431867e48f5cdc081eb92d160833eaf"
+ },
+ "/iscrizione-tolc": {
+  "date": "2026-10-07",
+  "sha": "f5cc5a6e0f2db4e81ec04098d310fd4271b218a7e5dad07f210ff3f3f0038456"
+ },
+ "/istituto-tecnico-economico": {
+  "date": "2026-10-07",
+  "sha": "768ac84d9fbfe4f6673658d18445e79dbc070a843fe67bbab11b64a8910accee"
+ },
+ "/istituto-tecnico-informatica": {
+  "date": "2026-10-07",
+  "sha": "a38de2e56f25b1b68bdcbba45750c382a22e05d9a4e5e1041ce0c9db4d04ca3e"
+ },
+ "/lettere-messina": {
+  "date": "2026-10-08",
+  "sha": "b9cd98d6a82f9166a7ea6546b77d85390f4daf24e33dc56ade3206eb6edd012c"
+ },
+ "/liceo-classico": {
+  "date": "2026-10-07",
+  "sha": "cdd55830d2e0a277f5ccd0a7a9d21e9a7f58934308a9a52755302994d15e13f8"
+ },
+ "/liceo-linguistico": {
+  "date": "2026-10-07",
+  "sha": "1b26de2857b712b04aee4615cda4e3461e4cd596cb9d5f4decf082d8df5afef7"
+ },
+ "/liceo-scientifico": {
+  "date": "2026-10-07",
+  "sha": "4a4b7510168703c6f42be887e0a0006fa40b9fedc524098e4c7c234f616a81fd"
+ },
+ "/liceo-scienze-applicate": {
+  "date": "2026-10-07",
+  "sha": "fd272ef7cee65902f8508c9ad3690f5477b6f145eae5ca6a8605ec53ebfd9de3"
+ },
+ "/liceo-scienze-umane": {
+  "date": "2026-10-07",
+  "sha": "378f4e600cf3f86357e5b6d9b7187865d04dd7190d3eddbbbdfcf78cbb63b7c7"
+ },
+ "/lingue-letterature-straniere-e-tecniche-della-mediazione-linguistica-messina": {
+  "date": "2026-10-08",
+  "sha": "7868a796823c4c7bb10af9842489affafccf294bee133c468b061edf303ac1d2"
+ },
+ "/management-d-impresa-messina": {
+  "date": "2026-10-08",
+  "sha": "f02dbcfa79f7fdd2f4780259f5588df4576ed4e6047857a6cd409103770055b4"
+ },
+ "/marine-biology-and-blue-biotechnologies-messina": {
+  "date": "2026-10-08",
+  "sha": "ca94253398c1a455b119d872e71e0c2ce41138375ddaccf19fe59b42f9a59df7"
+ },
+ "/matematica-magistrale-messina": {
+  "date": "2026-10-07",
+  "sha": "bdb766d4b3da4a3106f9a8a3c7d7942111b3556a9e16f828971f397e3a3f854b"
+ },
+ "/matematica-messina": {
+  "date": "2026-10-08",
+  "sha": "b6409cc2569b469171accbe9570c99490b363653ac516433f524e163f39765b4"
+ },
+ "/medicina-e-chirurgia-messina": {
+  "date": "2026-10-07",
+  "sha": "6abcf5c2353b718faa7236df1586d8d4dcaefe12cdf54ff2e3af0c191cef37a6"
+ },
+ "/medicina-veterinaria-messina": {
+  "date": "2026-10-07",
+  "sha": "2999b27b04a9900d7cd4f8359a14a3c734abc7bca14965ed1ba8246130f0e406"
+ },
+ "/metodi-quantitativi-per-l-economia-e-la-finanza-messina": {
+  "date": "2026-10-07",
+  "sha": "021cbc2048ac24ba236305fd51084b5593726fd98c133b5d5c49fe6fc6c7a74a"
+ },
+ "/ortottica-ed-assistenza-oftalmologica-messina": {
+  "date": "2026-10-07",
+  "sha": "49c53d45be9256f05b31cc79a0d9dd5adf1b41cf86814ce35070e84746d65ca8"
+ },
+ "/ostetricia-messina": {
+  "date": "2026-10-07",
+  "sha": "a975fc4b259c3ff05c4108f9d72934af12991a04e2eafd878ec52a66749e20dd"
+ },
+ "/physics-messina": {
+  "date": "2026-10-07",
+  "sha": "2ac3eb9e32863019ff005b39f71b3ec7f9382425af659cf483b0a592725714c2"
+ },
+ "/prepararsi-al-tolc-in-un-mese": {
+  "date": "2026-10-07",
+  "sha": "a6fd1c267abd6364178ecbd5e33ea37a114419373010e6d9e6494e6f4f0b8813"
+ },
+ "/privacy": {
+  "date": "2026-10-04",
+  "sha": "91eeec6f4f6666e4e4c3442ded965680d3513f0f58ba5ea72c27c54e5a23dd2c"
+ },
+ "/professioni-legali-messina": {
+  "date": "2026-10-07",
+  "sha": "f29173447135d912abd247444af34ded0d0460c1b7543beecd153c941144cb19"
+ },
+ "/progettazione-e-gestione-sostenibile-del-verde-urbano-ed-extraurbano-messina": {
+  "date": "2026-10-07",
+  "sha": "7b0c8c3637da5316902f91c1b500da1fec02e151b2dfd51f56e2e55398cbd159"
+ },
+ "/psicologia-clinica-e-della-salute-nel-ciclo-di-vita-abilitante-alla-professione-di-psicologo-messina": {
+  "date": "2026-10-07",
+  "sha": "b195277e2b317b7d9ecd7a9c23ef6800a892ac6e992921fef82406ae39147d2c"
+ },
+ "/psicologia-e-neuroscienze-cognitive-messina": {
+  "date": "2026-10-07",
+  "sha": "3b1cb8314606a5d961982097a049f910db3ad666d601abb173fec3149fa23d74"
+ },
+ "/punteggio-tolc": {
+  "date": "2026-10-07",
+  "sha": "58b99594c163a09b580e291132975b0a2624aa49220d0a5309b33fbeec816b69"
+ },
+ "/quale-tolc-scegliere": {
+  "date": "2026-10-07",
+  "sha": "539d8f5aaf8c08eebcf004f9c77f74acbb185d13282d66aa2dc2d3c212f007ec"
+ },
+ "/quiz-logica-tolc": {
+  "date": "2026-10-08",
+  "sha": "1b574e56c371b81036d0284ea058a9ab4df89dbdee50ae29f7a22a7bf3ba63e4"
+ },
+ "/relazioni-internazionali-messina": {
+  "date": "2026-10-07",
+  "sha": "082d6211ab0dd53bbe16fa9da00da4b142550c64763f943fd5e9ddc576f835af"
+ },
+ "/ripetere-il-tolc": {
+  "date": "2026-10-07",
+  "sha": "e9779492f1d6f486ef3a82ddf3f4494e2a3a49e422fd53cea606e02a98323be9"
+ },
+ "/scienze-ambientali-marine-e-terrestri-messina": {
+  "date": "2026-10-08",
+  "sha": "d12c6fbb072b6b9bb583ebed77f32dd4c84fdd7cc7fc12e1b209e5f3892be8fc"
+ },
+ "/scienze-biologiche-messina": {
+  "date": "2026-10-08",
+  "sha": "546e39f7a9458d7584946c772a21284e28b9acfd8166aa8344a1a7d7668e2440"
+ },
+ "/scienze-del-turismo-della-cultura-e-dell-impresa-messina": {
+  "date": "2026-10-08",
+  "sha": "c0f1aad9021079dd3575f2b2b89c2e8ef49dc268825d966973be711cfea47ffa"
+ },
+ "/scienze-dell-alimentazione-e-nutrizione-umana-messina": {
+  "date": "2026-10-07",
+  "sha": "cce1f1cdb71f731b57a918ebd980485b2385b0e97b1b01d2e19abe74887e0cf0"
+ },
+ "/scienze-dell-amministrazione-e-dell-organizzazione-messina": {
+  "date": "2026-10-07",
+  "sha": "8cdf20140fa435dd5e424c96f4487cc988c4d999bee72c0031e4321235ce970e"
+ },
+ "/scienze-dell-informazione-tecniche-giornalistiche-e-social-media-messina": {
+  "date": "2026-10-08",
+  "sha": "ac893e4765d3233c86b9fb1fe63953dc6bb597de690cda18d4a7cf4d81c4c669"
+ },
+ "/scienze-della-formazione-e-della-comunicazione-messina": {
+  "date": "2026-10-08",
+  "sha": "1b909911687277437f7ecae043edb54a8d233a6217003f1408e957af5e02f64d"
+ },
+ "/scienze-della-formazione-primaria-messina": {
+  "date": "2026-10-07",
+  "sha": "3f35206358080c519fbb2e1d54fa09454bee8551ee55fb01dcbf1c1cad26f504"
+ },
+ "/scienze-delle-professioni-sanitarie-tecniche-diagnostiche-messina": {
+  "date": "2026-10-07",
+  "sha": "fd47e11a2a43274406fcf46c847f4118d417d5684ba1659c48e46819b1706e85"
+ },
+ "/scienze-delle-pubbliche-amministrazioni-messina": {
+  "date": "2026-10-07",
+  "sha": "6d2626cec090fefdaaf4516a4169d044b1ecdc6afe53b248f6d3dec241e802ad"
+ },
+ "/scienze-e-logistica-del-trasporto-marittimo-ed-aereo-messina": {
+  "date": "2026-10-07",
+  "sha": "97358bc8616ad747fe6882d24726375d61f2b33dbb8c1beb04c7947fe2f1e272"
+ },
+ "/scienze-e-tecniche-delle-attivita-motorie-preventive-e-adattate-messina": {
+  "date": "2026-10-07",
+  "sha": "8febf98e1060b3beb7c0164b687eaaa8ba3780140a0207b62f03d2b7b4f454d8"
+ },
+ "/scienze-e-tecniche-psicologiche-cliniche-e-preventive-messina": {
+  "date": "2026-10-08",
+  "sha": "a156441d8ec21a6ea46c587b3dcd5814adc143b9e1c76f476b6b721ede67c0f7"
+ },
+ "/scienze-e-tecniche-psicologiche-messina": {
+  "date": "2026-10-08",
+  "sha": "5ed28af2df5c54cf1bab153a151bb06ce39d2a9857a27f4683795fcc4b7b5fd4"
+ },
+ "/scienze-e-tecnologie-agrarie-per-la-transizione-ecologica-messina": {
+  "date": "2026-10-08",
+  "sha": "32922fd9927cf69058d6716ecb4bb917a74c3d52dd14ebefa21ae526d656e79f"
+ },
+ "/scienze-e-tecnologie-della-navigazione-messina": {
+  "date": "2026-10-08",
+  "sha": "1e4399211ee23c2384dcf59f9f8f2675789677615ed2114c99b25ffb56f6d298"
+ },
+ "/scienze-gastronomiche-messina": {
+  "date": "2026-10-08",
+  "sha": "1eb497831887820617ecf0a0f9c0a9d0ce2bf3a1668619aaea18d3a0778581f1"
+ },
+ "/scienze-motorie-sport-e-salute-messina": {
+  "date": "2026-10-08",
+  "sha": "0e0c84a9e94d6254356fa44f76a966ff08257318d3a59d1ecdbb173edda2e238"
+ },
+ "/scienze-nutraceutiche-e-alimenti-funzionali-messina": {
+  "date": "2026-10-08",
+  "sha": "c7869a670d92101e2ad8dc578fbcbbd15c679356fc46592854cffc58f40c8bbf"
+ },
+ "/scienze-pedagogiche-messina": {
+  "date": "2026-10-07",
+  "sha": "b4b74f50c7594a222153fcf5fb77d49820f7c8f12571300315b4db5833187501"
+ },
+ "/scienze-storiche-societa-culture-e-istituzioni-d-europa-messina": {
+  "date": "2026-10-07",
+  "sha": "6bd1f27dfd020a27c0278d323faef7f0ffe110358befe5bbcb54c9987068831a"
+ },
+ "/scienze-tecnologie-e-sicurezza-delle-produzioni-animali-messina": {
+  "date": "2026-10-08",
+  "sha": "c3398414f8b2bcb9826a04af7b4a895931cf51fdd665af110ce0889c5f961f44"
+ },
+ "/scuola": {
+  "date": "2026-10-07",
+  "sha": "c34440d5fe0322eb1f86d0f5f596a94d53b4d2ec69b4f98daf74dbb47a808139"
+ },
+ "/servizio-sociale-politiche-sociali-e-studi-sociologici-e-ricerca-sociale-messina": {
+  "date": "2026-10-07",
+  "sha": "649b0ed354ac40c96accc47cec57f907d4c4d37d8067b7abc910eb9db0ea0bf9"
+ },
+ "/sicurezza-qualita-e-sostenibilita-delle-produzioni-animali-messina": {
+  "date": "2026-10-07",
+  "sha": "6fd682b8d4c57499bfb105efc6644a60c384de1a115d7f49dc2359c5d10d7fcc"
+ },
+ "/simulazione-tolc": {
+  "date": "2026-10-08",
+  "sha": "5c043a2ddeb5095815c7ea8ece38b7dc11dec6ceb41837c625c407ee5603e951"
+ },
+ "/specializzazione-in-metodi-e-pratiche-di-rafforzamento-dei-percorsi-di-presa-in-carico-e-accompagnamento-sociale-messina": {
+  "date": "2026-10-07",
+  "sha": "a3742c9a0f58042282fbe538456ae10578ae6186e638e3f677687c24eb01b2a0"
+ },
+ "/tecnica-della-riabilitazione-psichiatrica-messina": {
+  "date": "2026-10-07",
+  "sha": "c027039b3f5cd0609765a7e1d158532a655b240c3ee597f3c5e6d08a71226df4"
+ },
+ "/tecniche-audioprotesiche-messina": {
+  "date": "2026-10-07",
+  "sha": "3fc275d8556a31e855dc795a475e1123da136da9a0a9aeeb45b84a5770d55277"
+ },
+ "/tecniche-della-prevenzione-nell-ambiente-e-nei-luoghi-di-lavoro-messina": {
+  "date": "2026-10-07",
+  "sha": "e0740f566f926c7051807cd3ff232495cfc885159e71f3f25a91c19a899cf91f"
+ },
+ "/tecniche-di-laboratorio-biomedico-messina": {
+  "date": "2026-10-07",
+  "sha": "becb58f6d9704223ca3d4ebd590de983a3f6586b6a0495367de3047747e25a05"
+ },
+ "/tecniche-di-neurofisiopatologia-messina": {
+  "date": "2026-10-07",
+  "sha": "5304e61de816dcfc9eefdd235bdf56699e2e5e2fd505a715a12ee1dfa677eb7f"
+ },
+ "/tecniche-di-radiologia-medica-per-immagini-e-radioterapia-messina": {
+  "date": "2026-10-07",
+  "sha": "abc41896583f770226d2b02c298aa912922acba1254ceb43d7f72b785de7cac7"
+ },
+ "/terapia-della-neuro-e-psicomotricita-dell-eta-evolutiva-messina": {
+  "date": "2026-10-07",
+  "sha": "0ad24b0d04bdbcd7644ce505f8c02abf48c40c4db74c4422d7f2e3e931f78dff"
+ },
+ "/terapia-intensiva-e-subintensiva-pediatrica-messina": {
+  "date": "2026-10-07",
+  "sha": "0527b181284875168b79d9f53c77c16e7eb86228348def6a03a2fba01f9e96a1"
+ },
+ "/terms": {
+  "date": "2026-10-06",
+  "sha": "58172870004f3170752d72482913e782968193cde9f7c59c45b3999a8d2cca99"
+ },
+ "/tolc-av": {
+  "date": "2026-10-08",
+  "sha": "267371a22a267b822c84dcb863d70258c133cd28b56a1c4cbd4188670da0328b"
+ },
+ "/tolc-b": {
+  "date": "2026-10-08",
+  "sha": "d40add84e971447da281dc3c6b6a3eabef97664193c630b340f38726f5a8eb35"
+ },
+ "/tolc-catania": {
+  "date": "2026-10-08",
+  "sha": "283273344bb0b8fdb3fab4a4d6cd8b928a900c66aa10a957b80603a0f5099e2d"
+ },
+ "/tolc-e": {
+  "date": "2026-10-08",
+  "sha": "b5c19fa9bb5c4dc5f30c1776ea127740e21711c886c9ba42ce54fc8071871df7"
+ },
+ "/tolc-enna": {
+  "date": "2026-10-08",
+  "sha": "84125c237494228e3b7ef5de1f6c866722681c94b8240edc94afd82906d01f46"
+ },
+ "/tolc-f": {
+  "date": "2026-10-08",
+  "sha": "16c503275f93f05658c4a8dac87cf9d6649a796fe97bccd23d1084c499062a4c"
+ },
+ "/tolc-i": {
+  "date": "2026-10-08",
+  "sha": "89db6a26e427033d0f67dbf157645611af45876500377003542de1fe7ad4c19f"
+ },
+ "/tolc-lp": {
+  "date": "2026-10-08",
+  "sha": "f8027461681d86de3b4bf2d87849713ae075cf02acac776d2a684104dd2d05e9"
+ },
+ "/tolc-messina": {
+  "date": "2026-10-08",
+  "sha": "9912b954ac2f2eb87b3bd3147e553dfe5119578d66d2e955a0410bb25ead5fe6"
+ },
+ "/tolc-palermo": {
+  "date": "2026-10-08",
+  "sha": "024e9f0f826feb61064e64afd6a4356048f9385fffe442f85fb81b9bdff4a328"
+ },
+ "/tolc-psi": {
+  "date": "2026-10-08",
+  "sha": "c7c29e4d820f7fcd44dc7b9fce99b98d4412285ab459ca343f36b61614f12230"
+ },
+ "/tolc-s": {
+  "date": "2026-10-08",
+  "sha": "52c84c5e7710c3ce7b6a504d667e6bd6017fe63d6bf2da748af7fe36e4a691b0"
+ },
+ "/tolc-sps": {
+  "date": "2026-10-08",
+  "sha": "39a82073f81aefaa77045341644f6a270dbd91e79a5f638ff10e51d1df91c876"
+ },
+ "/tolc-su": {
+  "date": "2026-10-08",
+  "sha": "4b3ead3286430cb3e70b509a9fa50db8092a263f0ac16e7fb27db23367b3df63"
+ },
+ "/total-quality-international-management-for-food-5-0-messina": {
+  "date": "2026-10-07",
+  "sha": "3601c3559fbd45730ae9e0cad9867a262d2fe24d2ee0075ca6d199cf6642b3bf"
+ },
+ "/tradizione-classica-e-archeologia-del-mediterraneo-messina": {
+  "date": "2026-10-07",
+  "sha": "7739be4de56fe2cfd26a1fda66f8022807352665c492ce62b384de2328483c04"
+ },
+ "/traduzione-didattica-e-relazioni-culturali-per-le-lingue-e-le-letterature-moderne-messina": {
+  "date": "2026-10-07",
+  "sha": "b2ffbd8b2cd6e4a65a2a43e585338ba11e98b24b59da7f1f7e843721d1dd063c"
+ },
+ "/transnational-and-european-legal-studies-messina": {
+  "date": "2026-10-07",
+  "sha": "4b954390f99ce59cdf7825ec1cb037545bb0de22fad2cc14b7ed0e2145f5709d"
+ },
+ "/turismo-e-spettacolo-messina": {
+  "date": "2026-10-07",
+  "sha": "37fa39f55869ffaf1db9c54514c0f4884141cbba5b2d4cb106478497ed767f73"
+ },
+ "/unime": {
+  "date": "2026-10-07",
+  "sha": "23c48e64c6a3aae03867d5aa436e5110bbb0bd54fd9aff3ed27fe60b322154c7"
+ }
+}

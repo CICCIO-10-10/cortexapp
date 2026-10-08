@@ -141,6 +141,7 @@ ul.schools li{{padding:7px 0;font-size:.92rem;break-inside:avoid}}
 
 <div class="cta"><h2>Trova la tua scuola a {esc(prov)}</h2><p>Il tuo indirizzo, le tue materie e le flashcard AI · gratis · senza registrarti</p><br>
 <a class="btn btn-p btn-xl" href="/scuola?utm_source=seo&utm_campaign=prov-{slug(prov)}">Inizia gratis →</a></div>
+<p class="cx-tolc4" style="margin:18px 0 0;font-size:.92rem;color:rgba(255,255,255,.65);text-align:center">Sei in quarta o in quinta? Il TOLC per l'università si può fare già dal penultimo anno delle superiori. <a href="/app?guest=1&sim=tolc&utm_source=seo&utm_campaign=prov-{slug(prov)}&utm_content=tolc_quarta" style="color:#c084fc;font-weight:700">Prova la simulazione TOLC gratis →</a></p>
 
 </main>
 {footer(regione, prov, prov_regione)}

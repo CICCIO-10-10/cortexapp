@@ -14,6 +14,9 @@
 export const TOLC_ERROR_DECK_SOURCE = 'tolc_errors_local';
 export const TOLC_ERROR_NO_EXPLANATION =
     'Le domande di questa simulazione non includono una spiegazione: ogni carta mostra la risposta corretta e quella che avevi scelto.';
+// 08/10/2026: le domande della banca hanno la spiegazione (campo p, controllata una per una).
+export const TOLC_ERROR_WITH_EXPLANATION =
+    'Ogni carta mostra la risposta corretta, quella che avevi scelto e il perché.';
 
 const MAX_Q = 1000;
 const MAX_A = 600;
@@ -51,6 +54,7 @@ export function collectWrongAnswers(qs, answers) {
             correctText,
             chosenLetter: letter(a),
             chosenText: clean(q.o[a], MAX_A),
+            explanation: clean(q.p, MAX_A),
         });
     });
     return { wrong, skipped };
@@ -85,14 +89,15 @@ export function buildTolcErrorDeck({ attemptId, testKey, testName, wrong, today,
         id: id + '-' + i,
         q: (w.section ? '[' + w.section + '] ' : '') + fmt(w.question),
         a: w.correctLetter + ') ' + fmt(w.correctText) +
-            (w.chosenText ? '  ·  Avevi scelto ' + w.chosenLetter + ') ' + fmt(w.chosenText) : ''),
+            (w.chosenText ? '  ·  Avevi scelto ' + w.chosenLetter + ') ' + fmt(w.chosenText) : '') +
+            (w.explanation ? '  ·  Perché: ' + fmt(w.explanation) : ''),
         ease: 2.5, interval: 1, nextReview: today, reps: 0,
     }));
     return {
         id,
         name: 'Errori ' + name + (dateLabel ? ' · ' + dateLabel : ''),
         subject: name,
-        text: TOLC_ERROR_NO_EXPLANATION,
+        text: wrong.some(w => w.explanation) ? TOLC_ERROR_WITH_EXPLANATION : TOLC_ERROR_NO_EXPLANATION,
         examDate: '', examType: '', examTopics: '',
         attachments: [],
         cards,
