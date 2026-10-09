@@ -4,7 +4,8 @@
 <script>/* cx-journey-lite: primo tocco per-visitatore, guest inclusi */(function(){try{if(localStorage.getItem('cortex_no_track')==='1')return;var K='cx_vid',v=localStorage.getItem(K);if(!v){v=(window.crypto&&crypto.randomUUID?crypto.randomUUID():'v-'+Date.now().toString(36)+Math.random().toString(36).slice(2,10));try{localStorage.setItem(K,v);}catch(e){}}var s=localStorage.getItem('cx_src0');if(!s){var qs=new URLSearchParams(location.search),r=document.referrer||'';s=qs.get('utm_source')||qs.get('src')||(!r?'diretto':/tiktok/i.test(r)?'tiktok':/instagram/i.test(r)?'instagram':/youtube/i.test(r)?'youtube':/google\./i.test(r)?'google':/reddit/i.test(r)?'reddit':/cortexapp\.it/i.test(r)?'interno':'referral');s=String(s).slice(0,40);try{localStorage.setItem('cx_src0',s);}catch(e){}}var b={fields:{type:{stringValue:'landing_view'},page:{stringValue:location.pathname.slice(0,120)},source:{stringValue:s},referrer:{stringValue:(document.referrer||'').slice(0,200)},ts:{timestampValue:new Date().toISOString()}}};fetch('https://firestore.googleapis.com/v1/projects/cortex-74a4e/databases/(default)/documents/journeys/'+encodeURIComponent(v)+'/events?key=AIzaSyA2Nnu6CYVauecQZQhvr4mud3aYJbdDVx0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b),keepalive:true}).catch(function(){});}catch(e){}})();</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cortex Privacy Policy</title>
+    <title>Privacy Policy — Cortex</title>
+    <meta name="description" content="Come Cortex tratta i tuoi dati: cosa salva sul dispositivo e nel cloud, come usa l&#39;AI e come cancellare i dati o l&#39;account.">
     <link rel="canonical" href="https://cortexapp.it/privacy">
     <link rel="icon" type="image/png" href="/LOGO_SQUARE.png">
     <link rel="apple-touch-icon" href="/LOGO_SQUARE.png">
@@ -39,7 +40,7 @@
     <div class="container">
         <div class="app-header"><img src="/LOGO_SQUARE.png" alt="Cortex"><span>Cortex</span></div>
         <h1>Informativa sulla Privacy di Cortex</h1>
-        <p><strong>Ultimo aggiornamento:</strong> 4 Ottobre 2026</p>
+        <p><strong>Ultimo aggiornamento:</strong> 9 Ottobre 2026</p>
 
         <p>Benvenuto in Cortex. La tua privacy è importante per noi. Questa Informativa sulla Privacy spiega come raccogliamo, utilizziamo e proteggiamo le tue informazioni quando utilizzi la nostra applicazione mobile e web "Cortex" (il "Servizio").</p>
 
@@ -60,19 +61,47 @@
         <ul>
             <li><strong>Google Firebase:</strong> Per hosting, database in tempo reale e autenticazione.</li>
             <li><strong>Google Gemini / Modelli AI:</strong> Solo per l'elaborazione temporanea atta a generare flashcard o trascrizioni quando esplicitamente richiesto.</li>
+            <li><strong>Google Analytics e Microsoft Clarity:</strong> Solo se dai il consenso, per le statistiche di utilizzo (vedi sezione 4).</li>
         </ul>
 
-        <h2>4. Conservazione dei Dati</h2>
+        <h2 id="cookie">4. Cookie e statistiche di utilizzo</h2>
+        <p>Cortex non usa cookie pubblicitari. Usa la memoria del browser (localStorage e cookie tecnici) per far funzionare il servizio: per esempio per ricordare i tuoi mazzi, l'accesso e la tua scelta sui cookie. Per questi non serve il consenso.</p>
+        <p>Solo se scegli <strong>"Accetta analisi facoltative"</strong> nel banner attiviamo questi strumenti di statistica. Se scegli <strong>"Solo essenziali"</strong> non vengono caricati. La base giuridica è il tuo consenso.</p>
+        <ul>
+            <li><strong>Google Analytics 4</strong> (Google): conta visite, pagine viste, provenienza (per esempio da Google o da TikTok), tipo di dispositivo e area geografica approssimativa. Usa cookie propri (per esempio <code>_ga</code>). Le funzioni pubblicitarie sono disattivate. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Informativa di Google</a>.</li>
+            <li><strong>Microsoft Clarity</strong> (Microsoft): registra in forma pseudonima come usi le pagine (clic, scorrimento, movimenti) per creare mappe di calore e riproduzioni delle sessioni, che ci servono a trovare errori e punti poco chiari. Usa cookie propri (per esempio <code>_clck</code> e <code>_clsk</code>). <a href="https://privacy.microsoft.com/privacystatement" target="_blank" rel="noopener">Informativa di Microsoft</a>.</li>
+            <li><strong>Statistiche interne di Cortex:</strong> un codice casuale salvato nel tuo browser, non collegato al tuo nome o alla tua email, con le pagine aperte, la provenienza e i passaggi principali nell'app (per esempio "simulazione iniziata" o "simulazione completata"). Questi dati sono salvati sui nostri server Firebase. L'indirizzo IP non viene salvato in chiaro: ne usiamo solo un'impronta cifrata, con scadenza dopo 2 giorni, per limitare gli abusi.</li>
+        </ul>
+        <p>Google e Microsoft possono trattare questi dati anche fuori dall'Unione Europea, con le garanzie descritte nelle loro informative. Per chiedere la cancellazione delle statistiche interne scrivi a <a href="mailto:info@cortexapp.it">info@cortexapp.it</a>.</p>
+        <div id="cookie-scelta" style="margin:16px 0;padding:16px;border:1px solid rgba(139,92,246,.45);border-radius:10px;background:rgba(139,92,246,.08);">
+            <p style="margin:0 0 10px;"><strong>Puoi cambiare idea in qualsiasi momento.</strong> La scelta vale per questo browser, dalla prossima pagina che apri. <span id="cookie-stato"></span></p>
+            <button type="button" data-cookie="declined" style="padding:8px 14px;margin:4px 8px 4px 0;border:1px solid rgba(139,92,246,.6);border-radius:8px;background:transparent;color:inherit;font:inherit;cursor:pointer;">Solo essenziali</button>
+            <button type="button" data-cookie="accepted" style="padding:8px 14px;margin:4px 0;border:none;border-radius:8px;background:#7c3aed;color:#fff;font:inherit;font-weight:600;cursor:pointer;">Accetta analisi facoltative</button>
+        </div>
+        <script>
+        (function(){
+          var KEY='cortex_cookie_consent', box=document.getElementById('cookie-scelta'), stato=document.getElementById('cookie-stato');
+          function mostra(){ var v=null; try{v=localStorage.getItem(KEY);}catch(e){}
+            stato.textContent = v==='accepted' ? 'Scelta attuale: analisi facoltative accettate.' : v==='declined' ? 'Scelta attuale: solo essenziali.' : 'Non hai ancora scelto.'; }
+          box.addEventListener('click', function(e){ var c=e.target && e.target.getAttribute && e.target.getAttribute('data-cookie'); if(!c) return;
+            try{ localStorage.setItem(KEY,c); }catch(err){}
+            if(c==='declined') window.__cortexTrackingDisabled = true;
+            mostra(); stato.textContent += ' Salvata.'; });
+          mostra();
+        })();
+        </script>
+
+        <h2>5. Conservazione dei Dati</h2>
         <p>I dati rimangono memorizzati localmente sul tuo dispositivo finché non disinstalli l'app. Se utilizzi la sincronizzazione Firebase, puoi cancellare i tuoi dati o eliminare il tuo account in qualsiasi momento dall'interfaccia dell'app, il che comporterà la rimozione permanente dei dati dai nostri server, compresi i file caricati, le relazioni con altri utenti (follow, amicizie, richieste), i feedback e le segnalazioni inviati e l'accesso con l'account. Un abbonamento Stripe attivo viene annullato; un abbonamento Google Play va annullato prima dal Play Store. Conserviamo soltanto: il registro della richiesta di cancellazione (data, esito e riferimenti degli abbonamenti, come prova), le ricevute degli acquisti in-app in forma cifrata (per impedirne il riuso), per 12 mesi un'impronta cifrata dell'email (solo per impedire il riuso degli inviti) e i dati fiscali dei pagamenti presso Stripe o Google Play, come richiesto dalla legge.</p>
 
-        <h2>5. Permessi Dispositivo richiesti</h2>
+        <h2>6. Permessi Dispositivo richiesti</h2>
         <ul>
             <li><strong>Microfono:</strong> Richiesto ESCLUSIVAMENTE se decidi di usare la funzione di registrazione audio/lezioni. Questa funzione è opzionale.</li>
             <li><strong>Notifiche Push:</strong> Richieste per inviarti i reminder di studio (Spaced Repetition).</li>
             <li><strong>Archiviazione:</strong> Per salvare i file PDF locali.</li>
         </ul>
 
-        <h2>6. Integrazione TikTok (Pubblicazione Automatica Contenuti)</h2>
+        <h2>7. Integrazione TikTok (Pubblicazione Automatica Contenuti)</h2>
         <p>Il team di Cortex gestisce un'applicazione TikTok ("Cortex App") usata esclusivamente per pubblicare contenuti promozionali (es. caroselli di flashcard, video didattici) sul canale TikTok ufficiale di Cortex. Questa integrazione è gestita solo dal titolare del trattamento e non raccoglie né elabora dati di altri utenti TikTok.</p>
         <p><strong>Dati TikTok trattati:</strong></p>
         <ul>
@@ -81,7 +110,7 @@
         </ul>
         <p>Nessun dato proveniente da TikTok viene condiviso con terze parti, usato per addestrare modelli AI o associato ad account utente di Cortex. I token di accesso sono conservati in modo sicuro. Per richieste relative a questa integrazione o per revocare l'accesso: <a href="mailto:info@cortexapp.it">info@cortexapp.it</a>, oppure da TikTok: Impostazioni → Sicurezza e accesso → App e servizi connessi.</p>
 
-        <h2>7. Contatti</h2>
+        <h2>8. Contatti</h2>
         <p>Se hai domande o dubbi sulla nostra Informativa sulla Privacy, contattaci sviluppatore a: info@cortexapp.it</p>
     </div>
 </body>

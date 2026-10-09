@@ -54,7 +54,7 @@ export function initCookieBanner() {
             <div style="flex:1; min-width:240px;">
                 <p style="font-size:0.85rem; color:var(--text); margin:0; line-height:1.5;">
                     🍪 Cortex usa cookie tecnici essenziali per il funzionamento dell'app e
-                    cookie analitici anonimi per migliorare l'esperienza.
+                    strumenti analitici facoltativi, solo con il tuo consenso, per migliorare l'esperienza.
                     <a href="https://cortexapp.it/privacy" target="_blank" rel="noopener"
                         style="color:var(--accent); text-decoration:underline; margin-left:4px;">
                         Privacy Policy

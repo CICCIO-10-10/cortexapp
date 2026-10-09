@@ -1176,6 +1176,9 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
     let authAnonymousTotal = 0;
     let authDisabledTotal = 0;
     let authProfilesMissing = 0;
+    // 08/10/2026: dettaglio (senza email né uid) degli account Google senza profilo Firestore,
+    // per capire se sono registrazioni non finite o altro: data di creazione, ultima attività, provider.
+    const authProfilesMissingList = [];
     let authCreationTimeMissing = 0;
     let newUsersToday = null;
     const authAllUids = new Set();
@@ -1222,7 +1225,17 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
             } else authCreationTimeMissing++;
           } else authAnonymousTotal++;
           if (!linkedAccount) return; // i guest anonimi non entrano nelle metriche account
-          if (!realUserIds.has(u.uid)) authProfilesMissing++;
+          if (!realUserIds.has(u.uid)) {
+            authProfilesMissing++;
+            const _fmt = t => t ? new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(t)) : null;
+            if (authProfilesMissingList.length < 50) authProfilesMissingList.push({
+              created: _fmt(md.creationTime),
+              lastSignIn: _fmt(md.lastSignInTime),
+              lastRefresh: _fmt(md.lastRefreshTime),
+              provider: (u.providerData[0] && u.providerData[0].providerId) || null,
+              emailVerified: !!u.emailVerified,
+            });
+          }
           const signIn   = md.lastSignInTime  ? new Date(md.lastSignInTime).getTime()  : 0;
           const refresh  = md.lastRefreshTime ? new Date(md.lastRefreshTime).getTime() : 0;
           const lastAct  = Math.max(signIn, refresh);
@@ -1358,7 +1371,9 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
     const validCount = value => typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : null;
     const visitesToday = pageviewsDoc.exists
       ? { landing: validCount(pvData.landing), app: validCount(pvData.app) }
-      : { landing: null, app: null };
+      // 09/10/2026: il documento del giorno nasce con la prima visita (functions/telemetry.js);
+      // se la lettura riesce e il documento non c'è ancora, oggi le visite sono 0, non "n/d".
+      : { landing: 0, app: 0 };
     const sourceBreakdown = {};
     Object.entries(pvData).forEach(([k, v]) => {
       if (k.startsWith('src_') && validCount(v) != null) sourceBreakdown[k.replace('src_', '')] = v;
@@ -1547,6 +1562,7 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
         authAnonymousTotal: authMetricsAvailable ? authAnonymousTotal : null,
         authDisabledTotal: authMetricsAvailable ? authDisabledTotal : null,
         authProfilesMissing: authMetricsAvailable ? authProfilesMissing : null,
+        authProfilesMissingList: authMetricsAvailable ? authProfilesMissingList : null,
         authCreationTimeMissing: authMetricsAvailable ? authCreationTimeMissing : null,
         firestoreProfilesLinkedAuth: authMetricsAvailable ? firestoreProfilesLinkedAuth : null,
         firestoreProfilesOtherAuth: authMetricsAvailable ? firestoreProfilesOtherAuth : null,

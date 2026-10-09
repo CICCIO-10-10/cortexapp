@@ -46,6 +46,7 @@ def splita_arg(t):
 # https://www.cisiaonline.it/atenei/universita-degli-studi-di-messina , letta l'8/10/2026).
 # Solo i corsi della sede di Messina che compaiono nella scheda: per gli altri non si mostra nulla.
 TOLC_VERIFICA = "8 ottobre 2026"
+DUP_GRUPPO = set()   # (nome, gruppo) dei corsi con lo stesso nome in più gruppi, riempito in main()
 TOLC_UNIME = {
     # nome normalizzato: (test, accesso, altri test riconosciuti)
     "ingegneria elettronica e informatica": ("TOLC-I", "libero", []),
@@ -135,7 +136,7 @@ def tolc_faq(corso, nome_h):
 
 def build_page(corso, ins_list, correlati=None, canon_slug=None):
     nome = corso["nome"]
-    nome_h = nome.title() if nome.isupper() else nome
+    nome_h = _nome_h(nome)
     gruppo = corso.get("gruppo", "")
     area = corso.get("area", "")
     sl = corso["_slug"]
@@ -145,16 +146,30 @@ def build_page(corso, ins_list, correlati=None, canon_slug=None):
     canon = f"https://cortexapp.it/{canon_slug or sl}"
     sede = (corso.get("sede") or "MESSINA").strip()
     sede_h = sede.title()
-    # 25/09/2026: il tipo di laurea nel titolo -> triennale e magistrale con lo
-    # stesso nome non risultano piu' "pagine duplicate" per Google.
-    _lv = f" ({gruppo})" if gruppo else ""
+    # 08/10/2026: titoli corti (Google ne mostra ~60 caratteri) con il TOLC quando la scheda CISIA lo indica.
+    # Il tipo di laurea compare solo se lo stesso nome esiste in più gruppi (es. triennale e magistrale):
+    # così i titoli restano tutti diversi (prima si metteva sempre, 25/09).
+    _ti = tolc_info(corso)
+    _test = _ti[0] if _ti else None
+    _g = {"triennale": "triennale", "magistrale": "magistrale", "magistrale a ciclo unico": "ciclo unico"}.get((gruppo or "").lower(), (gruppo or "").lower())
+    base = nome_h + (f" ({_g})" if (nome, gruppo) in DUP_GRUPPO and _g else "")
     if sede != "MESSINA":
-        _lv = f" ({gruppo + ', ' if gruppo else ''}sede di {sede_h})"
-    title = f"{nome_h}{_lv} a Messina (UNIME): esami, programma e ripasso | Cortex"
-    if sede != "MESSINA":
-        title = f"{nome_h} ({gruppo + ', ' if gruppo else ''}sede di {sede_h}) — Università di Messina (UNIME): esami e programma | Cortex"
-    desc = (f"Tutti gli insegnamenti del corso di {nome_h} all'Università di Messina (UNIME), "
-            f"con CFU e programma. Ripassa con le flashcard AI di Cortex, gratis e senza registrarti.")
+        title = f"{base}, sede di {sede_h} (UniMe): esami e programma | Cortex"
+    elif _test:
+        title = f"{base} Messina: {_test}, esami e programma | Cortex"
+    else:
+        title = f"{base} Messina: esami e programma | Cortex"
+    if len(title) > 70:   # nomi lunghissimi: via il marchio, restano nome, TOLC ed esami
+        title = title[:-len(" | Cortex")]
+    if _test:
+        _acc = "accesso libero" if _ti[1] == "libero" else "numero programmato"
+        desc = (f"{nome_h} all'Università di Messina: serve il {_test} ({_acc}). "
+                f"Tutti gli esami con CFU e programma, e ripasso con flashcard AI gratis.")
+    else:
+        desc = (f"Tutti gli esami di {nome_h} all'Università di Messina, con CFU e programma. "
+                f"Ripassa con le flashcard AI di Cortex, gratis.")
+    if len(desc) > 158:
+        desc = f"{nome_h} (UniMe): esami, CFU e programma" + (f", test d'ingresso {_test}" if _test else "") + ". Flashcard AI gratis."
 
     # insegnamenti per anno
     per_anno = {}
@@ -287,8 +302,28 @@ def build_page(corso, ins_list, correlati=None, canon_slug=None):
 </body>
 </html>"""
 
+_MINUSCOLE = {"e", "ed", "di", "del", "dello", "della", "dei", "degli", "delle", "da", "dal", "dalla",
+              "a", "al", "alla", "ai", "agli", "alle", "in", "nel", "nella", "nei", "nelle", "per", "con",
+              "su", "il", "lo", "la", "i", "gli", "le", "o", "and", "of", "for", "the", "in"}
+
 def _nome_h(n):
-    return n.title() if n.isupper() else n
+    """08/10/2026: "SCIENZE E TECNICHE" -> "Scienze e tecniche…" (prima "Scienze E Tecniche").
+    Prima parola maiuscola, articoli e preposizioni minuscoli, apostrofi corretti (dell'Arte)."""
+    if not n.isupper():
+        return n
+    out = []
+    for i, w in enumerate(n.title().split(" ")):
+        lw = w.lower()
+        if i > 0 and lw in _MINUSCOLE:
+            w = lw
+        else:
+            for ap in ("'", "’"):   # elisione: Dell'Arte -> dell'Arte ; D'Impresa -> d'Impresa (non "Eta'")
+                a, _, b = w.partition(ap)
+                if b and len(a) <= 5 and a.lower() in {"d", "l", "dell", "all", "nell", "sull", "dall", "un"}:
+                    w = (a.lower() if i > 0 else a) + ap + b[:1].upper() + b[1:]
+                    break
+        out.append(w)
+    return " ".join(out)
 
 def build_hub(voci):
     """Pagina statica /corsi-unime-messina: TUTTI i corsi raggruppati per dipartimento,
@@ -377,6 +412,12 @@ def main():
         voci.append({"c": c, "ins": ins, "slug": sl, "cod": cod, "nome": c["nome"], "twin": twin,
                      "sede": sede.title(), "nome_h": _nome_h(c["nome"]), "gruppo": c.get("gruppo", ""), "area": c.get("area", "")})
     voci.sort(key=lambda v: v["nome"])
+    _gr = {}
+    for v in voci:
+        if v["sede"] == "Messina":
+            _gr.setdefault(v["nome"], set()).add(v["gruppo"])
+    DUP_GRUPPO.clear()
+    DUP_GRUPPO.update((n, g) for n, gs in _gr.items() if len(gs) > 1 for g in gs)
     generati = []
     for v in voci:   # pass 2: pagine con i correlati dello stesso dipartimento
         stessi = [x for x in voci if x["area"] == v["area"] and x["slug"] != v["slug"]]

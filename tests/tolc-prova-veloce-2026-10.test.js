@@ -111,7 +111,7 @@ describe('prova veloce — pulsanti, risultato, link e misure', () => {
     expect(src).toContain("track('tolc_quick_start'");
     expect(src).toContain("track('tolc_quick_complete'");
     const js = fs.readFileSync(new URL('../functions/journey-summary.cjs', import.meta.url), 'utf8');
-    expect(js).toContain("'tolc_quick_start', 'tolc_quick_complete', 'tolc_returned'];");
+    expect(js).toContain("'tolc_quick_start', 'tolc_quick_complete', 'tolc_returned', 'tolc_reminder_click'];");
   });
 });
 
@@ -177,5 +177,19 @@ describe('link diretti ?sim=tolc-x: prima la scelta (08/10/2026)', () => {
     expect(ctx.d(105)).toBe('1 h 45 min');
     expect(ctx.d(120)).toBe('2 h');
     expect(ctx.d(45)).toBe('45 min');
+  });
+});
+
+describe('promemoria nel calendario dal risultato (08/10/2026)', () => {
+  it('link Google Calendar e file .ics per riprovare la prova veloce tra 3 giorni, con misura', () => {
+    const res = between('function _renderResult()', 'function _askBeforeExit');
+    expect(res).toContain('_reminderHTML(st)');
+    const h = between('function _reminderData(st)', 'function _askBeforeExit');
+    expect(h).toContain('d.setDate(d.getDate() + 3); d.setHours(17, 0, 0, 0);');
+    expect(h).toContain("&veloce=1&utm_source=promemoria&utm_medium=calendario");
+    expect(h).toContain('https://calendar.google.com/calendar/render?action=TEMPLATE');
+    expect(h).toContain("'BEGIN:VCALENDAR'");
+    expect(src).toContain("track('tolc_reminder_click', { test: _state.key, how: 'ics'");
+    expect(src).toContain("track('tolc_reminder_click', { test: _state.key, how: 'google'");
   });
 });

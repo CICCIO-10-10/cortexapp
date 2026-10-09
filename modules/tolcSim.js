@@ -579,8 +579,46 @@ function _renderResult() {
       '<button id="tolc-back" style="flex:1;padding:11px 6px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(255,255,255,.65);font-weight:700;font-size:.85rem;cursor:pointer;">Altri TOLC</button>' +
       '<button id="tolc-share" style="flex:1;padding:11px 6px;border-radius:12px;border:1px solid rgba(56,189,248,.45);background:rgba(56,189,248,.1);color:#38bdf8;font-weight:800;font-size:.85rem;cursor:pointer;">📤 Condividi</button>' +
     '</div>' +
+    _reminderHTML(st) +
     enterBtn
   );
+}
+
+// 08/10/2026: promemoria per tornare (0 ritorni nei 7 giorni, notifiche attive per 1 su 45).
+// Niente account né permessi: un evento nel calendario del telefono tra 3 giorni alle 17:00,
+// con il link per rifare la prova veloce dello stesso TOLC.
+function _reminderData(st) {
+  var d = new Date(); d.setDate(d.getDate() + 3); d.setHours(17, 0, 0, 0);
+  var e = new Date(d.getTime() + 20 * 60000);
+  var z = function (x) { return x.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, ''); };
+  var url = 'https://cortexapp.it/app?guest=1&sim=' + st.key + '&veloce=1&utm_source=promemoria&utm_medium=calendario&utm_content=' + st.key;
+  var title = 'Cortex: rifai la prova veloce ' + st.test.nome;
+  var details = '10 domande, circa 20 minuti. Confronta il punteggio con la volta scorsa: ' + url;
+  return { start: z(d), end: z(e), url: url, title: title, details: details };
+}
+function _reminderHTML(st) {
+  var r = _reminderData(st);
+  var g = 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent(r.title) +
+    '&dates=' + r.start + '/' + r.end + '&details=' + encodeURIComponent(r.details);
+  var a = 'color:#c4b5fd;font-weight:700;text-decoration:underline;text-underline-offset:3px;';
+  return '<p style="text-align:center;font-size:.8rem;color:rgba(255,255,255,.6);margin:12px 0 0;line-height:1.6;">📅 Ricordamelo tra 3 giorni: ' +
+    '<a id="tolc-remind-google" href="' + g + '" target="_blank" rel="noopener" style="' + a + '">Google Calendar</a> · ' +
+    '<a id="tolc-remind-ics" href="#" style="' + a + '">iPhone / altro calendario</a></p>';
+}
+function _reminderICS(st) {
+  var r = _reminderData(st);
+  var ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Cortex//Promemoria TOLC//IT', 'BEGIN:VEVENT',
+    'UID:' + st.key + '-' + r.start + '@cortexapp.it', 'DTSTAMP:' + r.start, 'DTSTART:' + r.start, 'DTEND:' + r.end,
+    'SUMMARY:' + r.title, 'DESCRIPTION:' + r.details.replace(/,/g, '\\,'), 'URL:' + r.url,
+    'BEGIN:VALARM', 'TRIGGER:-PT0M', 'ACTION:DISPLAY', 'DESCRIPTION:' + r.title, 'END:VALARM',
+    'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+  try {
+    var blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+    var link = document.createElement('a');
+    link.href = URL.createObjectURL(blob); link.download = 'cortex-' + st.key + '.ics';
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(function () { URL.revokeObjectURL(link.href); }, 4000);
+  } catch (e) {}
 }
 
 // 25/09/2026: "Vuoi ripassare gli errori prima di uscire?" — pannello sopra il risultato.
@@ -727,6 +765,8 @@ document.addEventListener('click', function (e) {
     return;
   }
   if (id === 'tolc-share') { _shareTolc(); return; }
+  if (id === 'tolc-remind-ics' && _state) { e.preventDefault(); track('tolc_reminder_click', { test: _state.key, how: 'ics', mode: _state.quick ? 'quick' : 'full' }); _reminderICS(_state); return; }
+  if (id === 'tolc-remind-google' && _state) { track('tolc_reminder_click', { test: _state.key, how: 'google', mode: _state.quick ? 'quick' : 'full' }); return; }
   if (id === 'tolc-back') { _clearTimer(); _state = null; ov.innerHTML = _selectorHTML(); return; }
   if (id === 'tolc-start' && !e.target.disabled) return _start(e.target.getAttribute('data-key'));
   if (id === 'tolc-start-quick') return _start(e.target.getAttribute('data-key'), true);
