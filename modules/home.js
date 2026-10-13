@@ -1,5 +1,7 @@
 import { t } from '../core/i18n.js';
 import { refreshDueCounts } from './statsPanel.js';
+import { track } from '../core/analytics.js';
+import { registry } from '../core/registry.js';
 import { renderDailyQuiz } from './dailyQuiz.js';
 /**
  * modules/home.js — Phase 14
@@ -304,6 +306,65 @@ let _deps = {
  * Inietta le dipendenze. Chiamata una volta in main.js dopo che le funzioni
  * dipendenti sono definite (stesso blocco degli altri initX()).
  */
+// 09/10/2026: "Cosa studiare oggi" — un riquadro in cima alla home con le due cose da fare oggi:
+// le carte da ripassare (dai mazzi) e la prova TOLC da rifare (dallo storico salvato sul dispositivo,
+// modules/tolcSim.js → cortex_tolc_history). Se non c'è nessuna delle due, il riquadro non compare.
+export function todayPlan(decks, history, now = Date.now()) {
+    const list = Array.isArray(decks) ? decks : [];
+    const withDue = list.filter(d => d && Number(d.dueCount) > 0);
+    const due = withDue.reduce((s, d) => s + Number(d.dueCount), 0);
+    const top = withDue.slice().sort((a, b) => Number(b.dueCount) - Number(a.dueCount))[0] || null;
+    const recs = (Array.isArray(history) ? history : []).filter(r => r && typeof r.k === 'string' && Number.isFinite(r.s) && Number.isFinite(r.t));
+    const last = recs.length ? recs.reduce((a, b) => (b.t > a.t ? b : a)) : null;
+    let tolc = null;
+    if (last) {
+        const days = Math.floor((new Date(now).setHours(0, 0, 0, 0) - new Date(last.t).setHours(0, 0, 0, 0)) / 864e5);
+        tolc = { key: last.k, name: last.k.toUpperCase(), quick: !!last.q, score: last.s, n: Number.isFinite(last.n) ? last.n : null, days };
+    }
+    return { due, decks: withDue.length, topDeckId: top ? top.id : null, tolc };
+}
+
+function _todayHtml(plan) {
+    if (!plan || (!plan.due && !plan.tolc)) return '';
+    const esc = (x) => String(x ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    const num = (x) => String(Math.round(x * 100) / 100).replace('.', ',');
+    const quando = (g) => g <= 0 ? 'oggi' : g === 1 ? 'ieri' : `${g} giorni fa`;
+    const riga = (icon, testo, sotto, bottone, fn, params) => `
+        <div style="display:flex; align-items:center; gap:12px; padding:12px 0; border-top:1px solid rgba(255,255,255,0.07);">
+            <span style="font-size:1.4rem; line-height:1;">${icon}</span>
+            <div style="flex:1; min-width:0; text-align:left;">
+                <div style="font-weight:800; font-size:0.95rem; color:var(--text);">${testo}</div>
+                <div style="font-size:0.75rem; color:var(--text-muted);">${sotto}</div>
+            </div>
+            <button data-fn="${fn}" data-params='${params}' style="flex-shrink:0; background:linear-gradient(135deg,#7c6af7,#a855f7); color:#fff; border:none; border-radius:20px; padding:8px 16px; font-size:0.8rem; font-weight:800; cursor:pointer; font-family:inherit;">${bottone}</button>
+        </div>`;
+    let righe = '';
+    if (plan.due > 0 && plan.topDeckId != null) {
+        righe += riga('📚', `${plan.due} ${plan.due === 1 ? 'carta' : 'carte'} da ripassare`,
+            plan.decks > 1 ? `in ${plan.decks} materie` : 'meglio adesso che domani',
+            'Ripassa ora', 'todayCardClick', esc(JSON.stringify(['ripasso', String(plan.topDeckId)])));
+    }
+    if (plan.tolc) {
+        const t = plan.tolc;
+        righe += riga('🎯', `Rifai la prova del ${esc(t.name)}`,
+            `${t.quick ? 'prova veloce' : 'simulazione'}: ${num(t.score)}${t.n ? '/' + t.n : ''}, ${quando(t.days)}`,
+            'Prova veloce', 'todayCardClick', esc(JSON.stringify(['tolc', t.key])));
+    }
+    return `
+        <section aria-label="Cosa studiare oggi" style="margin:0 0 18px; padding:14px 18px 4px; border-radius:18px; background:rgba(139,92,246,0.10); border:1px solid rgba(139,92,246,0.35);">
+            <div style="font-size:0.65rem; font-weight:900; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.2em; text-align:left; padding-bottom:8px;">Cosa studiare oggi</div>
+            ${righe}
+        </section>`;
+}
+
+// Clic sul riquadro "Cosa studiare oggi" (misurato solo con il consenso analitico, come tutto il resto).
+window.todayCardClick = function (what, id) {
+    try { track('today_card_click', { what }); } catch (_) {}
+    const studia = registry.startStudyById || window.startStudyById;
+    if (what === 'ripasso' && typeof studia === 'function') return studia(id);
+    if (what === 'tolc' && typeof window.startTolcDirect === 'function') return window.startTolcDirect(id, { quick: true });
+};
+
 export function init(deps) {
     _deps = { ..._deps, ...deps };
 }
@@ -364,6 +425,9 @@ export function renderHome() {
         .sort((a, b) => (b.dueCount || 0) - (a.dueCount || 0))
         .slice(0, 3);
     const _hasDue = _decksTop.some(d => d.dueCount > 0);
+    let _tolcHist = [];
+    try { _tolcHist = JSON.parse(localStorage.getItem('cortex_tolc_history') || '[]'); } catch (_) {}
+    const _oggi = _todayHtml(todayPlan(_decksAll, _tolcHist));
     // Primo minuto: nuovo utente (0 materie) → un'unica azione dominante "appunti → flashcard".
     const _isNew = _decksAll.length === 0;
     const _firstRun = `
@@ -379,7 +443,7 @@ export function renderHome() {
     const _materieHtml = _decksAll.length ? `
         <section class="home-next-step" style="margin-bottom:28px;">
             <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px;">
-                <div style="font-size:0.65rem; font-weight:900; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.2em;">Cosa studiare oggi</div>
+                <div style="font-size:0.65rem; font-weight:900; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.2em;">Le tue materie</div>
                 <button data-fn="showPage" data-params='["materiale"]' style="background:none; border:none; color:var(--accent); font-size:0.8rem; font-weight:700; cursor:pointer; font-family:inherit;">vedi tutte →</button>
             </div>
             <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px;">
@@ -451,6 +515,7 @@ export function renderHome() {
                         </h1>
                     </div>
 
+                    ${_oggi}
                     ${renderQuickStats()}
                     ${renderDailyGoalRing()}
 

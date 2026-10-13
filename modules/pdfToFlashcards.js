@@ -202,7 +202,10 @@ function renderCards(cards, deckTitle) {
     if (title)    title.textContent    = (_t().preview||t('pdffc_preview')) + ' — ' + (deckTitle || (_t().new_deck||t('pdffc_new_deck')));
     // FIX: prima riusava il nome del mazzo PRECEDENTE se il campo era rimasto
     // valorizzato (es. card di Fisica salvate come "Analisi 2..."). Sempre nuovo.
-    if (nameInput) nameInput.value = deckTitle || t('pdffc_ai_deck');
+    // 13/10/2026: se lo studente ha già scritto il nome della materia (o arriva da /unime con la materia
+    // scelta), si tiene quello; il titolo proposto dall'AI serve solo se il campo è vuoto.
+    const nomeScelto = (document.getElementById('deck-name')?.value || '').trim();
+    if (nameInput) nameInput.value = nomeScelto || deckTitle || t('pdffc_ai_deck');
     if (count)    count.textContent   = `${cards.length} ${_outputMode === 'flashcards' ? 'carte' : 'domande'}`;
     const saveButton = document.getElementById('pdfai-save-btn');
     if (saveButton) {

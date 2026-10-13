@@ -85,3 +85,11 @@ describe('Privacy 09/10: cookie di analisi descritti e scelta modificabile', () 
     expect(n).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
   });
 });
+
+describe('Dashboard 13/10: campo del giorno assente = 0', () => {
+  it('se il documento di oggi ha solo "app", "landing" vale 0 e il totale non diventa n/d', () => {
+    const src = fs.readFileSync(new URL('../functions/index.js', import.meta.url), 'utf8');
+    expect(src).toContain("const countOrZero = value => (value === undefined ? 0 : validCount(value));");
+    expect(src).toContain("{ landing: countOrZero(pvData.landing), app: countOrZero(pvData.app) }");
+  });
+});

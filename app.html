@@ -2125,6 +2125,8 @@ document.body.prepend(b);setTimeout(function(){try{var e=document.getElementById
             if(document.getElementById('guest-login-gate') || document.getElementById('tolc-save-prompt') || document.getElementById('tolc-resume-card')) return;
             var _ob=document.getElementById('onboarding-overlay'); if(_ob && _ob.style.display==='flex') return;
             if(/[?&]sim=/.test(location.search||'') || /[?&]sim=/.test(__q0||'') || localStorage.getItem('cortex_sim')) return;
+            // 13/10/2026: chi arriva da /unime con la materia scelta va dritto a "Nuova materia", senza demo sopra.
+            if(/[?&]materia=/.test(__q0||'') || sessionStorage.getItem('cortex_materia_arrivo')) return;
           }catch(e){}
         }
         if(document.getElementById('cortex-demo')) return;

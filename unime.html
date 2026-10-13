@@ -299,7 +299,7 @@ function cardIns(ins, id){
   body+=secTxt("Modalità d'esame",ins.verifica,320);
   body+=secTxt('Testi / bibliografia',ins.testi,450);
   if(!hasProg){ body+='<div class="setext" style="color:var(--t3)">Il programma 2026/2027 non è ancora disponibile. Carica appunti, dispense o syllabus per creare un ripasso personalizzato.</div>'; }
-  const cta='/app?guest=1&area=universita&materia='+slugMat(ins.nome);
+  const cta='/app?guest=1&area=universita&materia='+slugMat(ins.nome)+'&nome='+encodeURIComponent(ins.nome);
   body+='<a class="mat-cta" data-ins="'+esc(ins.nome).replace(/"/g,'&quot;')+'" href="'+cta+'">Studia '+esc(ins.nome.length>30?'questo insegnamento':ins.nome)+' con Cortex →</a>';
   return '<div class="mat"><div class="mat-h"><span class="mat-emo">📘</span><span class="mat-nm">'+esc(ins.nome)+'</span>'+
     '<span class="mat-cnt">'+(hasProg?'programma ✓':(ins.cfu?ins.cfu+' CFU':''))+'</span><span class="mat-arr">▶</span></div>'+

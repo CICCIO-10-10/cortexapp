@@ -59,8 +59,15 @@
     document.head.appendChild(script);
   }
 
+  // 13/10/2026: Clarity e GA4 solo sul sito vero. Le prove in locale (127.0.0.1, localhost, anteprime)
+  // finivano nel progetto Clarity di produzione (sessioni su http://127.0.0.1/app).
+  function isProduction() {
+    try { return location.protocol === 'https:' && /^(www\.)?cortexapp\.it$/.test(location.hostname); }
+    catch (_) { return false; }
+  }
+
   function startOptionalAnalytics() {
-    if (!hasConsent()) return;
+    if (!hasConsent() || !isProduction()) return;
     loadClarity();
     loadGoogleAnalytics();
     try { window.__cxStartTelemetry?.(); } catch (_) {}

@@ -163,3 +163,5 @@ body.cortex-product .notif-banner{position:fixed;left:50%;transform:translateX(-
    e bandiera tonda 24px, stesso peso visivo dell'icona impostazioni. */
 body.cortex-product .nav-actions .nav-action-btn:not(.focus-trigger){width:44px!important;min-width:44px!important;height:44px!important;min-height:44px!important;border-radius:50%!important}
 body.cortex-product #lang-btn img{width:24px!important;height:24px!important;border-radius:50%!important;object-fit:cover!important;opacity:1!important}
+/* 09/10/2026: pulsanti del riquadro "Cosa studiare oggi" = azione principale (stesso stile di startStudyById) */
+body.cortex-product .hero-nebula button[data-fn="todayCardClick"]{background:var(--accent)!important;color:#1a1228!important;border-color:var(--accent)!important;align-items:center!important;text-align:center!important;padding:10px 14px!important;white-space:nowrap;min-height:44px}

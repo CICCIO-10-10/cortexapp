@@ -353,7 +353,12 @@ export async function handleImageFile(file, idx = 1, total = 1) {
     try {
         if (!window.Tesseract) await new Promise((res, rej) => { const s = document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
         if (statusText) statusText.textContent = `[${idx}/${total}] Analisi immagine...`;
-        const result = await Tesseract.recognize(file, 'ita');
+        // 13/10/2026: la lettura della foto era bloccata dalla CSP (WebAssembly) e restava "Analisi immagine..." per
+        // sempre. CSP corretta in firebase.json; in più un limite di 90 s con un messaggio chiaro.
+        const result = await Promise.race([
+            Tesseract.recognize(file, 'ita'),
+            new Promise((_, rej) => setTimeout(() => rej(new Error('tempo scaduto: incolla il testo oppure prova una foto più nitida')), 90000)),
+        ]);
         const ta = document.getElementById('deck-text');
         if (ta) { ta.value += (ta.value ? '\n\n' : '') + `--- OCR: ${file.name} ---\n` + result.data.text; if (typeof window.updateCharCount === 'function') window.updateCharCount(); }
         if (window.showToast) window.showToast(t('ai_text_extracted'), 'success');

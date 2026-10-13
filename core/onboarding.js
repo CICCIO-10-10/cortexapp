@@ -12,6 +12,7 @@
  * Dipendenze iniettate via initOnboarding(deps).
  */
 
+import { arrivoDaMateria } from './materiaArrival.js';
 import { track, setUserProperty } from './analytics.js';
 import { t } from './i18n.js';
 
@@ -213,6 +214,7 @@ export function triggerOnboardingOverlay() {
             const decks = _deps.state && Array.isArray(_deps.state.decks) ? _deps.state.decks : [];
             if (decks.length) return 'has_decks';
             if (_simArrival) return 'tolc_arrival';
+            if (arrivoDaMateria()) return 'materia_arrival';   // 13/10: ha già scelto la materia su /unime
         } catch (_) {}
         return '';
     };

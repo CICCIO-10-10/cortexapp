@@ -1369,8 +1369,11 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
     // Visite oggi
     const pvData = pageviewsDoc.exists ? pageviewsDoc.data() : {};
     const validCount = value => typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : null;
+    // 13/10/2026: il documento del giorno nasce col primo evento e ha solo i campi già incrementati
+    // (es. app: 3 e niente landing). Campo assente = 0 eventi, non "n/d"; un valore non valido resta n/d.
+    const countOrZero = value => (value === undefined ? 0 : validCount(value));
     const visitesToday = pageviewsDoc.exists
-      ? { landing: validCount(pvData.landing), app: validCount(pvData.app) }
+      ? { landing: countOrZero(pvData.landing), app: countOrZero(pvData.app) }
       // 09/10/2026: il documento del giorno nasce con la prima visita (functions/telemetry.js);
       // se la lettura riesce e il documento non c'è ancora, oggi le visite sono 0, non "n/d".
       : { landing: 0, app: 0 };
@@ -2107,10 +2110,43 @@ const EMAILS = {
   },
 };
 
-async function inviaEmail(to, tipo) {
+// 09/10/2026: carte da ripassare di un utente, per la mail del giorno dopo.
+// Usa dueCount dei metadati dei mazzi (scritto a ogni sincronizzazione: carte nuove o scadute
+// in quel momento, quindi è un minimo). Restituisce null se il dato non è affidabile.
+function contaCarteDaRipassare(d, now = Date.now()) {
+  if (!d) return null;
+  if (Array.isArray(d.decksMetadata)) {
+    const v = d.decksMetadata.map(x => x && x.dueCount);
+    if (v.some(x => x == null || !Number.isFinite(Number(x)) || Number(x) < 0)) return null;
+    return v.reduce((s, x) => s + Number(x), 0);
+  }
+  if (Array.isArray(d.decks)) {
+    return d.decks.reduce((sum, deck) => sum + ((deck && deck.cards) || []).filter(card => {
+      if (!card) return false;
+      if (!card.nextReview) return true;
+      const due = new Date(card.nextReview).getTime();
+      return Number.isFinite(due) && due <= now;
+    }).length, 0);
+  }
+  return null;
+}
+
+// Mail del giorno dopo: con il numero di carte se lo conosciamo, altrimenti il testo generico.
+function emailD1(n) {
+  if (!Number.isInteger(n) || n <= 0) return EMAILS.d1;
+  const carte = n === 1 ? '1 carta' : `${n} carte`;
+  return {
+    subject: `Hai ${carte} da ripassare`,
+    html: emailLayout(`Le tue ${carte} ti aspettano`,
+      `Su Cortex hai <b>${carte} da ripassare</b>. Ripassarle adesso, mentre te le ricordi ancora, ti fa risparmiare tempo dopo: bastano <b>5 minuti</b>.`,
+      'Ripassa ora →', 'https://cortexapp.it/app?utm_source=email&utm_campaign=d1&utm_content=carte'),
+  };
+}
+
+async function inviaEmail(to, tipo, contenuto) {
   const m = getMailer();
   if (!m || !to) return false;
-  const e = EMAILS[tipo];
+  const e = contenuto || EMAILS[tipo];
   const opts = { from: `Cortex <${ARUBA_USER}>`, to, subject: e.subject, html: e.html };
   // Copia della welcome a te (info@) → verifica automatica + storico di cosa
   // ricevono i nuovi iscritti. Solo la welcome, per non intasare la casella.
@@ -2159,7 +2195,7 @@ exports.reengageEmails = functions.pubsub.schedule('0 10 * * *')
           try { email = (await admin.auth().getUser(doc.id)).email; } catch (_) {}
         }
         if (!email) continue;
-        const ok = await inviaEmail(email, f.tipo);
+        const ok = await inviaEmail(email, f.tipo, f.tipo === 'd1' ? emailD1(contaCarteDaRipassare(d)) : undefined);
         if (ok) {
           try { await doc.ref.update({ [f.flag]: true }); } catch (_) {}
           console.log(`[email] ${f.tipo} inviata a`, email);

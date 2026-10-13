@@ -173,7 +173,7 @@ function _intro(key, refresh) {
   const startStyle = ready ? 'linear-gradient(135deg,#a855f7,#6366f1)' : 'rgba(255,255,255,.08)';
   const startCur = ready ? 'pointer' : 'not-allowed';
   // numeri ufficiali (la banca nuova arriva dopo un attimo: prima si vedevano per un secondo numeri più bassi)
-  const startTxt = ready ? 'Test completo →<span style="display:block;font-size:.74rem;font-weight:700;opacity:.8;margin-top:2px;pointer-events:none;">come quello vero · ' + tolcTotQ(t) + ' + ' + (t.engQ || realEng) + ' domande' + (totMin ? ' · ' + _durata(totMin + (t.engMin || 0)) : '') + '</span>' : 'Domande non ancora disponibili';
+  const startTxt = ready ? 'Test completo<span style="display:block;font-size:.74rem;font-weight:700;color:rgba(196,181,253,.75);margin-top:2px;pointer-events:none;">come quello vero · ' + tolcTotQ(t) + ' + ' + (t.engQ || realEng) + ' domande' + (totMin ? ' · ' + _durata(totMin + (t.engMin || 0)) : '') + '</span>' : 'Domande non ancora disponibili';
   ov.innerHTML = _shell(
     '<div style="text-align:center;margin-bottom:14px;">' +
       '<div style="font-size:1.6rem;">' + t.emoji + '</div>' +
@@ -193,8 +193,11 @@ function _intro(key, refresh) {
     (warn ? '<p style="font-size:.72rem;color:rgba(255,255,255,.4);margin:0 0 16px;line-height:1.5;">' + warn + '</p>' : '') +
     _introHist(key) +
     '<p style="font-size:.68rem;color:rgba(255,255,255,.4);line-height:1.5;margin:0 0 14px;">Punteggio CISIA: +1 corretta, -0,25 errata, 0 non data (Inglese senza penalita’, a parte). Le regole di ammissione (soglie/OFA) variano per ateneo.</p>' +
-    '<button id="tolc-start" data-key="' + key + '" ' + (ready ? '' : 'disabled') + ' style="width:100%;padding:14px;border-radius:12px;border:none;font-weight:800;font-size:1rem;color:#fff;background:' + startStyle + ';cursor:' + startCur + ';">' + startTxt + '</button>' +
-    (ready ? '<button id="tolc-start-quick" data-key="' + key + '" style="width:100%;padding:12px;margin-top:9px;border-radius:12px;border:1px solid rgba(168,85,247,.5);background:rgba(168,85,247,.12);color:#c084fc;font-weight:800;font-size:.95rem;cursor:pointer;line-height:1.3;">⚡ Prova veloce<span style="display:block;font-size:.74rem;font-weight:700;color:rgba(196,181,253,.75);margin-top:2px;pointer-events:none;">10 domande · circa ' + _quickMinutes(t) + ' minuti</span></button>' : '') +
+    // 13/10/2026: prima "Test completo" (quasi 2 ore) era il pulsante in evidenza e la prova veloce il secondo:
+    // 5 test completi finiti su 25, prove veloci 5 su 5. Ora in evidenza c'è la prova veloce; il test completo
+    // resta subito sotto, sempre disponibile (scelta di Francesco del 13/10).
+    (ready ? '<button id="tolc-start-quick" data-key="' + key + '" style="width:100%;padding:14px;border-radius:12px;border:none;font-weight:800;font-size:1rem;color:#fff;background:' + startStyle + ';cursor:pointer;line-height:1.3;">⚡ Prova veloce →<span style="display:block;font-size:.74rem;font-weight:700;opacity:.8;margin-top:2px;pointer-events:none;">10 domande · circa ' + _quickMinutes(t) + ' minuti · punteggio subito</span></button>' : '') +
+    '<button id="tolc-start" data-key="' + key + '" ' + (ready ? '' : 'disabled') + ' style="width:100%;padding:12px;margin-top:9px;border-radius:12px;' + (ready ? 'border:1px solid rgba(168,85,247,.5);background:rgba(168,85,247,.12);color:#c084fc;' : 'border:none;background:' + startStyle + ';color:#fff;') + 'font-weight:800;font-size:.95rem;cursor:' + startCur + ';line-height:1.3;">' + startTxt + '</button>' +
     '<button id="tolc-back" style="width:100%;padding:11px;margin-top:9px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(255,255,255,.6);font-weight:700;cursor:pointer;">← Scegli un altro TOLC</button>'
   );
 }

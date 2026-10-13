@@ -304,8 +304,8 @@
   "sha": "539d8f5aaf8c08eebcf004f9c77f74acbb185d13282d66aa2dc2d3c212f007ec"
  },
  "/quiz-logica-tolc": {
-  "date": "2026-10-08",
-  "sha": "1b574e56c371b81036d0284ea058a9ab4df89dbdee50ae29f7a22a7bf3ba63e4"
+  "date": "2026-10-13",
+  "sha": "688d08aade1adc4e89e122ef2ec989dd7a7ab265e96dfbc5379b17880d96b995"
  },
  "/relazioni-internazionali-messina": {
   "date": "2026-10-09",
@@ -460,36 +460,36 @@
   "sha": "a838ce1f2a5e5b9113656374f8c602ab612b5479188fb6522569160db45057af"
  },
  "/tolc-av": {
-  "date": "2026-10-09",
-  "sha": "acbc13338dd42942223a830f71938a38dd3947e12b438f622d4eeff9ee49d10f"
+  "date": "2026-10-13",
+  "sha": "b5771401cff3c7eafe86f5defee2393dbddacf23c45085f6330ec52fd3e59ad7"
  },
  "/tolc-b": {
-  "date": "2026-10-09",
-  "sha": "536ab880de8fc08116fa9629a25e390828354a0b2856e427b450f4d8838545e4"
+  "date": "2026-10-13",
+  "sha": "b3785a3749aa9282b0678ace22efa79cca7bb25aa567f94f60f59eb621fba445"
  },
  "/tolc-catania": {
   "date": "2026-10-09",
   "sha": "6ee5b106f3903aabd7a55dd5c293b06eb5bd375ad5bfc52db62b4896d4817406"
  },
  "/tolc-e": {
-  "date": "2026-10-09",
-  "sha": "004c579f22cab2719d9fe0b9c404aa001dbc3c401c26ac49158837b6a6dc2ceb"
+  "date": "2026-10-13",
+  "sha": "79f9a5ae91aca744442f90b608fc8c6dffed1098c62a6aec46056ba032d62d09"
  },
  "/tolc-enna": {
   "date": "2026-10-09",
   "sha": "14723282b96ac7f11468e8c70974d262061ed54e3fcf2082ee51954c74daefdb"
  },
  "/tolc-f": {
-  "date": "2026-10-09",
-  "sha": "d7498e947e33d5cc3e2f18f594892cc7d798f0d1bc0cb363f280b65b833b3278"
+  "date": "2026-10-13",
+  "sha": "9b10feab3235c2b8240e139cf1ac71f5c1470a5bcc7e73cd5529d442bdb9a7fa"
  },
  "/tolc-i": {
-  "date": "2026-10-09",
-  "sha": "98ac9019682c68f07f1f8d54c1e8f400f178ad4e0ab193af49ead35bb04bb6e5"
+  "date": "2026-10-13",
+  "sha": "933e312027a8b0b151457bd7ff3b778c933f1c6ff75cbb9569d4494fb00af571"
  },
  "/tolc-lp": {
-  "date": "2026-10-09",
-  "sha": "704c9f832104648eb215a8413b04364fa4a5c0f72d36212298cc26fb7899629a"
+  "date": "2026-10-13",
+  "sha": "e19b4fb2e72d7017bf2611e33b2bb7276ad171bf5b3aad11e3d4019f3182c1ff"
  },
  "/tolc-messina": {
   "date": "2026-10-09",
@@ -500,20 +500,20 @@
   "sha": "d79787a2f0cb35f633f25aeea7aefbdfa8fc2ea09c766a9cb3d347b6eb655d28"
  },
  "/tolc-psi": {
-  "date": "2026-10-09",
-  "sha": "2a8241e0d9e8bfd0ade8ff77469381de749008435b40fafd4bde2b25078572c2"
+  "date": "2026-10-13",
+  "sha": "706781a5f11f6f8b315eb439fb3cacfeef6602c5cb1c4b4cb634c53b7cf92406"
  },
  "/tolc-s": {
-  "date": "2026-10-09",
-  "sha": "4beee991db83962106f0e6b23a08ebd1d73bbbd56f88a74825515751564cc33e"
+  "date": "2026-10-13",
+  "sha": "1c5e09885505d1a9635bb43689f0c3ad7687e69c9a9485b5478cc6d2e574575c"
  },
  "/tolc-sps": {
-  "date": "2026-10-09",
-  "sha": "8fde52e367286cf3de631a17724b9ed204ddda7de727f2e74a5e7c2e7652a5d3"
+  "date": "2026-10-13",
+  "sha": "ee685461e8f0e6bc093cea4c121c5800cf39ee727203a48d7907e3229b4102d8"
  },
  "/tolc-su": {
-  "date": "2026-10-09",
-  "sha": "8faefc005fc36a5fc18da02077931e6a36586bf682857523fac855d1d1563e98"
+  "date": "2026-10-13",
+  "sha": "50087bb87ff15a8bf2dd76f23d906087d30702810cb7a59a5f7e5ae6f3b12e4d"
  },
  "/total-quality-international-management-for-food-5-0-messina": {
   "date": "2026-10-09",
@@ -536,7 +536,7 @@
   "sha": "c01638a72707af553f6507048ef36ee52cde6e8d0fd1f21a8d084272c3a8334d"
  },
  "/unime": {
-  "date": "2026-10-07",
-  "sha": "23c48e64c6a3aae03867d5aa436e5110bbb0bd54fd9aff3ed27fe60b322154c7"
+  "date": "2026-10-13",
+  "sha": "205e6f2229eff12ea28a7e5b09c4857664b5c8375517e13619faae6c5ef4eba2"
  }
 }

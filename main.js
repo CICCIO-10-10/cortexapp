@@ -6,6 +6,8 @@
 // --- CORE LIBRARIES ---
 // Fase 2.1: lo spazio dati dell'account va fissato PRIMA di ogni altro modulo.
 import './core/scopeInit.js';
+import { handleMateriaArrival } from './core/materiaArrival.js';
+import { track as trackMateria } from './core/analytics.js';
 import { APP_CONFIG }                                      from './js/config.js';
 import { state, hydrateFromIDB }                          from './core/state.js';
 import { bootApp }                                         from './core/appBoot.js';
@@ -544,11 +546,13 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Notification prompt on first use
+// 13/10/2026: mancava data-self → i gestori ricevevano undefined e "Non ora"/"Attiva" non chiudevano il
+// riquadro (Clarity 1cj9kqe: "Non ora" cliccato 4 volte).
 if (!localStorage.getItem('mm_notif_asked') && 'Notification' in window) {
     localStorage.setItem('mm_notif_asked', '1');
     const nb = document.createElement('div');
     nb.className = 'notif-banner';
-    nb.innerHTML = `🔔 Attiva le notifiche per ricevere i tuoi promemoria di ripasso! <button data-fn="notifyAndDismiss">Attiva</button><button data-fn="dismissParent" style="background:rgba(255,255,255,0.08);margin-left:4px;">Non ora</button>`;
+    nb.innerHTML = `🔔 Attiva le notifiche per ricevere i tuoi promemoria di ripasso! <button data-fn="notifyAndDismiss" data-self>Attiva</button><button data-fn="dismissParent" data-self style="background:rgba(255,255,255,0.08);margin-left:4px;">Non ora</button>`;
     document.body.appendChild(nb);
 }
 
@@ -814,6 +818,9 @@ hydrateFromIDB().then((updated) => {
         }
     }, 150);
 })();
+
+// 13/10/2026: arrivo da "Studia <materia> con Cortex" (pagina /unime) → Nuova materia con il nome già scritto.
+handleMateriaArrival({ track: trackMateria, getDecks: () => (state && state.decks) || [] });
 
 // ── PWA Shortcuts handler: gestisce ?action= dall'icona app ──────────────────
 (function handlePWAShortcuts() {

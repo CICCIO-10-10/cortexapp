@@ -83,11 +83,11 @@ describe('tempo dei TOLC senza tempi ufficiali per sezione', () => {
 });
 
 describe('prova veloce — pulsanti, risultato, link e misure', () => {
-  it('intro: pulsante "Prova veloce" sotto quello del test completo, solo se la banca è pronta', () => {
+  it('intro (13/10): "Prova veloce" in evidenza sopra il test completo, solo se la banca è pronta', () => {
     const intro = between('function _intro(key, refresh)', 'function _shuffle(a)');
-    expect(intro.indexOf('id="tolc-start-quick"')).toBeGreaterThan(intro.indexOf('id="tolc-start"'));
+    expect(intro.indexOf('id="tolc-start-quick"')).toBeLessThan(intro.indexOf('id="tolc-start"'));
     expect(intro).toContain("(ready ? '<button id=\"tolc-start-quick\"");
-    expect(intro).toContain('⚡ Prova veloce<span');
+    expect(intro).toContain('⚡ Prova veloce →<span');
     expect(intro).toContain("10 domande · circa ' + _quickMinutes(t) + ' minuti");
   });
   it('click: veloce, completo dopo la veloce, "Riprova" nella stessa modalità', () => {
@@ -169,7 +169,7 @@ describe('link diretti ?sim=tolc-x: prima la scelta (08/10/2026)', () => {
   });
   it('il pulsante del test completo dice quanto dura', () => {
     const intro = between('function _intro(key, refresh)', 'function _shuffle(a)');
-    expect(intro).toContain("'Test completo →");
+    expect(intro).toContain("'Test completo<span");
     expect(intro).toContain("_durata(totMin + (t.engMin || 0))");
     const ctx = vm.createContext({});
     vm.runInContext(between('function _durata(min)', 'function _intro(key, refresh)') + '\nthis.d=_durata;', ctx);
