@@ -126,15 +126,19 @@ export function ensureScopeInitialized() {
  * assegna a nessuno.
  */
 function migrateLegacyTolcHistory(store, active) {
-    if (store.getItem(TOLC_HISTORY_MIGRATED_KEY) === '1') return;
-    const raw = store.getItem(TOLC_HISTORY_KEY);
-    if (raw !== null && !legacyTolcOwnerKnown(store, active)) {
-        // Se esiste già una copia messa da parte non la si sovrascrive.
-        const key = store.getItem(TOLC_HISTORY_UNASSIGNED_KEY) === null ? TOLC_HISTORY_UNASSIGNED_KEY : TOLC_HISTORY_UNASSIGNED_KEY + ':' + Date.now();
-        store.setItem(key, raw);
-        store.removeItem(TOLC_HISTORY_KEY);
-    }
-    store.setItem(TOLC_HISTORY_MIGRATED_KEY, '1');
+    // Gira dal PRIMO import di main.js (core/scopeInit.js): non deve mai interrompere l'avvio.
+    // Con localStorage pieno la cronologia resta dov'è (non si perde) e si riprova al prossimo avvio.
+    try {
+        if (store.getItem(TOLC_HISTORY_MIGRATED_KEY) === '1') return;
+        const raw = store.getItem(TOLC_HISTORY_KEY);
+        if (raw !== null && !legacyTolcOwnerKnown(store, active)) {
+            // Se esiste già una copia messa da parte non la si sovrascrive.
+            const key = store.getItem(TOLC_HISTORY_UNASSIGNED_KEY) === null ? TOLC_HISTORY_UNASSIGNED_KEY : TOLC_HISTORY_UNASSIGNED_KEY + ':' + Date.now();
+            store.setItem(key, raw);              // prima la copia: se fallisce, nulla viene tolto
+            store.removeItem(TOLC_HISTORY_KEY);
+        }
+        store.setItem(TOLC_HISTORY_MIGRATED_KEY, '1');
+    } catch (_) { /* riprova al prossimo avvio */ }
 }
 function legacyTolcOwnerKnown(store, active) {
     const accounts = new Set(otherAccountScopes(active));

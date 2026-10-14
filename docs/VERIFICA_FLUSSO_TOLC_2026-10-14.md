@@ -57,14 +57,16 @@ Sui dispositivi già in uso la cronologia è stata scritta quando era ancora glo
 - **altrimenti viene messa da parte** in `cortex_tolc_history_unassigned`. Nessuna parte dell'app la legge, non fa parte di nessuno spazio dati, non passa a nessun account con l'accesso e non si unisce allo storico dell'ospite. Esempio: modalità ospite dopo il logout di A, oppure dispositivo usato da più account.
 - Il marcatore del dispositivo `cortex_tolc_history_scoped` impedisce di ripetere la migrazione, così le prove fatte dopo l'aggiornamento non vengono più spostate. Resta anche dopo l'eliminazione di un account: per questo nel test esatto di `account-deletion` è stato aggiunto alle chiavi attese.
 - Rispetto alla regola generica per i dati legacy ("all'ultimo account del dispositivo") la cronologia TOLC è più prudente: l'ultimo account non basta a dire di chi sia.
-- **Prova:** 10 test unitari. Disattivando la migrazione ne falliscono 7; i 3 che passano comunque sono i casi in cui la cronologia deve restare dov'è. Scenario `legacyhist` nel browser: 4/4 con la migrazione, 0/4 senza.
+- **Robustezza (revisione finale):** la migrazione gira dal primo import di `main.js`. Con localStorage pieno `setItem` lanciava un'eccezione e **bloccava l'avvio dell'app** (riprodotto con un test). Ora la copia avviene prima della rimozione e ogni errore viene intercettato: la cronologia resta dov'è, la migrazione non viene segnata come fatta e si riprova al prossimo avvio. In quel caso, finché c'è poco spazio, la vecchia cronologia resta visibile allo spazio dati attivo.
+- **Prova:** 10 test unitari, più 1 test con localStorage pieno. Disattivando la migrazione ne falliscono 7; i 3 che passano comunque sono i casi in cui la cronologia deve restare dov'è. Scenario `legacyhist` nel browser: 4/4 con la migrazione, 0/4 senza.
 - **Non deciso qui:** cosa fare della copia messa da parte (es. offrirla all'utente con una conferma esplicita, o cancellarla dopo un certo tempo). Oggi resta sul dispositivo e basta.
 
-## Immagini mancanti (`LOGO_APP_144.png`): non corrette
+## Immagini mancanti (`LOGO_APP_144.png`): da copiare prima del deploy
 `scripts/verify-security-build.mjs` fallisce su `main` e su questo branch perché nella build mancano 7 immagini (`LOGO_APP_144.png`, `LOGO_SQUARE.png`, `favicon.ico`, `favicon-32x32.png`, `pwa-192x192.png`, `pwa-512x512.png`, `og-image.png`). Manca anche lo sfondo `media/nebula/bg.png`/`.webp` (controllo successivo dello stesso script, finora mai raggiunto).
 - **Causa:** `.gitignore` esclude `*.png`, `*.ico`, `*.webp` e `*.svg`. Le immagini esistono solo sul computer da cui si pubblica.
 - **Ricerca degli asset corretti:** nessuna immagine in cortexapp, né oggi né in tutta la storia (85 commit, `git log --diff-filter=A`). In `progetti-` ci sono solo immagini di altri progetti (clio, piqued, chess lore). L'unico asset di Cortex trovato è il logo incorporato in `index.html` come PNG **120×120**.
 - **Perché non è stato corretto:** da un logo 120×120 si potrebbero solo *ricavare* icone 144/192/512, favicon e anteprima social 1200×630, ingrandendole o componendole. Sarebbero file ricostruiti e di qualità peggiore, non gli asset corretti. Lo script di controllo non è stato modificato: il problema che segnala è reale.
+- **Aggiornamento:** gli originali sono sul computer di chi pubblica, quindi non vanno ricreati e questa PR non li tocca. `npm run deploy:security` esegue `verify-security-build.mjs` e si ferma finché mancano.
 - **Cosa serve:** copiare in `public/` i 7 file originali e in `media/nebula/` lo sfondo, dal computer da cui si pubblica, poi rilanciare `npm run build && node scripts/verify-security-build.mjs`. Per non dipendere più da un solo computer si può valutare di versionare solo queste immagini con eccezioni nel `.gitignore` (es. `!public/LOGO_APP_144.png`). È una decisione da prendere: il commento nel `.gitignore` indica che il repository è pubblico.
 
 ## Comandi eseguiti
@@ -76,15 +78,19 @@ Sui dispositivi già in uso la cronologia è stata scritta quando era ancora glo
 | nuovi test prima delle correzioni | difetto 1: 5 test falliti; difetto 2: 1 test fallito (`update plan` rifiutato) |
 | `npm test` (dopo le prime due correzioni) | 46 file, 403 superati, 1 saltato |
 | test della migrazione con la migrazione disattivata | 7 falliti su 10 |
-| `npm test` (finale, con la migrazione) | 46 file, **413 superati, 1 saltato** |
+| `npm test` (con la migrazione) | 46 file, 413 superati, 1 saltato |
+| test con localStorage pieno, prima della correzione di revisione | 1 fallito (`quota` lanciato da `ensureScopeInitialized`) |
+| `npm test` (finale, dopo la revisione) | 46 file, **414 superati, 1 saltato** |
+| CI GitHub (`test`) sul commit `d2b92e9` | ✅ verde |
 | `npm run build` (i18n strict + vite) | ok |
 | `node scripts/verify-security-build.mjs` | ❌ su `main` e sul branch: immagini mancanti (vedi sopra), non corretto |
 | `browser.cjs` main / noerrors / idbfail / loginredirect / dblconsegna / scope / legacyhist (finale) | 11/11, 3/3, 4/4, 4/4, 1/1, 5/5, 4/4 |
 | `browser.cjs legacyhist` con la migrazione disattivata | 0/4 |
-| `emulatori.cjs` (regole del repository) | prima delle correzioni 14/15 (punteggi di A visibili a B) e mazzo non sul cloud; finale **16/16** |
+| `emulatori.cjs` (regole del repository) | prima delle correzioni 14/15 (punteggi di A visibili a B) e mazzo non sul cloud; finale **16/16** (2 esecuzioni) |
 
 ## Decisioni di prodotto da valutare (non modificate)
-- **Copia messa da parte della vecchia cronologia TOLC:** se e come restituirla (vedi sopra).
+- **Copia messa da parte della vecchia cronologia TOLC:** se e come restituirla (vedi sopra). Inoltre l'eliminazione di un account **non** la cancella, perché non si sa di chi sia: potrebbe contenere punteggi dell'account eliminato (solo codice del test, punteggio e data, nessun contenuto, mai inviati al cloud). Va deciso se cancellarla in quel caso.
+- **`plan` nel documento utente al primo accesso:** si scrive solo se il documento non esiste ancora, regola già in vigore dal 25/09. Se `touchSeen()` lo crea prima, `plan` manca e vale "free" per app e server (`data.plan || 'free'`). Sugli emulatori sono capitati entrambi i casi; il controllo accetta "free" o assente, mai un altro piano.
 - **Versionare le immagini del sito** nel repository pubblico (vedi sopra).
 - **`cortex_tolc_error_funnel`** (solo telemetria del funnel) e **`cortex_tolc_resume`** restano globali per scelta. Il secondo viene validato contro i mazzi dello spazio attivo (test esistente): non espone contenuti.
 - **"N carte pronte"** compare prima della conferma del salvataggio su IndexedDB. Se il salvataggio fallisce segue subito l'avviso di errore con copia di riserva. Non è una falsa conferma di salvataggio, ma l'ordine dei messaggi si potrebbe rivedere.

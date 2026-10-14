@@ -135,7 +135,9 @@ async function rate(page, n) {
   }
   check('account A: mazzo errori sul cloud (emulatore) senza altre modifiche locali', cloud.length === 1, cloud);
   const userDoc = await page.evaluate(async () => { const d = (await firebase.firestore().collection('users').doc(window._fbUserId).get()).data() || {}; return { createdAt: !!d.createdAt, plan: d.plan || null, email: !!d.email }; });
-  check('account A: documento utente completato al primo accesso (createdAt, plan free, email)', userDoc.createdAt && userDoc.plan === 'free' && userDoc.email, userDoc);
+  // 'plan' si scrive solo se il doc non esisteva ancora; se touchSeen() l'ha creato prima, manca:
+  // assente = free per app e server (data.plan || 'free'). Mai un piano diverso da free.
+  check('account A: documento utente completato al primo accesso (createdAt, email, piano free o assente)', userDoc.createdAt && userDoc.email && (userDoc.plan === 'free' || userDoc.plan === null), userDoc);
 
   // 3) continua il ripasso da account e ricarica: progressi salvati
   await page.evaluate((id) => { const b = document.createElement('button'); b.setAttribute('data-fn', 'startStudyById'); b.setAttribute('data-params', JSON.stringify([id])); document.body.appendChild(b); b.click(); b.remove(); }, accErr[0].id);

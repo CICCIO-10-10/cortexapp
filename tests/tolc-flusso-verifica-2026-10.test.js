@@ -247,3 +247,29 @@ describe('migrazione della vecchia cronologia TOLC (una volta per dispositivo)',
         for (const f of files) expect(read(f)).not.toContain('cortex_tolc_history_unassigned');
     });
 });
+
+// Revisione finale: la migrazione gira in ensureScopeInitialized(), chiamata dal PRIMO import di
+// main.js (core/scopeInit.js). Con localStorage pieno setItem lancia: l'avvio non deve rompersi.
+describe('migrazione della vecchia cronologia TOLC con localStorage pieno', () => {
+    function fullCtx(seed) {
+        const ctx = scopeCtx(seed);
+        const ls = ctx.localStorage;
+        const orig = ls.setItem;
+        ctx.full = true;
+        ls.setItem = (k, v) => { if (ctx.full) throw Object.assign(new Error('quota'), { name: 'QuotaExceededError' }); return orig(k, v); };
+        return ctx;
+    }
+    const old = JSON.stringify([rec('tolc-i', 11, 1000)]);
+
+    it('l\'avvio non si interrompe, la cronologia non va persa e la migrazione si riprova al prossimo avvio', () => {
+        const ctx = fullCtx({ cortex_active_scope: 'guest', mm_user_id: 'A', [H]: old });
+        expect(vm.runInContext('ensureScopeInitialized()', ctx)).toBe('guest');
+        expect(ctx.localStorage.getItem(H)).toBe(old);                              // non persa
+        expect(ctx.localStorage.getItem('cortex_tolc_history_scoped')).toBeNull();   // non segnata come fatta
+        // spazio liberato: al prossimo avvio la migrazione si completa
+        ctx.full = false;
+        vm.runInContext('_resetTabScopeForTests(); ensureScopeInitialized()', ctx);
+        expect(ctx.localStorage.getItem(H)).toBeNull();
+        expect(ctx.localStorage.getItem('cortex_tolc_history_unassigned')).toBe(old);
+    });
+});
