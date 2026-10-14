@@ -31,6 +31,7 @@ Tutto è stato provato in locale: nessun account reale, nessuna credenziale di p
 | Cambio account: mazzi | ✅ | emulatori: B non vede né riceve sul cloud il mazzo di A; A lo ritrova |
 | Cambio account: punteggi TOLC | ❌ → ✅ | **difetto 1** (corretto) |
 | Dati di A sul dispositivo, avvio da ospite | ✅ | browser `scope`: nessun mazzo, punteggio o proposta di ripresa di A |
+| Vecchia cronologia TOLC (globale) con proprietario non identificabile | ✅ | test unitari (10 casi) + browser `legacyhist`: messa da parte, non mostrata, non assegnata (aggiornamento del 14/10, sotto) |
 
 ## Difetti riprodotti e corretti
 
@@ -48,6 +49,24 @@ Tutto è stato provato in locale: nessun account reale, nessuna credenziale di p
 - **Impatto:** il lavoro dell'ospite (mazzo errori e progressi) resta solo sul dispositivo finché non cambia qualcosa in locale. Su un altro dispositivo non si vede. Il documento utente resta senza `createdAt`/`email` fino al riavvio successivo.
 - **Correzione:** in `services/firebase.js` lettura e scrittura del documento utente avvengono nella stessa transazione. `plan` si scrive solo se il documento davvero non esiste, e i campi già presenti non si sovrascrivono. Le regole non sono state modificate.
 
+### Migrazione della vecchia cronologia TOLC (aggiunta dopo la prima revisione)
+Sui dispositivi già in uso la cronologia è stata scritta quando era ancora globale, quindi non si sa di chi sia. In `core/accountScope.js` (`ensureScopeInitialized`, al primo avvio dopo l'aggiornamento, prima di qualsiasi lettura o cambio account, **una sola volta per dispositivo**):
+- **resta allo spazio dati attivo** solo se il proprietario è identificabile:
+  - è collegato un account, nessun altro account ha usato il dispositivo e non ci sono dati ospite non ancora uniti;
+  - oppure si è in modalità ospite su un dispositivo che non ha mai visto un account;
+- **altrimenti viene messa da parte** in `cortex_tolc_history_unassigned`. Nessuna parte dell'app la legge, non fa parte di nessuno spazio dati, non passa a nessun account con l'accesso e non si unisce allo storico dell'ospite. Esempio: modalità ospite dopo il logout di A, oppure dispositivo usato da più account.
+- Il marcatore del dispositivo `cortex_tolc_history_scoped` impedisce di ripetere la migrazione, così le prove fatte dopo l'aggiornamento non vengono più spostate. Resta anche dopo l'eliminazione di un account: per questo nel test esatto di `account-deletion` è stato aggiunto alle chiavi attese.
+- Rispetto alla regola generica per i dati legacy ("all'ultimo account del dispositivo") la cronologia TOLC è più prudente: l'ultimo account non basta a dire di chi sia.
+- **Prova:** 10 test unitari. Disattivando la migrazione ne falliscono 7; i 3 che passano comunque sono i casi in cui la cronologia deve restare dov'è. Scenario `legacyhist` nel browser: 4/4 con la migrazione, 0/4 senza.
+- **Non deciso qui:** cosa fare della copia messa da parte (es. offrirla all'utente con una conferma esplicita, o cancellarla dopo un certo tempo). Oggi resta sul dispositivo e basta.
+
+## Immagini mancanti (`LOGO_APP_144.png`): non corrette
+`scripts/verify-security-build.mjs` fallisce su `main` e su questo branch perché nella build mancano 7 immagini (`LOGO_APP_144.png`, `LOGO_SQUARE.png`, `favicon.ico`, `favicon-32x32.png`, `pwa-192x192.png`, `pwa-512x512.png`, `og-image.png`). Manca anche lo sfondo `media/nebula/bg.png`/`.webp` (controllo successivo dello stesso script, finora mai raggiunto).
+- **Causa:** `.gitignore` esclude `*.png`, `*.ico`, `*.webp` e `*.svg`. Le immagini esistono solo sul computer da cui si pubblica.
+- **Ricerca degli asset corretti:** nessuna immagine in cortexapp, né oggi né in tutta la storia (85 commit, `git log --diff-filter=A`). In `progetti-` ci sono solo immagini di altri progetti (clio, piqued, chess lore). L'unico asset di Cortex trovato è il logo incorporato in `index.html` come PNG **120×120**.
+- **Perché non è stato corretto:** da un logo 120×120 si potrebbero solo *ricavare* icone 144/192/512, favicon e anteprima social 1200×630, ingrandendole o componendole. Sarebbero file ricostruiti e di qualità peggiore, non gli asset corretti. Lo script di controllo non è stato modificato: il problema che segnala è reale.
+- **Cosa serve:** copiare in `public/` i 7 file originali e in `media/nebula/` lo sfondo, dal computer da cui si pubblica, poi rilanciare `npm run build && node scripts/verify-security-build.mjs`. Per non dipendere più da un solo computer si può valutare di versionare solo queste immagini con eccezioni nel `.gitignore` (es. `!public/LOGO_APP_144.png`). È una decisione da prendere: il commento nel `.gitignore` indica che il repository è pubblico.
+
 ## Comandi eseguiti
 
 | Comando | Risultato |
@@ -55,14 +74,18 @@ Tutto è stato provato in locale: nessun account reale, nessuna credenziale di p
 | `npm ci` | ok |
 | `npm test` su `main` (prima) | 45 file, 395 superati, 1 saltato |
 | nuovi test prima delle correzioni | difetto 1: 5 test falliti; difetto 2: 1 test fallito (`update plan` rifiutato) |
-| `npm test` (dopo) | 46 file, 403 superati, 1 saltato |
+| `npm test` (dopo le prime due correzioni) | 46 file, 403 superati, 1 saltato |
+| test della migrazione con la migrazione disattivata | 7 falliti su 10 |
+| `npm test` (finale, con la migrazione) | 46 file, **413 superati, 1 saltato** |
 | `npm run build` (i18n strict + vite) | ok |
-| `node scripts/verify-security-build.mjs` | ❌ **anche su `main`**: manca `public/LOGO_APP_144.png` (problema preesistente, non toccato) |
-| `browser.cjs` main / noerrors / idbfail / loginredirect / dblconsegna / scope | 11/11, 3/3, 4/4, 4/4, 1/1, 5/5 |
-| `emulatori.cjs` (regole del repository) | prima 14/15 (punteggi di A visibili a B) e mazzo non sul cloud; dopo **16/16** |
+| `node scripts/verify-security-build.mjs` | ❌ su `main` e sul branch: immagini mancanti (vedi sopra), non corretto |
+| `browser.cjs` main / noerrors / idbfail / loginredirect / dblconsegna / scope / legacyhist (finale) | 11/11, 3/3, 4/4, 4/4, 1/1, 5/5, 4/4 |
+| `browser.cjs legacyhist` con la migrazione disattivata | 0/4 |
+| `emulatori.cjs` (regole del repository) | prima delle correzioni 14/15 (punteggi di A visibili a B) e mazzo non sul cloud; finale **16/16** |
 
 ## Decisioni di prodotto da valutare (non modificate)
-- **Storico TOLC già presente sui dispositivi:** al primo avvio dopo l'aggiornamento resta allo spazio dati attivo in quel momento, perché non si può sapere di chi fosse. Se il dispositivo è in modalità ospite dopo il logout di A, i punteggi vecchi di A restano all'ospite e passano al prossimo account che accede. Si potrebbero assegnare all'ultimo account del dispositivo (`mm_user_id`), ma potrebbero essere anche dell'ospite.
+- **Copia messa da parte della vecchia cronologia TOLC:** se e come restituirla (vedi sopra).
+- **Versionare le immagini del sito** nel repository pubblico (vedi sopra).
 - **`cortex_tolc_error_funnel`** (solo telemetria del funnel) e **`cortex_tolc_resume`** restano globali per scelta. Il secondo viene validato contro i mazzi dello spazio attivo (test esistente): non espone contenuti.
 - **"N carte pronte"** compare prima della conferma del salvataggio su IndexedDB. Se il salvataggio fallisce segue subito l'avviso di errore con copia di riserva. Non è una falsa conferma di salvataggio, ma l'ordine dei messaggi si potrebbe rivedere.
 
@@ -70,5 +93,6 @@ Tutto è stato provato in locale: nessun account reale, nessuna credenziale di p
 - **Non provati con servizi reali:** login Google vero (popup su desktop, redirect su telefono), Firestore di produzione, Play/TWA. Gli emulatori usano un accesso con credenziale sintetica al posto del popup/redirect: provano la logica dell'app e le regole, **non** la sincronizzazione in produzione.
 - **Su telefono vero:** redirect di Google su Android/iOS e nei browser in-app (TikTok/Instagram), TWA Android, eviction di IndexedDB su iOS Safari, app in background durante il salvataggio.
 - **Rete reale instabile/offline durante la sincronizzazione:** coperta solo dal test con Firestore finto.
+- **Migrazione della vecchia cronologia:** provata con localStorage preparato apposta (test e browser), non su dispositivi reali già in uso. La regola dipende dagli indizi presenti sul dispositivo (`mm_user_id`, spazi dati di altri account, dati ospite non uniti): se un browser li ha cancellati in parte, la cronologia può risultare di un solo proprietario anche quando non lo era.
 - **Spiegazione AI degli errori:** non provata (servizio a pagamento). Verificato solo che resti dietro accesso (test esistenti).
 - **Dopo il deploy (da fare a mano):** ospite → TOLC → mazzo errori → "Accedi con Google" con un account nuovo → controllare in Firestore che `users/{uid}` abbia `createdAt`/`email`/`plan` e che `users/{uid}/decks` contenga `tolc-err-…` senza aver toccato altro. Poi logout e accesso con un secondo account: nessun punteggio TOLC del primo in home.

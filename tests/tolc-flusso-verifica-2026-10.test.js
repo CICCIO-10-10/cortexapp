@@ -160,3 +160,90 @@ describe('primo accesso: i mazzi creati da ospite arrivano sul cloud anche se il
         expect([...h.decks.keys()]).toEqual(['tolc-err-tolc-i-x']);
     });
 });
+
+// Cronologia TOLC scritta prima che fosse per account (chiave globale): al primo avvio dopo
+// l'aggiornamento resta allo spazio attivo SOLO se il proprietario è identificabile; altrimenti
+// viene messa da parte, non mostrata e non assegnata a nessun account.
+describe('migrazione della vecchia cronologia TOLC (una volta per dispositivo)', () => {
+    const U = 'cortex_tolc_history_unassigned';
+    const old = JSON.stringify([rec('tolc-i', 11, 1000)]);
+    const boot = ctx => vm.runInContext('ensureScopeInitialized()', ctx);
+
+    it('dopo il logout di A (ospite attivo): proprietario non identificabile → messa da parte, non mostrata', () => {
+        const ctx = scopeCtx({ cortex_active_scope: 'guest', cortex_legacy_scope: 'u:A', mm_user_id: 'A', [H]: old });
+        boot(ctx);
+        expect(ctx.localStorage.getItem(H)).toBeNull();          // home e risultato TOLC non la vedono
+        expect(ctx.localStorage.getItem(U)).toBe(old);           // conservata, non persa
+        expect(ctx.localStorage.getItem('cortex_scoped:u:A:' + H)).toBeNull();   // non assegnata ad A
+    });
+
+    it('…e non passa al prossimo account che accede (né a B né ad A)', () => {
+        const ctx = scopeCtx({ cortex_active_scope: 'guest', cortex_legacy_scope: 'u:A', mm_user_id: 'A', [H]: old });
+        boot(ctx);
+        vm.runInContext("swapLocalStorage('guest','u:B',{mergeFromGuest:true})", ctx);
+        expect(ctx.localStorage.getItem(H)).toBeNull();
+        vm.runInContext("swapLocalStorage('u:B','u:A')", ctx);
+        expect(ctx.localStorage.getItem(H)).toBeNull();
+        expect(ctx.localStorage.getItem(U)).toBe(old);           // sempre fuori dagli spazi dati
+    });
+
+    it('account collegato, unico account del dispositivo, nessun dato ospite in sospeso → resta all\'account', () => {
+        const ctx = scopeCtx({ cortex_active_scope: 'u:A', cortex_legacy_scope: 'u:A', mm_user_id: 'A', [H]: old });
+        boot(ctx);
+        expect(ctx.localStorage.getItem(H)).toBe(old);
+        expect(ctx.localStorage.getItem(U)).toBeNull();
+    });
+
+    it('account collegato ma un altro account ha usato il dispositivo → messa da parte', () => {
+        const ctx = scopeCtx({ cortex_active_scope: 'u:A', mm_user_id: 'A', 'cortex_scoped:u:B:mm_gstate': '{}', [H]: old });
+        boot(ctx);
+        expect(ctx.localStorage.getItem(H)).toBeNull();
+        expect(ctx.localStorage.getItem(U)).toBe(old);
+    });
+
+    it('account collegato con dati ospite non ancora uniti → messa da parte', () => {
+        const ctx = scopeCtx({ cortex_active_scope: 'u:A', mm_user_id: 'A', 'cortex_scoped:guest:mm_gstate': '{}', [H]: old });
+        boot(ctx);
+        expect(ctx.localStorage.getItem(H)).toBeNull();
+        expect(ctx.localStorage.getItem(U)).toBe(old);
+    });
+
+    it('dispositivo mai usato con un account → resta all\'ospite', () => {
+        const ctx = scopeCtx({ cortex_active_scope: 'guest', cortex_legacy_scope: 'guest', [H]: old });
+        boot(ctx);
+        expect(ctx.localStorage.getItem(H)).toBe(old);
+        expect(ctx.localStorage.getItem(U)).toBeNull();
+    });
+
+    it('dispositivo mai migrato (prima versione con spazi dati), ultimo account A non collegato → messa da parte, non nello spazio di A', () => {
+        const ctx = scopeCtx({ mm_user_id: 'A', mm_gstate: '{"xp":1}', [H]: old });
+        expect(boot(ctx)).toBe('guest');
+        expect(ctx.localStorage.getItem(H)).toBeNull();
+        expect(ctx.localStorage.getItem('cortex_scoped:u:A:' + H)).toBeNull();
+        expect(ctx.localStorage.getItem(U)).toBe(old);
+        expect(ctx.localStorage.getItem('cortex_scoped:u:A:mm_gstate')).toBe('{"xp":1}');   // regola generica invariata
+    });
+
+    it('una sola volta: le prove fatte dopo l\'aggiornamento non vengono più spostate', () => {
+        const ctx = scopeCtx({ cortex_active_scope: 'guest', mm_user_id: 'A', [H]: old });
+        boot(ctx);
+        const fresh = JSON.stringify([rec('tolc-e', 4, 5000)]);
+        ctx.localStorage.setItem(H, fresh);
+        vm.runInContext('_resetTabScopeForTests()', ctx);
+        boot(ctx);
+        expect(ctx.localStorage.getItem(H)).toBe(fresh);
+        expect(ctx.localStorage.getItem(U)).toBe(old);
+    });
+
+    it('nessuna cronologia: niente da spostare', () => {
+        const ctx = scopeCtx({ cortex_active_scope: 'guest', mm_user_id: 'A' });
+        boot(ctx);
+        expect(ctx.localStorage.getItem(U)).toBeNull();
+        expect(ctx.localStorage.getItem('cortex_tolc_history_scoped')).toBe('1');
+    });
+
+    it('la copia messa da parte non è letta da nessuna parte dell\'app', () => {
+        const files = ['../modules/tolcSim.js', '../modules/home.js', '../modules/tolcErrorDeck.js', '../core/appBoot.js', '../services/firebase.js', '../main.js'];
+        for (const f of files) expect(read(f)).not.toContain('cortex_tolc_history_unassigned');
+    });
+});

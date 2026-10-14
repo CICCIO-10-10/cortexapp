@@ -43,6 +43,12 @@ export const SCOPED_KEYS = Object.freeze([
     // Era globale: dopo un cambio account si vedevano i punteggi dell'account precedente.
     'cortex_tolc_history',
 ]);
+const TOLC_HISTORY_KEY = 'cortex_tolc_history';
+// Cronologia TOLC scritta quando era ancora globale e di proprietario non identificabile:
+// conservata qui, mai letta dall'app, mai spostata in uno spazio dati né unita a un account.
+export const TOLC_HISTORY_UNASSIGNED_KEY = 'cortex_tolc_history_unassigned';
+const TOLC_HISTORY_MIGRATED_KEY = 'cortex_tolc_history_scoped';
+
 export const SCOPED_PREFIXES = Object.freeze(['loci_pins_', 'loci_img_', 'cortex_event_progress_', 'cortex_event_lastday_', 'cortex_event_done_']);
 
 const ls = () => (typeof localStorage !== 'undefined' ? localStorage : null);
@@ -82,7 +88,11 @@ export function ensureScopeInitialized() {
     const store = ls();
     if (!store) return 'guest';
     const existing = store.getItem(ACTIVE_SCOPE_KEY);
-    if (isValidScope(existing)) { _tabScope = _tabScope || existing; return existing; }
+    if (isValidScope(existing)) {
+        migrateLegacyTolcHistory(store, existing);
+        _tabScope = _tabScope || existing;
+        return existing;
+    }
 
     const loggedUid = store.getItem('cortex_uid');      // presente solo con login attivo
     const lastOwner = store.getItem('mm_user_id');      // ultimo account del dispositivo (resta dopo il logout)
@@ -90,6 +100,9 @@ export function ensureScopeInitialized() {
     const legacy = lastOwner ? 'u:' + lastOwner : active;
     const safeActive = isValidScope(active) ? active : 'guest';
     const safeLegacy = isValidScope(legacy) ? legacy : safeActive;
+    // Prima dello spostamento generico dei dati legacy: per la cronologia TOLC l'"ultimo
+    // account del dispositivo" non basta a dire di chi sia.
+    migrateLegacyTolcHistory(store, safeActive);
 
     if (safeLegacy !== safeActive) {
         // I dati presenti appartengono all'ultimo account, non a chi usa ora il dispositivo.
@@ -102,6 +115,35 @@ export function ensureScopeInitialized() {
     store.setItem(ACTIVE_SCOPE_KEY, safeActive);
     _tabScope = safeActive;
     return safeActive;
+}
+
+/**
+ * 14/10/2026 — una volta per dispositivo: la cronologia TOLC era globale. Resta allo spazio
+ * dati attivo solo se il proprietario è identificabile:
+ *  - account collegato e nessun altro account o dato ospite in sospeso sul dispositivo;
+ *  - ospite su un dispositivo che non ha mai visto un account.
+ * Altrimenti viene messa da parte (TOLC_HISTORY_UNASSIGNED_KEY): non si mostra e non si
+ * assegna a nessuno.
+ */
+function migrateLegacyTolcHistory(store, active) {
+    if (store.getItem(TOLC_HISTORY_MIGRATED_KEY) === '1') return;
+    const raw = store.getItem(TOLC_HISTORY_KEY);
+    if (raw !== null && !legacyTolcOwnerKnown(store, active)) {
+        // Se esiste già una copia messa da parte non la si sovrascrive.
+        const key = store.getItem(TOLC_HISTORY_UNASSIGNED_KEY) === null ? TOLC_HISTORY_UNASSIGNED_KEY : TOLC_HISTORY_UNASSIGNED_KEY + ':' + Date.now();
+        store.setItem(key, raw);
+        store.removeItem(TOLC_HISTORY_KEY);
+    }
+    store.setItem(TOLC_HISTORY_MIGRATED_KEY, '1');
+}
+function legacyTolcOwnerKnown(store, active) {
+    const accounts = new Set(otherAccountScopes(active));
+    const last = store.getItem('mm_user_id');
+    if (last && isValidScope('u:' + last)) accounts.add('u:' + last);
+    accounts.delete(active);
+    if (accounts.size) return false;                       // un altro account ha usato il dispositivo
+    if (active.startsWith('u:')) return stashedKeys(store, 'guest').length === 0;   // dati ospite non ancora uniti
+    return true;                                           // solo ospite, nessun account mai visto
 }
 
 // Scope di QUESTA scheda, fissato al boot o dal cambio account. Le scritture usano
@@ -131,7 +173,6 @@ export function legacyScope() {
     return isValidScope(s) ? s : currentScope();
 }
 
-const TOLC_HISTORY_KEY = 'cortex_tolc_history';
 const TOLC_HISTORY_MAX = 60;   // stesso limite di modules/tolcSim.js
 function parseTolcHistory(raw) {
     try { const a = JSON.parse(raw || '[]'); return Array.isArray(a) ? a.filter(r => r && typeof r.k === 'string' && Number.isFinite(r.s) && Number.isFinite(r.t)) : []; }

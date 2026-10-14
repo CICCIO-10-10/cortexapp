@@ -2,7 +2,7 @@
 // Tutta la rete esterna è bloccata: niente backend Firebase, niente AI, niente account reali (si prova da ospite).
 // Avvio: npx vite --port 5173   (oppure npm run build && npx vite preview e BASE=http://localhost:4173)
 // Uso:   NODE_PATH=<cartella con playwright> node scripts/verifica-flusso-tolc-2026-10/browser.cjs <scenario>
-// Scenari: main | noerrors | idbfail | loginredirect | dblconsegna | scope
+// Scenari: main | noerrors | idbfail | loginredirect | dblconsegna | scope | legacyhist
 const { chromium } = require('playwright');
 const BASE = process.env.BASE || 'http://localhost:5173';
 const SCENARIO = process.argv[2] || 'main';
@@ -255,10 +255,9 @@ async function startQuick(page) {
     await answerAll(page, () => 0);
     const before = await page.evaluate(() => Object.keys(localStorage).filter(k => /tolc/i.test(k)).map(k => [k, (localStorage.getItem(k) || '').length]));
     log('chiavi tolc prima:', JSON.stringify(before));
-    const histKey = await page.evaluate(() => Object.keys(localStorage).find(k => /tolc.*(hist|storico)/i.test(k)) || null);
     await page.locator('#tolc-consegna').dblclick();
     await page.waitForTimeout(800);
-    const hk = histKey || await page.evaluate(() => Object.keys(localStorage).find(k => /tolc.*(hist|storico)/i.test(k)) || null);
+    const hk = 'cortex_tolc_history';   // HIST_KEY di modules/tolcSim.js
     const hist = await page.evaluate((k) => { try { return JSON.parse(localStorage.getItem(k) || '[]'); } catch (_) { return null; } }, hk);
     check('doppio clic su consegna: una sola prova nello storico', Array.isArray(hist) && hist.length === 1, { key: hk, n: hist && hist.length });
   }
@@ -289,6 +288,34 @@ async function startQuick(page) {
     check('ospite: nessuna proposta di ripresa del TOLC di A', (await page.locator('#tolc-resume-card').count()) === 0);
     const stashed = await page.evaluate(() => localStorage.getItem('cortex_scoped:u:A:cortex_tolc_history'));
     check('i punteggi di A restano da parte nello spazio di A', !!stashed && stashed.includes('17.75'));
+  }
+
+  if (SCENARIO === 'legacyhist') {
+    // Dispositivo aggiornato dopo il logout di A, con la cronologia TOLC ancora GLOBALE (versione
+    // precedente): proprietario non identificabile → messa da parte, non mostrata all'ospite.
+    await page.goto(BASE + '/app');
+    await page.waitForFunction(() => window.__cxModulesReady, null, { timeout: 30000 });
+    await page.evaluate(() => {
+      localStorage.removeItem('cortex_tolc_history_scoped');      // come prima dell'aggiornamento
+      localStorage.setItem('cortex_active_scope', 'guest');
+      localStorage.setItem('cortex_legacy_scope', 'u:A');
+      localStorage.setItem('mm_user_id', 'A');
+      localStorage.setItem('cortex_tolc_history', JSON.stringify([{ k: 'tolc-i', q: true, s: 17.75, n: 20, t: Date.now() - 864e5 }]));
+    });
+    await page.reload();
+    await page.waitForFunction(() => window.__cxModulesReady, null, { timeout: 30000 });
+    await page.waitForTimeout(2000);
+    const st = await page.evaluate(() => ({ hist: localStorage.getItem('cortex_tolc_history'), aside: localStorage.getItem('cortex_tolc_history_unassigned'), text: document.body.innerText }));
+    check('vecchia cronologia di proprietario incerto: non più attiva', st.hist === null, st.hist);
+    check('vecchia cronologia: conservata a parte', !!st.aside && st.aside.includes('17.75'));
+    check('home: il punteggio non compare', !/17,75/.test(st.text));
+    // Nuova prova dell'ospite: lo storico parte da zero, senza i punteggi messi da parte
+    await startQuick(page);
+    await answerAll(page, () => 0);
+    await page.locator('#tolc-consegna').click();
+    await page.waitForTimeout(800);
+    const ov = await page.locator('#tolc-sim-overlay').innerText();
+    check('risultato: nessun confronto con la cronologia messa da parte', !/17,75/.test(ov) && /Prima prova/.test(ov));
   }
 
   log('host esterni bloccati:', [...external].sort().join(', '));
