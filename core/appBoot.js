@@ -1,5 +1,5 @@
 import { initEventBus }                                    from './eventBus.js';
-import { initAnalytics, track, setUserProperty }           from './analytics.js';
+import { initAnalytics, track, trackWhenConsented, setUserProperty } from './analytics.js';
 import { touchSeen }                                       from '../services/activation.js';
 import { APP_CONFIG }                                      from '../js/config.js';
 import { renderAccountState } from './account-state.js';
@@ -362,7 +362,8 @@ export function bootApp(deps) {
     installScopeWatcher();
     // 0. Init Analytics (before any other work)
     initAnalytics();
-    track('app_open', { version: String(APP_CONFIG.VERSION) });
+    // 14/10/2026: al primo accesso il consenso arriva dopo l'avvio (banner): app_open parte allora.
+    trackWhenConsented('app_open', { version: String(APP_CONFIG.VERSION) });
 
     // 0. Technical pre-checks
     checkVersionUpdate();

@@ -138,3 +138,9 @@ Stato del tentativo (`journey-summary.cjs` → `v3.attempts`): **completato** se
 - `js_error`: un solo evento per errore (tolto il doppione di `main.js`). Meta: `reason` (messaggio; `script_error_cross_origin` per il vecchio "Script error."; `third_party: <dominio>: …` per script esterni), `type` (browser: `inapp_tiktok`, `inapp_instagram`, `inapp_facebook`, `ios_safari`, `ios_chrome`, `ios_webview`, `android_twa`, `android_browser`, `android_webview`, `google_app`, `desktop`), `step` (ultimo evento dell'app prima dell'errore), `at` (file:riga:colonna, dominio, oppure `nascosto`). In Clarity: tag `cx_browser` + evento `js_error`.
 - Script Clarity e GA caricati con `crossorigin` (CORS verificato): i loro errori non arrivano più come "Script error.". Lo script di accesso Google (`accounts.google.com/gsi/client`) NON ha CORS: lasciato com'è, altrimenti il login smetterebbe di caricarsi.
 - `adminDashboard` ora passa al riepilogo anche `attempt`, `flow`, `variant`, `type`, `days_after`, `how`, `at`: prima li scartava, quindi tentativi TOLC, tipo di mazzo e versioni dell'onboarding risultavano vuoti.
+
+## Aggiornamento 14/10/2026 — verifica del tracciamento
+Rapporto: `docs/VERIFICA_TRACCIAMENTO_2026-10-14.md`.
+- `app_open`: se il consenso arriva dopo l'avvio (banner al primo accesso) parte una volta all'accettazione (`trackWhenConsented`, evento `cortex:consent-accepted`), mai prima né con il rifiuto. Prima il primo accesso non aveva `app_open` fino al refresh: i numeri prima e dopo il rilascio non sono confrontabili senza una data di cesura.
+- Visitatori `TEST_…`: oltre che dai percorsi, ora esclusi anche da visite del giorno, sorgenti e presenza (`functions/telemetry.js`, dopo il deploy).
+- `study_returned_next_day` = prima carta valutata in un giorno **successivo qualsiasi** (`days_after`); "il giorno dopo" è `days_after = 1`. Sorgente `interno` = referrer da una pagina di cortexapp.it, **non** traffico di test.

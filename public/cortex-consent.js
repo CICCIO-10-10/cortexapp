@@ -81,6 +81,8 @@
 
     if (choice === 'accepted') {
       startOptionalAnalytics();
+      // Per gli eventi di apertura che aspettano il consenso (core/analytics.js trackWhenConsented).
+      try { window.dispatchEvent(new Event('cortex:consent-accepted')); } catch (_) {}
       return;
     }
 
