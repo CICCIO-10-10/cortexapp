@@ -525,20 +525,28 @@ export async function loadFromCloud() {
                     || []).length;
             } catch (_) {}
             try {
-                const _ex = _existing || {};
-                const _init = {
+                // FIX 14/10/2026: lettura e scrittura nella STESSA transazione. touchSeen()/
+                // bumpActivation() possono creare il doc DOPO la lettura qui sopra: 'plan' scritto
+                // su un doc già nato è un update di un campo protetto → regole → PERMISSION_DENIED
+                // su tutta la scrittura, e il syncToCloud() dei mazzi ospite non partiva
+                // (riprodotto sugli emulatori: mazzo errori TOLC creato da ospite mai caricato).
+                const _userRef = _db.collection('users').doc(uid);
+                const _ex = await _db.runTransaction(async (tx) => {
+                    const snap = await tx.get(_userRef);
+                    const cur = snap.exists ? (snap.data() || {}) : {};
+                    const _init = { migratedToSubcollections: true };
                     // se il doc è nato da touchSeen, la data vera d'iscrizione è activation.firstSeen
-                    createdAt: (_ex.activation && _ex.activation.firstSeen) || firebase.firestore.FieldValue.serverTimestamp(),
-                    migratedToSubcollections: true
-                };
-                if (!_ex.email)      _init.email      = window._cortexUserEmail || null;
-                // 'plan' solo se il doc NON esiste ancora (create): in update è un campo
-                // protetto dalle regole Firestore e farebbe fallire TUTTA la scrittura
-                // (causa vera dei doc senza createdAt/email dal 12/09).
-                if (!_ex.plan && !doc.exists) _init.plan = 'free';
-                // refCode/referredBy non si scrivono più: gli inviti li attribuisce
-                // solo il server (claimReferral, chiamato da core/appBoot.js).
-                await _db.collection('users').doc(uid).set(_init, { merge: true });
+                    if (!cur.createdAt) _init.createdAt = (cur.activation && cur.activation.firstSeen) || firebase.firestore.FieldValue.serverTimestamp();
+                    if (!cur.email)     _init.email     = window._cortexUserEmail || null;
+                    // 'plan' solo se il doc NON esiste ancora (create): in update è un campo
+                    // protetto dalle regole Firestore e farebbe fallire TUTTA la scrittura
+                    // (causa vera dei doc senza createdAt/email dal 12/09).
+                    if (!cur.plan && !snap.exists) _init.plan = 'free';
+                    // refCode/referredBy non si scrivono più: gli inviti li attribuisce
+                    // solo il server (claimReferral, chiamato da core/appBoot.js).
+                    tx.set(_userRef, _init, { merge: true });
+                    return cur;
+                });
                 if (!_ex.plan) localStorage.setItem('cortex_user_plan', 'free');
                 window._cortexPlanVerified = true;
                 // Push dei progressi ospite (mazzi + gamification) sul cloud

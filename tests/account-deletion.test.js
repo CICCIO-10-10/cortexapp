@@ -395,7 +395,8 @@ describe('client: pulizia locale per account (core/accountScope.js)', () => {
       mm_lang: 'it', 'cortex_scoped:u:A:old': 'x', 'cortex_scoped:u:B:mm_gstate': 'B', 'cortex_scoped:guest:mm_gstate': 'G', cortex_legacy_scope: 'u:A' });
     vm.runInContext("ensureScopeInitialized(); discardScopeLocal('u:A')", ctx);
     const m = ctx.localStorage._m;
-    expect(Object.fromEntries(m)).toEqual({ cortex_active_scope: 'guest', mm_gstate: 'G', mm_lang: 'it', 'cortex_scoped:u:B:mm_gstate': 'B', cortex_legacy_scope: 'guest' });
+    // cortex_tolc_history_scoped: marcatore del DISPOSITIVO (migrazione della cronologia TOLC già fatta), non un dato dell'account.
+    expect(Object.fromEntries(m)).toEqual({ cortex_active_scope: 'guest', mm_gstate: 'G', mm_lang: 'it', 'cortex_scoped:u:B:mm_gstate': 'B', cortex_legacy_scope: 'guest', cortex_tolc_history_scoped: '1' });
     expect(vm.runInContext('currentScope()', ctx)).toBe('guest');
   });
 });
