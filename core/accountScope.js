@@ -39,6 +39,9 @@ export const SCOPED_KEYS = Object.freeze([
     'cortex_workout_log', 'cortex_pending_ai', 'cortex_today_ai_calls',
     'cortex_tolc_error_study_pending', 'cortex_tolc_error_save_pending', 'cortex_tolc_error_generation_pending',
     'cortex_sync_meta', 'cortex_decks_unsaved',
+    // 14/10/2026: punteggi delle simulazioni TOLC (modules/tolcSim.js, home "Cosa studiare oggi").
+    // Era globale: dopo un cambio account si vedevano i punteggi dell'account precedente.
+    'cortex_tolc_history',
 ]);
 export const SCOPED_PREFIXES = Object.freeze(['loci_pins_', 'loci_img_', 'cortex_event_progress_', 'cortex_event_lastday_', 'cortex_event_done_']);
 
@@ -128,6 +131,27 @@ export function legacyScope() {
     return isValidScope(s) ? s : currentScope();
 }
 
+const TOLC_HISTORY_KEY = 'cortex_tolc_history';
+const TOLC_HISTORY_MAX = 60;   // stesso limite di modules/tolcSim.js
+function parseTolcHistory(raw) {
+    try { const a = JSON.parse(raw || '[]'); return Array.isArray(a) ? a.filter(r => r && typeof r.k === 'string' && Number.isFinite(r.s) && Number.isFinite(r.t)) : []; }
+    catch (_) { return []; }
+}
+/** Storico TOLC ospite + account: le prove fatte da ospite non si perdono, nessun doppione. */
+function mergeTolcHistory(accountRaw, guestRaw) {
+    if (accountRaw === null) return guestRaw;
+    const seen = new Set();
+    const out = [];
+    for (const r of [...parseTolcHistory(accountRaw), ...parseTolcHistory(guestRaw)]) {
+        const id = [r.k, !!r.q, r.s, r.n, r.t].join('|');
+        if (seen.has(id)) continue;
+        seen.add(id);
+        out.push(r);
+    }
+    out.sort((a, b) => a.t - b.t);
+    return JSON.stringify(out.slice(-TOLC_HISTORY_MAX));
+}
+
 /** Sposta le chiavi attive nello stash di `from` e carica quelle di `to`. Sincrono. */
 export function swapLocalStorage(from, to, { mergeFromGuest = false } = {}) {
     const store = ls();
@@ -148,6 +172,7 @@ export function swapLocalStorage(from, to, { mergeFromGuest = false } = {}) {
         // finché la migrazione dei mazzi non è confermata).
         for (const [k, v] of Object.entries(fromValues)) {
             if (k === 'cortex_sync_meta' || k === 'mm_decks') continue; // gestite dalla migrazione dei mazzi
+            if (k === TOLC_HISTORY_KEY) { store.setItem(k, mergeTolcHistory(store.getItem(k), v)); continue; }
             if (store.getItem(k) === null) store.setItem(k, v);
         }
     }
