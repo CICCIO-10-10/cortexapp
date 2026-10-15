@@ -184,6 +184,18 @@ export function track(eventName, params = {}) {
 }
 
 /**
+ * Evento di apertura (app_open) quando il consenso può arrivare DOPO l'avvio: se il consenso c'è
+ * già parte subito; altrimenti parte una sola volta quando la persona accetta nel banner
+ * (public/cortex-consent.js emette 'cortex:consent-accepted'). Mai prima del consenso, mai se si
+ * rifiuta o con cortex_no_track: track() ricontrolla tutto al momento dell'invio.
+ * 14/10/2026: prima il primo accesso con banner non aveva app_open finché non si ricaricava.
+ */
+export function trackWhenConsented(eventName, params = {}) {
+    if (analyticsAllowed()) { track(eventName, params); return; }
+    try { window.addEventListener('cortex:consent-accepted', () => track(eventName, params), { once: true }); } catch (_) {}
+}
+
+/**
  * Imposta proprietà utente (es. plan, goal).
  * @param {string} name  Nome proprietà
  * @param {string} value Valore

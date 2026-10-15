@@ -1123,7 +1123,7 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
     ]);
 
     const ADMIN_UID = 'f8oLEt3LDpT7VN9zFOa10mVE2Cf2';  // account di Francesco: escluso dalle statistiche
-    const usersByPlan = { free: 0, student: 0, pro: 0, other: 0 };
+    let usersByPlan = { free: 0, student: 0, pro: 0, other: 0 };
     let usersPlanUnclassified = 0;
     const realUserIds = new Set();  // uid degli utenti REALI (doc in Firestore)
     let usersWithFCM = 0;
@@ -1139,28 +1139,14 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
     // nessuna ricostruzione dei mesi precedenti.
     let usersFirstReview = 0;
     let usersStudyReturned = 0;
-    let usersNoEmail = 0;     // utenti senza email (anonimi/non-Google): non sono "account Google"
+    let usersNoEmail = 0;     // account collegati il cui profilo non ha l'email (dato incompleto, non anonimi)
     const registrationByMonth = {};
 
+    // realUserIds serve al confronto con Auth (profili mancanti). I contatori degli account si
+    // calcolano DOPO l'elenco di Firebase Auth, solo sui profili di account collegati (vedi sotto).
     usersSnap.docs.forEach(doc => {
       if (doc.id === ADMIN_UID) return;  // non contare l'admin tra gli utenti reali
       realUserIds.add(doc.id);
-      const d = doc.data();
-      const plan = typeof d.plan === 'string' ? d.plan.trim().toLowerCase() : '';
-      if (plan === 'free') usersByPlan.free++;
-      else if (plan === 'student') usersByPlan.student++;
-      else if (plan === 'pro') usersByPlan.pro++;
-      else if (plan) usersByPlan.other++;
-      else usersPlanUnclassified++;
-
-      if (typeof d.fcmToken === 'string' && d.fcmToken.trim()) usersWithFCM++;
-      if (typeof d.sparksBalance === 'number' && Number.isFinite(d.sparksBalance) && d.sparksBalance > 0) usersWithSparks++;
-      if (d.activation && d.activation.activated === true) usersActivated++;
-      if (d.activation && (d.activation.aiActivated === true || (d.activation.activated === true && !d.activation.activatedVia))) usersAiActivated++;
-      if (d.activation && d.activation.firstReviewCompletedAt) usersFirstReview++;
-      if (d.activation && d.activation.studyReturnedAt) usersStudyReturned++;
-      if (typeof d.email !== 'string' || !d.email.trim()) usersNoEmail++;
-
     });
 
     // ── Segnali di accesso (Firebase Auth: lastSignInTime / lastRefreshTime) ──
@@ -1183,6 +1169,7 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
     let newUsersToday = null;
     const authAllUids = new Set();
     const authLinkedUids = new Set();
+    const authAnonymousUids = new Set();
     const authAct = {};      // uid -> {lastActive, returned, active7d} per il dettaglio
     try {
       authMetricsAvailable = true;
@@ -1223,7 +1210,7 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
               const month = `${monthParts.year}-${monthParts.month}`;
               registrationByMonth[month] = (registrationByMonth[month] || 0) + 1;
             } else authCreationTimeMissing++;
-          } else authAnonymousTotal++;
+          } else { authAnonymousTotal++; authAnonymousUids.add(u.uid); }
           if (!linkedAccount) return; // i guest anonimi non entrano nelle metriche account
           if (!realUserIds.has(u.uid)) {
             authProfilesMissing++;
@@ -1281,12 +1268,53 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
         && authAllUids.size === authAccountsTotal + authAnonymousTotal + authDisabledTotal;
     }
 
+    // ── Metriche degli account registrati (profili users/{uid}) ──
+    // 16/10/2026: contano SOLO i profili di account collegati in Firebase Auth (providerData non
+    // vuoto: oggi Google), non disattivati, admin escluso: la stessa definizione di registrazioni e
+    // utenti attivi qui sopra. Prima contavano ogni documento users/{uid}: anche gli ospiti anonimi
+    // (uid per l'AI; prima della revisione PR #2 con activation propria, quindi "attivati" e "piano
+    // non classificato") e i profili senza identità Auth. "Email presente" NON è il criterio: alcuni
+    // profili Google non hanno l'email nel documento. I documenti non vengono toccati.
+    // Gli ospiti anonimi restano visibili a parte (guestProfiles). Senza Auth: null, non stime.
+    const accountMetricsAvailable = authMetricsAvailable;
+    const accountDocs = accountMetricsAvailable ? usersSnap.docs.filter(x => authLinkedUids.has(x.id)) : [];
+    const guestProfiles = accountMetricsAvailable ? { total: 0, activated: 0, firstReview: 0 } : null;
+    usersSnap.docs.forEach(doc => {
+      if (!guestProfiles || !authAnonymousUids.has(doc.id)) return;
+      const a = doc.data().activation;
+      guestProfiles.total++;
+      if (a && a.activated === true) guestProfiles.activated++;
+      if (a && a.firstReviewCompletedAt) guestProfiles.firstReview++;
+    });
+    accountDocs.forEach(doc => {
+      const d = doc.data();
+      const plan = typeof d.plan === 'string' ? d.plan.trim().toLowerCase() : '';
+      if (plan === 'free') usersByPlan.free++;
+      else if (plan === 'student') usersByPlan.student++;
+      else if (plan === 'pro') usersByPlan.pro++;
+      else if (plan) usersByPlan.other++;
+      else usersPlanUnclassified++;
+
+      if (typeof d.fcmToken === 'string' && d.fcmToken.trim()) usersWithFCM++;
+      if (typeof d.sparksBalance === 'number' && Number.isFinite(d.sparksBalance) && d.sparksBalance > 0) usersWithSparks++;
+      if (d.activation && d.activation.activated === true) usersActivated++;
+      if (d.activation && (d.activation.aiActivated === true || (d.activation.activated === true && !d.activation.activatedVia))) usersAiActivated++;
+      if (d.activation && d.activation.firstReviewCompletedAt) usersFirstReview++;
+      if (d.activation && d.activation.studyReturnedAt) usersStudyReturned++;
+      if (typeof d.email !== 'string' || !d.email.trim()) usersNoEmail++;
+    });
+    if (!accountMetricsAvailable) {
+      usersByPlan = null; usersPlanUnclassified = null; usersWithFCM = null; usersWithSparks = null;
+      usersActivated = null; usersAiActivated = null; usersFirstReview = null; usersStudyReturned = null; usersNoEmail = null;
+    }
+    const totalUsers = accountMetricsAvailable ? accountDocs.length : null;
+
     // ── Dettaglio per-utente: cosa fanno DAVVERO nell'app ──
     let usersDetail = [];
     let usersDetailAvailable = false;
     try {
       usersDetail = await Promise.all(
-        usersSnap.docs.filter(x => x.id !== ADMIN_UID).map(async (doc) => {
+        accountDocs.map(async (doc) => {
           const d = doc.data();
           const uid = doc.id;
           let totalCalls = 0, daysActive = 0, usageAvailable = true;
@@ -1347,7 +1375,7 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
           };
         })
       );
-      usersDetailAvailable = true;
+      usersDetailAvailable = accountMetricsAvailable;  // senza Auth non si distinguono account e ospiti
       // ordina: prima chi usa di più (per capire subito attivi vs persi)
       usersDetail.sort((x, y) => ((y.totalCalls ?? -1) - (x.totalCalls ?? -1)) || ((y.daysActive ?? -1) - (x.daysActive ?? -1)));
     } catch (e) {
@@ -1558,7 +1586,9 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
         successfulChargeCount,
       },
       firestore: {
-        totalUsers: usersSnap.docs.filter(x => x.id !== ADMIN_UID).length,
+        totalUsers,
+        accountMetricsAvailable,
+        guestProfiles,
         newUsersToday,
         authMetricsAvailable,
         authAccountsTotal: authMetricsAvailable ? authAccountsTotal : null,
@@ -1573,8 +1603,8 @@ exports.adminDashboard = functions.https.onRequest(async (req, res) => {
         profileIdentityReconciliationComplete: authMetricsAvailable ? profileIdentityReconciliationComplete : null,
         usersByPlan,
         usersPlanUnclassified,
-        usersPlanComplete: Object.values(usersByPlan).reduce((sum, count) => sum + count, usersPlanUnclassified)
-          === usersSnap.docs.filter(x => x.id !== ADMIN_UID).length,
+        usersPlanComplete: accountMetricsAvailable
+          ? Object.values(usersByPlan).reduce((sum, count) => sum + count, usersPlanUnclassified) === totalUsers : null,
         usersWithFCM,
         usersWithSparks,
         usersActivated,

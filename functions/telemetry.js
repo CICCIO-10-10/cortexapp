@@ -41,6 +41,9 @@ function handler({db,admin,secret,now=()=>Date.now(),ipRateLimit}) {
     const stamp=admin.firestore.FieldValue.serverTimestamp();
     tx.create(record,{type:event.type,page:event.page,source:event.source,referrer:event.referrer,meta:event.meta,tracking_version:3,ts:stamp});
     tx.set(parent,{vid:event.visitor,last_seen:stamp,...(!summary.exists?{first_seen:stamp,source:event.source,entry:event.page,referrer:event.referrer}:{})},{merge:true});
+    // 14/10/2026: i visitatori TEST_ (test automatici) sono esclusi dai percorsi in adminDashboard;
+    // per coerenza non entrano nemmeno in presenza e visite del giorno. L'evento resta registrato.
+    if(event.visitor.startsWith('TEST_'))return;
     const pageGroup=/^\/(?:app(?:\.html)?|materiale|tecniche|community|lezioni|settings)\/?$/.test(event.page)?'app':'landing';
     tx.set(db.collection('analytics').doc('presence').collection('sessions').doc(event.visitor),{page:pageGroup,path:event.page,source:event.source,lastSeen:stamp},{merge:true});
     if(['landing_view','session_start'].includes(event.type)){

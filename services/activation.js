@@ -21,8 +21,13 @@ const VALID = ['cardsGenerated', 'cardsStudied', 'ratingsGiven'];
 
 function _uid() {
   try {
-    if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser)
-      return firebase.auth().currentUser.uid;
+    if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
+      const u = firebase.auth().currentUser;
+      // 16/10/2026: l'ospite usa l'AI con un accesso ANONIMO; senza questo controllo le sue tappe finivano
+      // in users/{anonimo}.activation e la dashboard lo contava tra gli utenti attivati (le metriche da
+      // Firebase Auth escludono invece gli anonimi). Per l'ospite le tappe restano solo sul dispositivo.
+      return u.isAnonymous ? null : u.uid;
+    }
   } catch (_) {}
   return (typeof window !== 'undefined' && window._fbUserId) ? window._fbUserId : null;
 }

@@ -81,11 +81,18 @@
 
     if (choice === 'accepted') {
       startOptionalAnalytics();
+      // Per gli eventi di apertura che aspettano il consenso (core/analytics.js trackWhenConsented).
+      try { window.dispatchEvent(new Event('cortex:consent-accepted')); } catch (_) {}
       return;
     }
 
     // Stop future first-party events immediately. Reloading tears down optional SDKs
     // already loaded after a previous opt-in, so they cannot keep recording this page.
+    applyDecline();
+    if (clarityLoaded || gaLoaded) location.reload();
+  };
+
+  function applyDecline() {
     window.__cortexTrackingDisabled = true;
     try {
       if (typeof window.clarity === 'function') {
@@ -98,8 +105,21 @@
         });
       }
     } catch (_) {}
-    if (clarityLoaded || gaLoaded) location.reload();
-  };
+  }
+
+  // 16/10/2026: revoca da un'altra scheda (es. pagina privacy) mentre questa è aperta. Prima solo il
+  // tracker interno si fermava (rilegge localStorage a ogni evento); Clarity e GA già caricati qui
+  // continuavano fino alla ricarica. Niente ricarica automatica di una scheda in background (si
+  // perderebbe testo non salvato): il rifiuto vale subito, gli SDK spariscono alla prossima apertura.
+  // Un'accettazione in un'altra scheda non avvia nulla qui.
+  try {
+    window.addEventListener('storage', function (e) {
+      if (e.key !== KEY && e.key !== null) return;   // key null = localStorage svuotato
+      var v = null;
+      try { v = localStorage.getItem(KEY); } catch (_) {}
+      if (v !== 'accepted') applyDecline();
+    });
+  } catch (_) {}
 
   function mostraBanner() {
     try {
