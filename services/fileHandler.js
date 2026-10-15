@@ -125,6 +125,8 @@ export function addAllChunksToDeck(addPair) {
     showToast(`${items.length} flashcard aggiunte! ✨ Controlla la sezione flashcard e salva la materia.`, 'success');
 }
 
+const PDF_LIB_TIMEOUT_MS = 30000;
+
 /**
  * Extracts raw text from a File object (supported: txt, csv, md, pdf, docx).
  */
@@ -137,11 +139,18 @@ export async function extractTextFromFile(file) {
 
     if (ext === 'pdf') {
         // 26/09: pdf.js ora si carica dopo l'avvio → se serve prima, lo carico adesso
+        // 15/10/2026: attesa limitata. Se lo script non arrivava, l'import del PDF restava fermo per sempre.
         if (typeof pdfjsLib === 'undefined' && typeof window.__cxLib === 'function') {
-            try { await window.__cxLib('pdf'); } catch (_) {}
+            let timer;
+            try {
+                await Promise.race([
+                    window.__cxLib('pdf'),
+                    new Promise((_, rej) => { timer = setTimeout(() => rej(new Error('timeout')), PDF_LIB_TIMEOUT_MS); }),
+                ]);
+            } catch (_) {} finally { clearTimeout(timer); }
         }
         if (typeof pdfjsLib === 'undefined') {
-            throw new Error('PDF.js non caricato. Assicurati di avere connessione internet.');
+            throw new Error('PDF.js non caricato. Assicurati di avere connessione internet e riprova.');
         }
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
