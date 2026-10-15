@@ -1,6 +1,7 @@
 // Test 09/10/2026: riquadro "Cosa studiare oggi" nella home dell'app.
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
+import { renderRebrandHome } from '../ui/components/RebrandHome.js';
 
 const src = fs.readFileSync(new URL('../modules/home.js', import.meta.url), 'utf8');
 const corpo = src.slice(src.indexOf('export function todayPlan'), src.indexOf('function _todayHtml')).replace('export function', 'function');
@@ -8,6 +9,15 @@ const todayPlan = new Function(corpo + '\nreturn todayPlan;')();
 const html = new Function('todayPlan', src.slice(src.indexOf('function _todayHtml'), src.indexOf('// Clic sul riquadro')) + '\nreturn _todayHtml;')();
 
 describe('Cosa studiare oggi', () => {
+  it('keeps the latest TOLC restart in the redesigned home, alongside the core tools', () => {
+    const todayHtml = html(todayPlan([], [{ k: 'tolc-i', s: 5, q: true, n: 10, t: Date.now() }]));
+    const page = renderRebrandHome({ todayHtml });
+    expect(page).toContain('Rifai la prova del TOLC-I');
+    expect(page).toContain('data-fn="todayCardClick"');
+    for (const action of ['openQuickMode','openTolcSim','openProfSelector','openPomodoro','submitFeedback']) {
+      expect(page).toContain(`data-fn="${action}"`);
+    }
+  });
   const now = new Date('2026-10-09T10:00:00').getTime();
   it('somma le carte da ripassare e parte dalla materia più indietro', () => {
     const p = todayPlan([{ id: 1, dueCount: 3 }, { id: 2, dueCount: 9 }, { id: 3, dueCount: 0 }], [], now);

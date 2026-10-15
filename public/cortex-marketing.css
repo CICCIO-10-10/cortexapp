@@ -1,7 +1,7 @@
 /* Presentation-only refinement of /home. Matches the current product palette and type. */
 @font-face{font-family:Cortex UI;src:url('/cortex-design/dm-sans-latin.woff2') format('woff2');font-weight:100 900;font-display:optional}
 @font-face{font-family:Cortex Title;src:url('/cortex-design/space-grotesk-latin.woff2') format('woff2');font-weight:300 700;font-display:optional}
-body.cortex-marketing{--bg:#090910;--bg-card:#121219;--primary:#bfa1ff;--primary-light:#bfa1ff;--primary-glow:transparent;--text:#f1f0fa;--muted:#b2adbf;--border:#302c3b;--border-primary:#514362;background:var(--bg);font-family:'Cortex UI',Arial,sans-serif}
+body.cortex-marketing{--bg:#16171c;--bg-card:#1e2026;--primary:#c6b4fb;--primary-light:#c6b4fb;--primary-glow:transparent;--text:#f1f0fa;--muted:#b2adbf;--border:#343640;--border-primary:#514362;background:var(--bg);font-family:'Cortex UI',Arial,sans-serif}
 .cortex-marketing :is(button,input,select,textarea){font-family:inherit}
 .cortex-marketing :is(h1,h2,h3,.section-h2,.sp-h2,.cta-h2,.plan-price,.feat-name,.step-title){font-family:'Cortex Title',Arial,sans-serif;font-weight:600;letter-spacing:-.035em;line-height:1.15}
 .cortex-marketing .container{max-width:1120px}
@@ -18,16 +18,16 @@ body.cortex-marketing{--bg:#090910;--bg-card:#121219;--primary:#bfa1ff;--primary
 .cortex-marketing :is(button,a,summary):focus-visible{outline:2px solid var(--primary);outline-offset:4px}
 .cortex-marketing :is(.feat-card,.plan-card,.faq-item,.mockup-frame,.step-card){background:var(--bg-card);border:1px solid var(--border);border-radius:14px;box-shadow:0 8px 30px #0003}
 .cortex-marketing :is(.feat-card,.plan-card,.step-card):hover{transform:none;box-shadow:none;border-color:#726184}
-.cortex-marketing .plan-card.featured{border-color:#8d70b7;background:#191820;transform:none}
-.cortex-marketing :is(.app-ui,.boss-ui,.duel-ui,.flashcard){background:#191820;box-shadow:none;border-color:var(--border)}
-.cortex-marketing :is(.app-topbar,.app-navbar){background:#121219;border-color:var(--border)}
-.cortex-marketing :is(.fbadge,.hero-badge){background:#191820;border:1px solid var(--border);border-radius:8px;box-shadow:none;animation:none}
+.cortex-marketing .plan-card.featured{border-color:#8d70b7;background:#24262e;transform:none}
+.cortex-marketing :is(.app-ui,.boss-ui,.duel-ui,.flashcard){background:#24262e;box-shadow:none;border-color:var(--border)}
+.cortex-marketing :is(.app-topbar,.app-navbar){background:#1e2026;border-color:var(--border)}
+.cortex-marketing :is(.fbadge,.hero-badge){background:#24262e;border:1px solid var(--border);border-radius:8px;box-shadow:none;animation:none}
 .cortex-marketing :is(.section-sub,.feat-desc,.step-desc,.plan-sub,.faq-a-inner,.footer-tag){color:var(--muted);line-height:1.8}
 .cortex-marketing :is(.steps-section,.features-section,.compare-section,.pricing-section,.faq-section){padding-block:80px;border-top:1px solid var(--border)}
 .cortex-marketing :is(.spotlight-dark,.spotlight-mid,.countdown-section,.social-section){background:var(--bg);border-block:1px solid var(--border)}
-.cortex-marketing .final-cta{background:linear-gradient(125deg,#1a1523,#121219 70%);border-top:1px solid var(--border);padding-block:80px}
+.cortex-marketing .final-cta{background:linear-gradient(125deg,#1a1523,#1e2026 70%);border-top:1px solid var(--border);padding-block:80px}
 .cortex-marketing .fade-in{opacity:1;transform:none;transition:none}
-.cortex-marketing .cmp-table td:nth-child(3){background:#bfa1ff08;border-color:var(--border)}
+.cortex-marketing .cmp-table td:nth-child(3){background:#c6b4fb08;border-color:var(--border)}
 .cortex-marketing .cmp-table th:nth-child(3){border-color:var(--border)}
 .cortex-marketing :is(.boss-mic,.feat-icon){box-shadow:none}
 .cortex-marketing :is(.badge-dot,.banner-ping){animation:none}

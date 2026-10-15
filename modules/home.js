@@ -1,3 +1,4 @@
+import { renderRebrandHome } from '../ui/components/RebrandHome.js';
 import { t } from '../core/i18n.js';
 import { refreshDueCounts } from './statsPanel.js';
 import { track } from '../core/analytics.js';
@@ -382,189 +383,12 @@ export function renderHome() {
                       document.getElementById('page-home');
     if (!container) return;
 
-    // ── Redesign Home 14/07/2026 ──────────────────────────────────────────────
-    // Saluto personale al posto del wordmark gigante + griglia azioni rapide
-    // SEMPRE visibile (anche da ospite: i gate pensano al resto).
-    const _nome   = (localStorage.getItem('mm_user_name') || '').trim().split(' ')[0];
-    const _ospite = !_nome || _nome.toLowerCase() === 'ospite';
-    const _ora    = new Date().getHours();
-    const _fascia = _ora < 13 ? 'Buongiorno' : _ora < 19 ? 'Buon pomeriggio' : 'Buonasera';
-    const _saluto = _ospite ? `${_fascia} 👋` : `${_fascia}, ${_nome} 👋`;
-
-    const _tile = (icon, label, sub, fn, primario = false, params = '') => `
-        <button data-fn="${fn}" ${params ? `data-params='${params}'` : ''} style="
-            display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
-            padding:18px 12px; border-radius:18px; cursor:pointer; font-family:inherit; text-align:center;
-            background:${primario ? 'linear-gradient(135deg, #7c6af7, #a78bfa)' : 'rgba(255,255,255,0.04)'};
-            border:1px solid ${primario ? 'transparent' : 'rgba(255,255,255,0.10)'};
-            color:${primario ? '#fff' : 'var(--text)'};
-            box-shadow:${primario ? '0 12px 36px rgba(124,106,247,0.45)' : 'none'};
-            transition: transform .15s ease, border-color .15s, box-shadow .15s;
-        " onmouseover="this.style.transform='translateY(-3px)';${primario ? '' : `this.style.borderColor='rgba(139,92,246,0.45)'`}"
-          onmouseout="this.style.transform='none';${primario ? '' : `this.style.borderColor='rgba(255,255,255,0.10)'`}">
-            <span style="font-size:1.7rem; line-height:1;">${icon}</span>
-            <span style="font-weight:800; font-size:0.92rem; letter-spacing:0.01em;">${label}</span>
-            <span style="font-size:0.68rem; line-height:1.3; color:${primario ? 'rgba(255,255,255,0.78)' : 'var(--text-muted)'};">${sub}</span>
-        </button>`;
-
-    const _azioni = [
-        _tile('📸', 'Crea dai tuoi appunti', 'foto, testo o PDF → flashcard e quiz', 'showView', true, '["CreateDeckView"]'),
-        _tile('⚡', 'Quiz rapido', 'quiz lampo sui tuoi mazzi', 'openQuickMode'),
-        _tile('🎯', 'Simulazione TOLC', 'struttura e tempi ufficiali', 'openTolcSim'),
-        _tile('🎤', 'Interrogazione', (window.getProfModeLabel ? window.getProfModeLabel().replace(/^[^A-Za-zÀ-ù]+/, '') : 'Prof: Normale'), 'openProfSelector'),
-        // FIX 17/07/2026: apriva il test attitudinale (openArchitect) come la ghost-card di decks.js —
-        // deve aprire la creazione materia. Il test attitudinale resta SOLO per sbloccare network/stats/community.
-    ].join('');
-
-    // LE TUE MATERIE (14/07/2026): il contenuto vero dell'utente in Home —
-    // prima la dashboard mostrava solo cornice e zero sostanza.
-    const _esc = (x) => String(x ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
     refreshDueCounts();
-    const _decksAll = (window._legacyState?.()?.decks || []);
-    const _decksTop = [..._decksAll]
-        .sort((a, b) => (b.dueCount || 0) - (a.dueCount || 0))
-        .slice(0, 3);
-    const _hasDue = _decksTop.some(d => d.dueCount > 0);
-    let _tolcHist = [];
-    try { _tolcHist = JSON.parse(localStorage.getItem('cortex_tolc_history') || '[]'); } catch (_) {}
-    const _oggi = _todayHtml(todayPlan(_decksAll, _tolcHist));
-    // Primo minuto: nuovo utente (0 materie) → un'unica azione dominante "appunti → flashcard".
-    const _isNew = _decksAll.length === 0;
-    const _firstRun = `
-        <section aria-label="Inizia da qui" style="position:relative; border-radius:26px; padding:34px 26px; margin-bottom:22px; text-align:center; background:radial-gradient(ellipse at 30% 20%, rgba(139,92,246,0.28), transparent 60%), rgba(16,14,26,0.92); border:1px solid rgba(139,92,246,0.35); box-shadow:0 20px 60px rgba(124,106,247,0.28);">
-            <div style="font-size:0.62rem; font-weight:900; letter-spacing:0.28em; text-transform:uppercase; color:rgba(255,255,255,0.42); margin-bottom:10px;">Inizia da qui</div>
-            <h2 style="font-family:'Outfit',sans-serif; font-weight:900; font-size:clamp(1.5rem,4.2vw,2.1rem); line-height:1.12; margin:0 0 10px; color:var(--text);">Dai tuoi appunti al primo ripasso</h2>
-            <p style="max-width:460px; margin:0 auto 22px; font-size:0.95rem; line-height:1.5; color:var(--text-muted);">Incolla un testo oppure carica una <b style="color:var(--text);">foto o un PDF</b>. Scegli flashcard, quiz a scelta multipla o domande aperte.</p>
-            <button data-fn="showView" data-params='["CreateDeckView"]' style="display:inline-flex; align-items:center; gap:10px; padding:16px 30px; border:none; border-radius:16px; cursor:pointer; font-family:inherit; font-size:1.05rem; font-weight:900; color:#fff; background:linear-gradient(135deg,#7c6af7,#a855f7); box-shadow:0 14px 40px rgba(124,106,247,0.5); transition:transform .15s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">📸 Crea le tue prime flashcard</button>
-            <div style="margin-top:16px;">
-                <button data-fn="openTolcSim" style="background:none; border:none; color:var(--text-muted); font-size:0.85rem; font-weight:700; cursor:pointer; font-family:inherit; text-decoration:underline; text-underline-offset:3px;">o prova una simulazione TOLC &rarr;</button>
-            </div>
-        </section>`;
-    const _materieHtml = _decksAll.length ? `
-        <section class="home-next-step" style="margin-bottom:28px;">
-            <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px;">
-                <div style="font-size:0.65rem; font-weight:900; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.2em;">Le tue materie</div>
-                <button data-fn="showPage" data-params='["materiale"]' style="background:none; border:none; color:var(--accent); font-size:0.8rem; font-weight:700; cursor:pointer; font-family:inherit;">vedi tutte →</button>
-            </div>
-            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px;">
-                ${_decksTop.map(d => {
-                    const due = d.dueCount || 0;
-                    const nCards = (d.cards || []).length;
-                    return `
-                    <article style="
-                        padding:18px; border-radius:16px;
-                        background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08);
-                        display:flex; flex-direction:column; gap:10px;
-                        transition:border-color .2s, transform .15s;
-                    " onmouseover="this.style.borderColor='rgba(139,92,246,0.4)';this.style.transform='translateY(-2px)'"
-                      onmouseout="this.style.borderColor='rgba(255,255,255,0.08)';this.style.transform='none'">
-                        <div>
-                            <div style="font-weight:800; font-size:1rem; color:var(--text); margin-bottom:2px;">${_esc(d.name || d.title || 'Materia senza nome')}</div>
-                            <div style="font-size:0.72rem; color:var(--text-muted);">${_esc(d.subject || '')}${nCards ? ` · ${nCards} carte` : ''}</div>
-                        </div>
-                        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:auto;">
-                            <span style="font-size:0.75rem; font-weight:800; color:${due > 0 ? '#f59e0b' : '#4ade80'};">
-                                ${due > 0 ? `⏰ ${due} da ripassare` : '✓ tutto ripassato'}
-                            </span>
-                            <button data-fn="startStudyById" data-params='["${_esc(d.id)}"]' style="
-                                background:${due > 0 ? 'var(--accent)' : 'rgba(255,255,255,0.06)'};
-                                color:${due > 0 ? '#fff' : 'var(--text-muted)'};
-                                border:none; border-radius:20px; padding:7px 16px;
-                                font-size:0.78rem; font-weight:800; cursor:pointer; font-family:inherit;
-                            ">${due > 0 ? 'Ripassa ora' : 'Studia'}</button>
-                        </div>
-                    </article>`;
-                }).join('')}
-            </div>
-        </section>` : '';   // 0 materie → niente sezione: "Nuova materia" sta già nei 4 tasti
-
-    container.innerHTML = `
-        <div class="dashboard-nebula reveal-anim ${_hasDue ? 'has-due' : 'no-due'}" style="max-width: 900px; margin: 0 auto; padding: 28px 20px 120px;">
-
-            ${_isNew ? _firstRun : ''}
-            <!-- HERO SECTION -->
-            <section class="hero-nebula" style="
-                position: relative;
-                width: 100%;
-                border-radius: 28px;
-                background: radial-gradient(ellipse at 20% 50%, rgba(139,92,246,0.20) 0%, transparent 65%),
-                            radial-gradient(ellipse at 80% 30%, rgba(6,182,212,0.13) 0%, transparent 60%),
-                            radial-gradient(ellipse at 50% 90%, rgba(217,70,239,0.09) 0%, transparent 55%),
-                            rgba(14,14,22,0.85);
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                align-items: center;
-                text-align: center;
-                padding: 56px 32px 52px;
-                margin-bottom: 28px;
-                overflow: hidden;
-                border: 1px solid rgba(139,92,246,0.18);
-                box-shadow: 0 24px 64px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06);
-            ">
-                <!-- Orb decorativi CSS -->
-                <div style="position:absolute; width:500px; height:500px; border-radius:50%; background:var(--accent); opacity:0.05; filter:blur(100px); top:-150px; left:-120px; pointer-events:none;"></div>
-                <div style="position:absolute; width:350px; height:350px; border-radius:50%; background:var(--accent2); opacity:0.06; filter:blur(80px); bottom:-100px; right:-80px; pointer-events:none;"></div>
-
-                <div style="position:relative; z-index:2; width:100%;">
-                    <!-- Saluto personale (via il wordmark gigante: sei già dentro l'app) -->
-                    <div style="text-align:left; margin-bottom:18px;">
-                        <div style="font-size:0.6rem; font-weight:900; letter-spacing:0.32em; text-transform:uppercase; color:rgba(255,255,255,0.32); margin-bottom:6px;">Cortex · Il tuo spazio di studio</div>
-                        <h1 style="font-family:'Outfit',sans-serif; font-size:clamp(1.7rem,4.5vw,2.4rem); font-weight:900; letter-spacing:-0.03em; margin:0; line-height:1.1; color:var(--text);">
-                            ${_saluto}
-                        </h1>
-                    </div>
-
-                    ${_oggi}
-                    ${renderQuickStats()}
-                    ${renderDailyGoalRing()}
-
-                    ${_hasDue ? _materieHtml : ''}
-                    <!-- AZIONI RAPIDE — sempre visibili, anche da ospite -->
-                    <div class="cortex-actions" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px; margin-top:22px;">
-                        ${_azioni}
-                    </div>
-                </div>
-            </section>
-
-            <!-- LE TUE MATERIE — il contenuto dell'utente, subito sotto le azioni -->
-            ${!_hasDue ? _materieHtml : ''}
-
-            <!-- Same widgets and handlers, after the student's next actions. -->
-            <div id="daily-quiz-slot"></div>
-            <!-- Banner evento stagionale SPOSTATO in Materiale (23/09/2026) -->
-
-            <!-- Neural Trainer (AI insight) — full width, async -->
-            <div id="neural-trainer-container" style="margin-bottom: 28px;"></div>
-
-            <!-- BANNER STUDENT: NASCOSTO 2026-09-01 (rimetti !window.isPremium?.() per riattivare la monetizzazione) -->
-            ${false ? `
-            <div data-fn="showPaywall" data-params='["feature"]' style="
-                cursor:pointer;
-                display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;
-                padding:16px 22px;
-                border-radius:16px;
-                background: linear-gradient(135deg, rgba(124,106,247,0.12), rgba(239,68,68,0.08));
-                border:1px solid rgba(124,106,247,0.25);
-                margin-bottom:20px;
-                transition: border-color 0.2s, background 0.2s;
-            " onmouseover="this.style.borderColor='rgba(124,106,247,0.5)'" onmouseout="this.style.borderColor='rgba(124,106,247,0.25)'">
-                <div style="display:flex;align-items:center;gap:14px;">
-                    <span style="font-size:1.5rem;">🎓</span>
-                    <div>
-                        <div style="font-size:0.7rem;font-weight:900;color:var(--accent);text-transform:uppercase;letter-spacing:0.15em;margin-bottom:2px;">${t('home_plan_student')}</div>
-                        <div style="font-size:0.88rem;font-weight:700;color:var(--text);">${t('home_plan_features')}</div>
-                    </div>
-                </div>
-                <div style="
-                    background:var(--accent); color:#fff; border-radius:20px;
-                    padding:8px 18px; font-size:0.8rem; font-weight:800;
-                    white-space:nowrap; flex-shrink:0;
-                ">€3,99/mese →</div>
-            </div>
-            ` : ''}
-
-            <!-- WHY CORTEX: differenziatori vs Anki/Quizlet -->
+    const decks = window._legacyState?.()?.decks || [];
+    let history = [];
+    try { history = JSON.parse(localStorage.getItem('cortex_tolc_history') || '[]'); } catch (_) {}
+    const todayHtml = _todayHtml(todayPlan(decks, history));
+    const extrasHtml = `            <!-- WHY CORTEX: differenziatori vs Anki/Quizlet -->
             ${!window._fbLoggedIn ? `
             <div class="home-comparison" style="margin-bottom:24px;">
                 <div style="font-size:0.65rem;font-weight:900;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.2em;margin-bottom:14px;text-align:center;">
@@ -586,29 +410,6 @@ export function renderHome() {
                         </div>
                     `).join('')}
                 </div>
-            </div>
-            ` : ''}
-
-            <!-- FEATURE DISCOVERY ROW: Neural Duels + Visual Graph -->
-            ${(gState.decks && gState.decks.length > 0) ? `
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
-
-                <!-- Neural Duels card -->
-                <article class="glass nebula-card" data-fn="openNeuralDuels" style="padding: 24px; border-radius: 20px; border: 1px solid rgba(124,106,247,0.18); background: linear-gradient(135deg, rgba(124,106,247,0.06), rgba(239,68,68,0.04)); cursor:pointer; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 12px 40px rgba(124,106,247,0.2)'" onmouseout="this.style.transform='none';this.style.boxShadow='none'">
-                    <div style="font-size: 2rem; margin-bottom: 10px;">⚔️</div>
-                    <div style="font-size: 0.65rem; font-weight: 900; color: #7c6af7; text-transform: uppercase; letter-spacing: 0.2em; margin-bottom: 6px; opacity: 0.8;">PvP Live</div>
-                    <div style="font-size: 1rem; font-weight: 800; color:var(--text); margin-bottom: 6px; font-family: 'Outfit', sans-serif;">Neural Duels</div>
-                    <div style="font-size: 0.78rem; color: rgba(255,255,255,0.4); line-height: 1.4;">${t('home_duels_desc')}</div>
-                </article>
-
-                <!-- Visual Graph card -->
-                <article class="glass nebula-card" data-fn="openVisualGraph" style="padding: 24px; border-radius: 20px; border: 1px solid rgba(139,92,246,0.18); background: linear-gradient(135deg, rgba(0,212,255,0.04), rgba(139,92,246,0.06)); cursor:pointer; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 12px 40px rgba(0,212,255,0.15)'" onmouseout="this.style.transform='none';this.style.boxShadow='none'">
-                    <div style="font-size: 2rem; margin-bottom: 10px;">🌌</div>
-                    <div style="font-size: 0.65rem; font-weight: 900; color: #00d4ff; text-transform: uppercase; letter-spacing: 0.2em; margin-bottom: 6px; opacity: 0.8;">3D Knowledge</div>
-                    <div style="font-size: 1rem; font-weight: 800; color:var(--text); margin-bottom: 6px; font-family: 'Outfit', sans-serif;">Knowledge Graph</div>
-                    <div style="font-size: 0.78rem; color: rgba(255,255,255,0.4); line-height: 1.4;">${t('home_graph_desc')}</div>
-                </article>
-
             </div>
             ` : ''}
 
@@ -670,53 +471,12 @@ export function renderHome() {
                 return '';
             })()}
 
-            <!-- (Invita-un-amico RIMOSSO dalla Home 14/07/2026 — c'è la
-                 condivisione dopo lo studio, qui era solo rumore) -->
-
-            <!-- FEEDBACK — redesign 14/07/2026: card sobria, form in riga,
-                 messaggi community chiusi in una tendina -->
-            <article class="glass nebula-card" style="padding: 22px 24px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.02); backdrop-filter: var(--glass-blur);">
-                <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
-                    <span style="font-size:1.2rem;">💬</span>
-                    <div>
-                        <div style="font-weight:800; font-size:0.95rem; color:var(--text);">Hai un'idea o qualcosa non va?</div>
-                        <div style="font-size:0.75rem; color:var(--text-muted);">Scrivici — leggiamo tutto e rispondiamo qui.</div>
-                    </div>
-                </div>
-                <div style="display:grid; grid-template-columns:minmax(120px,180px) 1fr auto; gap:10px; align-items:stretch;">
-                    <input type="text" id="feedback-alias" aria-label="Tuo identificativo" placeholder="Nome" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09); border-radius: 10px; color:var(--text); padding: 11px 13px; font-size:0.85rem; font-family:inherit; outline:none;">
-                    <textarea id="feedback-text" aria-label="Feedback" placeholder="Cosa possiamo migliorare?" rows="1" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09); border-radius: 10px; color:var(--text); padding: 11px 13px; font-size:0.85rem; resize:none; font-family:inherit; outline:none; min-height:42px;"></textarea>
-                    <button class="btn btn-primary" data-fn="submitFeedback" style="padding:0 22px; border-radius:10px; font-weight:800; font-size:0.85rem; white-space:nowrap;">
-                        Invia
-                    </button>
-                </div>
-                <details style="margin-top:14px;">
-                    <summary style="cursor:pointer; font-size:0.75rem; color:var(--text-muted); font-weight:700; list-style-position:inside;">Messaggi della community</summary>
-                    <div id="feedback-list" style="margin-top:12px; display:flex; flex-direction:column; gap:12px; max-height:320px; overflow-y:auto; padding-right:8px;"></div>
-                </details>
-            </article>
-
-            <style>
-            @media (max-width: 620px) {
-                article.glass > div[style*="grid-template-columns:minmax"] {
-                    grid-template-columns: 1fr !important;
-                }
-            }
-            </style>
-
-        </div>
-
-        <style>
-        @media (max-width: 600px) {
-            .dashboard-nebula > div:last-child {
-                grid-template-columns: 1fr !important;
-            }
-            .feature-discovery-row {
-                grid-template-columns: 1fr !important;
-            }
-        }
-        </style>
-    `;
+`;
+    container.innerHTML = renderRebrandHome({
+        name: (localStorage.getItem('mm_user_name') || '').trim().split(' ')[0],
+        decks, todayHtml, extrasHtml,
+        statsHtml: renderQuickStats(), goalHtml: renderDailyGoalRing(),
+    });
 
     // Avvia il neural trainer async
     renderNeuralTrainer();

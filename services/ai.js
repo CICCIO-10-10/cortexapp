@@ -343,6 +343,8 @@ self.addEventListener('message', async (e) => {
 }
 
 // ─── OCR Immagini ─────────────────────────────────────────────────────────────
+const OCR_SCRIPT_TIMEOUT_MS = 30000;
+let _ocrScriptAttempts = 0;
 export async function handleImageFile(file, idx = 1, total = 1) {
     if (!file) return;
     if (!navigator.onLine) { if (window.showToast) window.showToast("Connessione assente. L'OCR richiede internet.", 'error'); return; }
@@ -351,7 +353,20 @@ export async function handleImageFile(file, idx = 1, total = 1) {
     if (statusBox)  statusBox.classList.add('visible');
     if (statusText) statusText.textContent = t('ai_ocr_loading');
     try {
-        if (!window.Tesseract) await new Promise((res, rej) => { const s = document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+        // 15/10/2026: anche il caricamento del motore ha un limite. Se lo script dalla CDN non arrivava
+        // (rete lenta o bloccata), il limite di 90 s sotto non scattava e la scritta restava per sempre.
+        // Lo script bloccato viene tolto, così "riprova" lo carica di nuovo.
+        if (!window.Tesseract) await new Promise((res, rej) => {
+            const s = document.createElement('script');
+            const fail = (msg) => { clearTimeout(timer); try { s.remove(); } catch (_) {} rej(new Error(msg)); };
+            const timer = setTimeout(() => fail('il motore di lettura non si è caricato: controlla la connessione e riprova'), OCR_SCRIPT_TIMEOUT_MS);
+            // Dalla riprova un indirizzo diverso: lo stesso URL resterebbe in coda alla richiesta bloccata.
+            const attempt = _ocrScriptAttempts++;
+            s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js' + (attempt ? '?r=' + attempt : '');
+            s.onload = () => { clearTimeout(timer); res(); };
+            s.onerror = () => fail('il motore di lettura non è raggiungibile: controlla la connessione e riprova');
+            document.head.appendChild(s);
+        });
         if (statusText) statusText.textContent = `[${idx}/${total}] Analisi immagine...`;
         // 13/10/2026: la lettura della foto era bloccata dalla CSP (WebAssembly) e restava "Analisi immagine..." per
         // sempre. CSP corretta in firebase.json; in più un limite di 90 s con un messaggio chiaro.

@@ -186,7 +186,9 @@ export async function autoGenerateFlashcards() {
         const _pending = JSON.parse(localStorage.getItem('cortex_pending_ai') || 'null');
         const _flow = JSON.parse(localStorage.getItem('cortex_tolc_error_generation_pending') || 'null');
         _tolcErrorFlow = !!((_pending && _pending.source === 'tolc_errors' && _pending.ts && Date.now() - _pending.ts <= 30 * 60 * 1000) || (_flow && _flow.ts && Date.now() - _flow.ts <= 30 * 60 * 1000));
-        localStorage.setItem('cortex_pending_ai', JSON.stringify({ text: rawText, instructions: instructions, ts: Date.now(), source: _tolcErrorFlow ? 'tolc_errors' : undefined }));
+        // 15/10/2026: anche il nome della materia, che dopo l'accesso (pagina ricaricata) andava perso.
+        const _name = (document.getElementById('deck-name')?.value || '').trim().slice(0, 120);
+        localStorage.setItem('cortex_pending_ai', JSON.stringify({ text: rawText, instructions: instructions, ...(_name ? { name: _name } : {}), ts: Date.now(), source: _tolcErrorFlow ? 'tolc_errors' : undefined }));
     } catch (_) {}
     if (_tolcErrorFlow) {
         try { track('tolc_error_cards_generation_started'); } catch (_) {}
@@ -279,6 +281,8 @@ export async function resumePendingAI() {
         const ins = document.getElementById('ai-custom-instructions');
         if (ta)  ta.value  = pend.text;
         if (ins && pend.instructions) ins.value = pend.instructions;
+        const nm = document.getElementById('deck-name');
+        if (nm && !nm.value.trim() && typeof pend.name === 'string' && pend.name) nm.value = pend.name;
         if (_deps && _deps.showToast) _deps.showToast('Riprendo da dove eri: genero le tue flashcard… ✨', 'info');
         await autoGenerateFlashcards();
     } catch (_) {}

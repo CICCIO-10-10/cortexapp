@@ -2,10 +2,10 @@
 @font-face{font-family:Cortex UI;src:url('/cortex-design/dm-sans-latin.woff2') format('woff2');font-weight:100 900;font-display:optional}
 @font-face{font-family:Cortex Title;src:url('/cortex-design/space-grotesk-latin.woff2') format('woff2');font-weight:300 700;font-display:optional}
 body.cortex-product{
- --bg:#090910;--bg-color:#090910;--surface:#121219;--surface2:#191820;--surface3:#23212c;
+ --bg:#16171c;--bg-color:#16171c;--surface:#1e2026;--surface2:#24262e;--surface3:#23212c;
  --text:#f1f0fa;--text-main:#f1f0fa;--text-muted:#b2adbf;--text-sub:#b2adbf;--text-secondary:#b2adbf;
- --accent:#bfa1ff;--accent2:#95e1df;--accent-nebula:#bfa1ff;--accent-glow:transparent;
- --border:#302c3b;--border-color:#302c3b;--glass-blur:none;--red:#ff939e;--green:#7cddb0;--gold:#edc782;
+ --accent:#c6b4fb;--accent2:#ace0d8;--accent-nebula:#c6b4fb;--accent-glow:transparent;
+ --border:#343640;--border-color:#343640;--glass-blur:none;--red:#ff939e;--green:#7cddb0;--gold:#edc782;
  --cx-body:'Cortex UI',Arial,sans-serif;--cx-title:'Cortex Title',Arial,sans-serif;
  --cx-radius:14px;--cx-shadow:0 8px 30px #0003;--cx-motion:160ms ease;
  --cx-space-1:4px;--cx-space-2:8px;--cx-space-3:12px;--cx-space-4:16px;--cx-space-6:24px;--cx-space-8:32px;
@@ -49,20 +49,20 @@ body.cortex-product .dq-opt:not(:disabled){background:var(--surface2)!important;
 body.cortex-product .dq-opt:hover:not(:disabled){border-color:var(--accent)!important}
 body.cortex-product #cortex-event-banner{background:var(--surface)!important;border:1px solid var(--border)!important;box-shadow:none!important;border-radius:12px!important}
 body.cortex-product [style*="color:rgba(255,255,255,0.4)"],body.cortex-product [style*="color:rgba(255,255,255,0.3)"],body.cortex-product [style*="color:rgba(255,255,255,0.2)"],body.cortex-product [style*="color:rgba(255,255,255,0.32)"]{color:var(--text-muted)!important}
-body.cortex-product #onboarding-overlay{background:#090910f5!important;backdrop-filter:none!important;padding:20px!important;overflow-y:auto}
+body.cortex-product #onboarding-overlay{background:#16171cf5!important;backdrop-filter:none!important;padding:20px!important;overflow-y:auto}
 body.cortex-product #onboarding-overlay>div{background:var(--surface)!important;border-radius:20px!important;padding:28px 24px!important;max-height:calc(100dvh - 40px);overflow-y:auto!important;box-shadow:var(--cx-shadow)!important}
 body.cortex-product #onboarding-overlay h2{font-size:1.75rem!important}
 body.cortex-product #onboarding-overlay [style*="background:linear-gradient"]{background:var(--surface2)!important;box-shadow:none!important}
 body.cortex-product #ob-dots{margin-bottom:24px!important}
 body.cortex-product :is(.ob-goal-btn,.ob-source-btn){border-color:var(--border)!important;background:var(--surface2)!important;border-radius:10px!important}
-body.cortex-product :is(#study-overlay,#quiz-overlay,#oral-overlay,#boss-overlay){background:#090910fa!important;backdrop-filter:none!important;overflow-y:auto}
+body.cortex-product :is(#study-overlay,#quiz-overlay,#oral-overlay,#boss-overlay){background:#16171cfa!important;backdrop-filter:none!important;overflow-y:auto}
 body.cortex-product :is(#study-session,.boss-box){background:var(--bg)!important;box-shadow:none!important;border:0!important}
 body.cortex-product :is(.flip-front,.flip-back){background:var(--surface)!important;border:1px solid #5a496d!important;border-radius:18px!important;box-shadow:var(--cx-shadow)!important}
 body.cortex-product :is(#card-question,#card-answer){font-family:var(--cx-title)!important;font-size:clamp(1.2rem,4vw,1.65rem)!important;line-height:1.5!important;overflow-wrap:anywhere}
 body.cortex-product .rating-btn{border-radius:10px!important;box-shadow:none!important;padding:14px 10px!important}
 body.cortex-product #rating-buttons.visible{opacity:1!important;pointer-events:auto!important}
 body.cortex-product #flip-card{height:auto!important}
-body.cortex-product :is(#study-overlay,#quiz-overlay,#oral-overlay,#boss-overlay){background:#090910!important;border-radius:0!important;border:0!important;z-index:3000!important}
+body.cortex-product :is(#study-overlay,#quiz-overlay,#oral-overlay,#boss-overlay){background:#16171c!important;border-radius:0!important;border:0!important;z-index:3000!important}
 body.cortex-product>nav{z-index:1500!important}
 body.cortex-product #app-root{background:var(--bg)!important}
 body.cortex-product .dashboard-nebula button:is([data-fn="startStudy"],[data-fn="startStudyById"]){background:var(--accent)!important;color:#1a1228!important;border-radius:10px!important;box-shadow:none!important}
@@ -74,7 +74,7 @@ body.cortex-product :is(.phase-num,.quiz-count-chip){box-shadow:none!important}
 body.cortex-product .quiz-count-chip[style*="background:var(--accent)"]{color:#1a1228!important}
 body.cortex-product>nav{background:#101017f8!important;border-color:var(--border)!important;box-shadow:none!important;backdrop-filter:none!important}
 body.cortex-product .nav-tab{border-radius:9px!important;color:var(--text-muted)!important;box-shadow:none!important}
-body.cortex-product .nav-tab.active{background:#bfa1ff12!important;color:var(--accent)!important}
+body.cortex-product .nav-tab.active{background:#c6b4fb12!important;color:var(--accent)!important}
 body.cortex-product .nav-tab.active .label{color:var(--accent)!important}
 body.cortex-product .nav-tab .icon{filter:grayscale(1);opacity:.85}
 body.cortex-product .nav-tab.active .icon{filter:none;opacity:1}

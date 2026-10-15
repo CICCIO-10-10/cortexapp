@@ -2,8 +2,8 @@
 @font-face{font-family:Cortex Sans;src:url('./dm-sans-latin.woff2') format('woff2');font-weight:100 900;font-style:normal;font-display:optional}
 @font-face{font-family:Cortex Display;src:url('./space-grotesk-latin.woff2') format('woff2');font-weight:300 700;font-style:normal;font-display:optional}
 [data-cortex-seo]{
-  --cx-bg:#090910;--cx-panel:#121219;--cx-raised:#191820;--cx-ink:#f1f0fa;
-  --cx-muted:#b2adbf;--cx-accent:#bfa1ff;--cx-line:#302c3b;--cx-cyan:#95e1df;
+  --cx-bg:#16171c;--cx-panel:#1e2026;--cx-raised:#24262e;--cx-ink:#f1f0fa;
+  --cx-muted:#b2adbf;--cx-accent:#c6b4fb;--cx-line:#343640;--cx-cyan:#ace0d8;
   --cx-body:'Cortex Sans',Arial,sans-serif;--cx-heading:'Cortex Display',Arial,sans-serif;
   --cx-radius:14px;--cx-shadow:0 8px 30px #0003;--cx-ease:160ms ease;
   --cx-space-1:4px;--cx-space-2:8px;--cx-space-3:12px;--cx-space-4:16px;

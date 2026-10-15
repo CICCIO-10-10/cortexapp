@@ -160,6 +160,21 @@ function ensureOverlay() {
 let _generatedCards = [];
 let _outputMode = 'flashcards';
 let _generating = false;
+// 15/10/2026: testo da cui sono state generate le carte (appunti incollati, PDF, OCR). Prima la
+// materia salvata dall'anteprima aveva nome e carte ma non il materiale: il modulo poi si svuota
+// e gli appunti importati andavano persi.
+let _sourceText = '';
+// Oltre questa lunghezza il materiale non si salva nella materia: un mazzo sopra MAX_DECK_BYTES (900 KB,
+// services/firebase.js) non verrebbe più caricato sul cloud, carte comprese (come prima: solo carte).
+const MAX_SAVED_TEXT_CHARS = 300_000;
+const _savableText = () => (_sourceText && _sourceText.length <= MAX_SAVED_TEXT_CHARS ? _sourceText : '');
+/** Messaggio comprensibile per un errore di generazione (mai testo tecnico come "Unexpected token"). */
+function _generationErrorText(err) {
+    if (err?.isTimeout) return 'L’AI non ha risposto in tempo. Il tuo testo è ancora qui: riprova tra poco.';
+    if ((typeof navigator !== 'undefined' && !navigator.onLine) || /Failed to fetch|NetworkError|Load failed/i.test(String(err?.message || ''))) return 'Connessione assente o instabile. Il tuo testo è ancora qui: controlla la connessione e riprova.';
+    if (err instanceof SyntaxError) return 'La risposta dell’AI non era valida. Il tuo testo è ancora qui: riprova.';
+    return String(err?.message || 'Generazione non riuscita. Riprova.');
+}
 
 // ─── Helpers UI ───────────────────────────────────────────────────────────────
 
@@ -499,6 +514,7 @@ export async function openPdfAIFromFile(file) {
             throw new Error('Il file sembra vuoto o non contiene testo leggibile.');
         }
 
+        _sourceText = text;
         setStatus(`🧠 Generazione flashcard con AI... (${text.length.toLocaleString()} caratteri)`);
 
         // 2. Genera flashcard con Gemini
@@ -551,6 +567,7 @@ export async function openPdfAIFromText(text, suggestedName = '', mode = 'flashc
     _lockSave(true);
     _outputMode = mode;
     _generatedCards = [];
+    _sourceText = text;
     ensureOverlay();
     showOverlay();
     showLoading(true);
@@ -574,14 +591,18 @@ export async function openPdfAIFromText(text, suggestedName = '', mode = 'flashc
             if (window.handleAIError) window.handleAIError(err, 'generazione flashcard');
             return;
         }
+        const _msg = _generationErrorText(err);
         document.getElementById('pdfai-cards-list').innerHTML = `
             <div style="text-align:center; padding:40px 20px;">
                 <div style="font-size:3rem; margin-bottom:16px;">⚠️</div>
-                <p style="color:var(--red); font-weight:600;">${escapeHtml(err.message)}</p>
+                <p style="color:var(--red); font-weight:600;">${escapeHtml(_msg)}</p>
             </div>`;
         document.getElementById('pdfai-form-area').style.display = 'block';
         document.getElementById('pdfai-footer').style.display = 'flex';
-        if (window.showToast) window.showToast('Errore: ' + err.message, 'error');
+        // Nessuna carta da salvare: il pulsante "Salva" non resta visibile (come nel percorso da file).
+        const _saveBtn = document.getElementById('pdfai-save-btn');
+        if (_saveBtn) _saveBtn.style.display = 'none';
+        if (window.showToast) window.showToast(_msg, 'error');
     } finally { _generating = false; _lockSave(false); }
 }
 
@@ -644,6 +665,8 @@ export function savePdfAIDeck() {
     let newDeck = null;
     if (_materia) {
         _materia.cards = [...(_materia.cards || []), ..._newCards];
+        // Il materiale già presente nella materia non si sovrascrive; se manca, si salva quello importato.
+        if (!String(_materia.text || '').trim() && _savableText()) _materia.text = _savableText();
         _materia.updatedAt = now;
     } else {
         const _subj = (document.getElementById('deck-subject')?.value || '').trim();
@@ -651,6 +674,7 @@ export function savePdfAIDeck() {
             id: 'deck_' + Date.now(),
             name: deckName,
             subject: _subj,
+            text: _savableText(),
             studyMethod: 'cortex',
             cards: _newCards,
             createdAt: now,
@@ -679,6 +703,7 @@ export function savePdfAIDeck() {
 
     hideOverlay();
     _generatedCards = [];
+    _sourceText = '';
 
     if (window.showToast) {
         if (newDeck) window.showToast(`🎉 Mazzo "${deckName}" creato con ${newDeck.cards.length} carte!`, 'success');

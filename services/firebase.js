@@ -110,7 +110,7 @@ export function getFirestoreDB() {
  * deployate — i moduli che la chiamavano ricevevano sempre "internal".
  * Restituisce { data } con la stessa shape di httpsCallable per compatibilita'.
  */
-export async function callGeminiProxy(payload) {
+export async function callGeminiProxy(payload, options = {}) {
     const user = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
     if (!user) {
         // FIX 10/07/2026: per l'ospite questo non è un errore, è il momento di
@@ -120,13 +120,29 @@ export async function callGeminiProxy(payload) {
         throw e;
     }
     const idToken = await user.getIdToken();
-    const res = await fetch('/api/gemini', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + idToken },
-        body: JSON.stringify(payload)
-    });
+    // 15/10/2026: attesa limitata come in callGemini (58 s, sotto i 60 s di Hosting → Functions).
+    // Prima, se /api/gemini non rispondeva, "Genera Flashcard con IA" restava in attesa per sempre
+    // e non si poteva riprovare. AbortController senza AbortSignal.timeout (Safari < 16).
+    const timeoutMs = Number.isFinite(options.timeoutMs) ? options.timeoutMs : 58000;
+    const ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => { try { ctrl.abort(); } catch (_) {} }, timeoutMs) : null;
+    let res;
+    try {
+        res = await fetch('/api/gemini', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + idToken },
+            body: JSON.stringify(payload),
+            ...(ctrl ? { signal: ctrl.signal } : {})
+        });
+    } catch (fetchErr) {
+        if (timer) clearTimeout(timer);
+        if (ctrl && ctrl.signal.aborted) { const te = new Error('AI_TIMEOUT'); te.isTimeout = true; throw te; }
+        throw fetchErr;
+    }
     let data = {};
-    try { data = await res.json(); } catch (_) {}
+    try { data = await res.json(); } catch (_) {}   // anche la lettura del corpo resta entro il limite
+    if (timer) clearTimeout(timer);
+    if (ctrl && ctrl.signal.aborted) { const te = new Error('AI_TIMEOUT'); te.isTimeout = true; throw te; }
     if (!res.ok) {
         if (data.error === 'GUEST_LIMIT_REACHED') {
             // Ospite (account anonimo) oltre la quota gratuita: è il momento di

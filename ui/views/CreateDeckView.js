@@ -33,7 +33,7 @@ export class CreateDeckView extends Component {
 
     <button aria-label="Vai alla pagina materiale" class="tech-back" data-fn="showPage" data-params='["materiale"]'>← Le mie materie</button>
     <div class="section-header">
-        <h2>➕ Nuova Materia</h2>
+        <h2>Nuova materia</h2>
         <p>Incolla gli appunti o carica una foto. Poi scegli come studiare.</p>
     </div>
 
@@ -46,7 +46,7 @@ export class CreateDeckView extends Component {
     <!-- 2. MATERIALE (il cuore) -->
     <div class="input-area">
         <div style="font-size:0.82rem;font-weight:700;color:var(--accent2);letter-spacing:0.05em;margin-bottom:14px;">
-            📖 MATERIALE DI STUDIO</div>
+            MATERIALE DI STUDIO</div>
         <div>
             <label for="deck-text">Cosa vuoi studiare?</label>
             <p id="material-input-hint" style="color:var(--text-muted);margin:8px 0;">Incolla qui gli appunti, un paragrafo del libro o il testo della lezione.</p>
@@ -108,10 +108,10 @@ export class CreateDeckView extends Component {
                 <div class="char-count"><span id="char-count">0</span> / 60.000 caratteri max</div>
                 <div role="group" aria-label="Scegli cosa creare" style="display:flex; flex-wrap:wrap; gap:8px;">
                     <button class="btn btn-outline" style="font-weight:700; border-radius:8px; cursor:pointer;"
-                        data-fn="openMaterialSummary">📝 Riassumi</button>
+                        data-fn="openMaterialSummary">Riassumi</button>
                     <button class="btn" id="btn-generate-ai"
                         style="background:var(--accent); color:#fff; border:none; padding:8px 16px; font-weight:700; border-radius:8px; cursor:pointer;"
-                        data-fn="openPdfAIFromText">✨ Genera Flashcard con IA</button>
+                        data-fn="openPdfAIFromText">Genera flashcard con AI</button>
                     <button class="btn btn-outline" data-fn="openMaterialPractice" data-params='["multiple"]'>Quiz a scelta multipla</button>
                     <button class="btn btn-outline" data-fn="openMaterialPractice" data-params='["open"]'>Domande aperte</button>
                 </div>
@@ -122,7 +122,7 @@ export class CreateDeckView extends Component {
     <!-- 3. OPZIONI AVANZATE (collassate — facoltative) -->
     <details style="margin-top:16px; border:1px solid var(--border); border-radius:14px; background:rgba(255,255,255,0.02); overflow:hidden;">
         <summary style="cursor:pointer; padding:14px 18px; font-weight:800; font-size:0.9rem; color:var(--text); list-style:none; display:flex; align-items:center; gap:8px;">
-            ⚙️ Dettagli esame e opzioni <span style="color:var(--text-muted); font-weight:600; font-size:0.8rem;">(facoltativo)</span>
+            Dettagli esame e opzioni <span style="color:var(--text-muted); font-weight:600; font-size:0.8rem;">(facoltativo)</span>
         </summary>
         <div style="padding:4px 18px 18px;">
 
@@ -213,9 +213,9 @@ export class CreateDeckView extends Component {
 
     <!-- 4. SALVA -->
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:20px;">
-        <button class="btn btn-primary" data-fn="saveDeck">💾 Salva Materia</button>
+        <button class="btn btn-primary" data-fn="saveDeck">Salva materia</button>
         <button class="btn" style="background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;"
-            data-fn="saveAndGeneratePlan">⚡ Salva e Genera Piano di Studio</button>
+            data-fn="saveAndGeneratePlan">Salva e crea un piano</button>
     </div>
 
 </div>`;
