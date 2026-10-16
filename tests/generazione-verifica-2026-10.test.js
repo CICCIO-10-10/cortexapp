@@ -18,7 +18,7 @@ vi.mock('../data/translations.js', () => ({ TRANSLATIONS: { it: {} } }));
 function fakeDom(values = {}) {
     const els = new Map();
     const el = id => {
-        if (!els.has(id)) els.set(id, { id, value: values[id] ?? '', style: {}, textContent: '', innerHTML: '', appendChild() {}, scrollIntoView() {}, setAttribute() {} });
+        if (!els.has(id)) els.set(id, { id, value: values[id] ?? '', style: {}, textContent: '', innerHTML: '', append() {}, appendChild() {}, scrollIntoView() {}, setAttribute() {} });
         return els.get(id);
     };
     return { el, document: { getElementById: el, querySelectorAll: () => [], body: { insertAdjacentHTML() {}, appendChild() {} }, createElement: () => ({ style: {}, setAttribute() {} }) } };
@@ -43,6 +43,14 @@ beforeEach(async () => {
 afterEach(() => { vi.unstubAllGlobals(); });
 
 describe('materiale importato conservato con la materia', () => {
+    it('una nuova importazione breve non cancella l’avviso di materiale precedentemente omesso', async () => {
+        const omission = { chars: 350000, limit: 300000, at: 1 };
+        state.decks.push({ id: 'd1', name: 'Biologia', cards: [], text: 'Appunti', textOmitted: omission });
+        proxy.mockResolvedValue(good());
+        await mod.openPdfAIFromText(NOTES, 'Biologia');
+        mod.savePdfAIDeck();
+        expect(state.decks[0].textOmitted).toEqual(omission);
+    });
     // Difetto riprodotto anche nel browser (scripts/verifica-generazione-2026-10/browser.cjs testo/account):
     // la materia salvata dall'anteprima AI aveva nome e carte ma text vuoto; il modulo poi si svuota,
     // quindi gli appunti importati (testo, PDF, OCR) andavano persi.
@@ -78,7 +86,10 @@ describe('materiale importato conservato con la materia', () => {
         proxy.mockResolvedValue(good());
         await mod.openPdfAIFromText(NOTES, 'Biologia');
         mod.savePdfAIDeck();
-        expect(state.decks[0].text).toBe('materiale di prima');
+        // 15/10/2026 sera (verifica finale): prima il materiale nuovo veniva scartato in silenzio (riprodotto nel
+        // browser, scripts/verifica-finale-2026-10-15/browser.cjs "esistente"); ora si tengono entrambi.
+        expect(state.decks[0].text.startsWith('materiale di prima')).toBe(true);
+        expect(state.decks[0].text).toContain(NOTES);
     });
 });
 

@@ -167,7 +167,73 @@ let _sourceText = '';
 // Oltre questa lunghezza il materiale non si salva nella materia: un mazzo sopra MAX_DECK_BYTES (900 KB,
 // services/firebase.js) non verrebbe più caricato sul cloud, carte comprese (come prima: solo carte).
 const MAX_SAVED_TEXT_CHARS = 300_000;
-const _savableText = () => (_sourceText && _sourceText.length <= MAX_SAVED_TEXT_CHARS ? _sourceText : '');
+/**
+ * 15/10/2026 sera — che materiale finisce nella materia (verifica finale dell'integrazione PR #3).
+ * Prima: (1) oltre 300.000 caratteri il materiale non si salvava e nessuno lo diceva; (2) se la materia
+ * esisteva già con i suoi appunti, il materiale aggiunto (PDF, foto, testo) non si salvava affatto.
+ * Ora nulla si perde in silenzio: si tengono entrambi i testi; se il risultato supera il limite la materia
+ * resta com'era e `omitted` dice quanti caratteri non sono entrati (avviso prima del salvataggio).
+ * @returns {{ text: string, omitted: number }}
+ */
+export function planMaterial(existing, source, max = MAX_SAVED_TEXT_CHARS) {
+    const E = String(existing || ''), S = String(source || '');
+    if (!S.trim()) return { text: E, omitted: 0 };
+    let text;
+    if (!E.trim() || S.includes(E)) text = S;          // materia senza appunti, o modulo = appunti + aggiunte
+    else if (E.includes(S)) text = E;                   // niente di nuovo
+    else text = E + '\n\n' + S;                         // testi diversi: si tengono entrambi
+    if (text.length <= max) return { text, omitted: 0 };
+    return { text: E, omitted: S.length };
+}
+const _fmtChars = (n) => Number(n).toLocaleString('it-IT');
+/** Materia aperta nel modulo (stesso criterio del salvataggio): le carte vanno lì, non in un mazzo nuovo. */
+function _targetMateria(state) {
+    const _editorName = (document.getElementById('deck-name')?.value || '').trim();
+    return _editorName && state?.decks
+        ? state.decks.find(dk => (dk.name || '').trim().toLowerCase() === _editorName.toLowerCase()) || null
+        : null;
+}
+function _downloadText(text, name) {
+    const safe = String(name || 'materiale').replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 80) || 'materiale';
+    const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = safe + ' - materiale completo.txt';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+/** Avviso nell'anteprima, PRIMA del salvataggio, quando il materiale non può entrare nella materia. */
+function _renderTextLimitNotice() {
+    const area = document.getElementById('pdfai-form-area');
+    let box = document.getElementById('pdfai-text-limit');
+    const state = window._legacyState ? window._legacyState() : (window.state || null);
+    const plan = planMaterial(_targetMateria(state)?.text, _sourceText);
+    if (!plan.omitted) { try { box?.remove?.(); } catch (_) {} return 0; }
+    if (!box && area) {
+        box = document.createElement('div');
+        box.id = 'pdfai-text-limit';
+        box.setAttribute('role', 'status');
+        box.style.cssText = 'margin:0 0 14px; padding:12px 14px; border-radius:12px; font-size:0.86rem; line-height:1.45;' +
+            'background:rgba(245,158,11,0.10); border:1px solid rgba(245,158,11,0.35); color:var(--text);';
+        area.appendChild(box);
+    }
+    if (!box) return plan.omitted;
+    box.innerHTML = '';
+    const p = document.createElement('p');
+    p.style.margin = '0 0 10px';
+    p.textContent = `Il materiale è lungo ${_fmtChars(plan.omitted)} caratteri: una materia ne può conservare al massimo ` +
+        `${_fmtChars(MAX_SAVED_TEXT_CHARS)} (limite per sincronizzarla). Salvando, entrano solo le carte: il testo non sarà nella materia. ` +
+        'Scarica il materiale completo per non perderlo.';
+    const btn = document.createElement('button');
+    btn.id = 'pdfai-text-download';
+    btn.type = 'button';
+    btn.textContent = '⬇ Scarica il materiale completo (.txt)';
+    btn.style.cssText = 'padding:9px 14px; border-radius:10px; border:1px solid rgba(245,158,11,0.5); background:transparent;' +
+        'color:var(--text); font-family:inherit; font-weight:700; cursor:pointer;';
+    const src = _sourceText;
+    btn.onclick = () => _downloadText(src, document.getElementById('pdfai-deck-name')?.value);
+    box.append(p, btn);
+    return plan.omitted;
+}
 /** Messaggio comprensibile per un errore di generazione (mai testo tecnico come "Unexpected token"). */
 function _generationErrorText(err) {
     if (err?.isTimeout) return 'L’AI non ha risposto in tempo. Il tuo testo è ancora qui: riprova tra poco.';
@@ -223,9 +289,12 @@ function renderCards(cards, deckTitle) {
     if (nameInput) nameInput.value = nomeScelto || deckTitle || t('pdffc_ai_deck');
     if (count)    count.textContent   = `${cards.length} ${_outputMode === 'flashcards' ? 'carte' : 'domande'}`;
     const saveButton = document.getElementById('pdfai-save-btn');
+    const _omitted = _renderTextLimitNotice();
     if (saveButton) {
         saveButton.style.display = '';
-        saveButton.textContent = _outputMode === 'flashcards' ? '💾 Salva Mazzo' : 'Salva e inizia le domande';
+        saveButton.textContent = _outputMode === 'flashcards'
+            ? (_omitted ? '💾 Salva solo le carte' : '💾 Salva Mazzo')
+            : (_omitted ? 'Salva solo le domande e inizia' : 'Salva e inizia le domande');
     }
     if (!list)    return;
 
@@ -658,15 +727,17 @@ export function savePdfAIDeck() {
     // (form editor aperto con nome compilato), le card generate finiscono
     // DENTRO quella materia invece che in un mazzo GENERALE separato.
     const _editorName = (document.getElementById('deck-name')?.value || '').trim();
-    const _materia = _editorName
-        ? state.decks.find(dk => (dk.name || '').trim().toLowerCase() === _editorName.toLowerCase())
-        : null;
+    const _materia = _targetMateria(state);
+    // Materiale: vedi planMaterial. Nulla sparisce in silenzio; oltre il limite la materia segna quanti
+    // caratteri non sono entrati (textOmitted), così chi la riapre lo sa.
+    const _plan = planMaterial(_materia?.text, _sourceText);
+    const _omittedInfo = _plan.omitted ? { chars: _plan.omitted, limit: MAX_SAVED_TEXT_CHARS, at: now } : null;
 
     let newDeck = null;
     if (_materia) {
         _materia.cards = [...(_materia.cards || []), ..._newCards];
-        // Il materiale già presente nella materia non si sovrascrive; se manca, si salva quello importato.
-        if (!String(_materia.text || '').trim() && _savableText()) _materia.text = _savableText();
+        _materia.text = _plan.text;
+        if (_omittedInfo) _materia.textOmitted = _omittedInfo;
         _materia.updatedAt = now;
     } else {
         const _subj = (document.getElementById('deck-subject')?.value || '').trim();
@@ -674,7 +745,8 @@ export function savePdfAIDeck() {
             id: 'deck_' + Date.now(),
             name: deckName,
             subject: _subj,
-            text: _savableText(),
+            text: _plan.text,
+            ...(_omittedInfo ? { textOmitted: _omittedInfo } : {}),
             studyMethod: 'cortex',
             cards: _newCards,
             createdAt: now,
@@ -706,7 +778,11 @@ export function savePdfAIDeck() {
     _sourceText = '';
 
     if (window.showToast) {
-        if (newDeck) window.showToast(`🎉 Mazzo "${deckName}" creato con ${newDeck.cards.length} carte!`, 'success');
+        if (_omittedInfo) {
+            const _who = newDeck ? `Mazzo "${deckName}" creato con ${newDeck.cards.length} carte` : `${_newCards.length} carte aggiunte a "${_editorName}"`;
+            window.showToast(`${_who}. Il materiale (${_fmtChars(_omittedInfo.chars)} caratteri) supera il limite di ${_fmtChars(MAX_SAVED_TEXT_CHARS)} e non è stato salvato nella materia: tieni il file originale o il .txt scaricato.`, 'info');
+        }
+        else if (newDeck) window.showToast(`🎉 Mazzo "${deckName}" creato con ${newDeck.cards.length} carte!`, 'success');
         else window.showToast(`🎉 ${_newCards.length} carte aggiunte a "${_editorName}"!`, 'success');
     }
 

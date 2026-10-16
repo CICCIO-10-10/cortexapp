@@ -160,6 +160,7 @@ export async function startStudy(deckIndex) {
     // Nascondi FAB durante lo studio
     const fab = document.getElementById('main-fab');
     if (fab) fab.style.display = 'none';
+    _hideNotifBannerForStudy(document);
 
     setCurrentDeckIndex(deckIndex);
     activeDeckId = deck.id;
@@ -320,11 +321,35 @@ export function closeStudy() {
     if (overlay) overlay.style.display = 'none';
     const fab = document.getElementById('main-fab');
     if (fab) fab.style.removeProperty('display');
+    _restoreNotifBannerAfterStudy(document);
     const { refreshDueCounts } = _deps;
     if (typeof refreshDueCounts === 'function') refreshDueCounts();
     renderDecks();
     window.dispatchEvent(new Event('cortex:decks-changed'));
     _tolcErrorHook('closed', _closingDeck);
+}
+
+// 16/10/2026: alla prima visita il banner "Attiva le notifiche" (.notif-banner, fisso in basso, z-index 9000)
+// a 390 px copriva i pulsanti di valutazione e prendeva i tocchi: "La sapevo" finiva su "Attiva"/"Non ora".
+// Il mazzo errori TOLC lo nascondeva già (modules/tolcErrorDeck.js); ora vale per ogni ripasso. Torna
+// visibile alla chiusura, così la scelta sulle notifiche non va persa. Un banner già nascosto da altri
+// (es. TOLC) non viene marcato: lo rimette chi lo ha nascosto.
+function _hideNotifBannerForStudy(doc) {
+    try {
+        doc.querySelectorAll('.notif-banner').forEach(b => {
+            if (b.style.display === 'none') return;
+            b.dataset.cxStudyHidden = '1';
+            b.style.display = 'none';
+        });
+    } catch (_) {}
+}
+function _restoreNotifBannerAfterStudy(doc) {
+    try {
+        doc.querySelectorAll('.notif-banner[data-cx-study-hidden="1"]').forEach(b => {
+            b.style.display = '';
+            delete b.dataset.cxStudyHidden;
+        });
+    } catch (_) {}
 }
 
 // ── Privata (chiamata da showCard) ───────────────────────────────────────────

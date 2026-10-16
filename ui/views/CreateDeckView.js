@@ -243,6 +243,8 @@ export class CreateDeckView extends Component {
             ['ai-summary-container',   el => { el.style.display = 'none'; }],
             ['pdf-status',             el => { el.classList.remove('visible'); }],
             ['pdf-spinner',            el => { el.style.display = ''; }],
+            // 15/10/2026 sera: l'avviso "materiale non salvato" di una materia riaperta non resta sulla prossima.
+            ['material-input-hint',    el => { if (el.dataset.defaultText) el.textContent = el.dataset.defaultText; }],
         ];
         reset.forEach(([id, fn]) => { const el = document.getElementById(id); if (el) fn(el); });
 

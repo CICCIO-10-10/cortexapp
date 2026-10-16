@@ -208,6 +208,9 @@ export function buildDeckObject() {
     return {
         id:         currentDeckIndex !== null ? _deps.state.decks[currentDeckIndex].id : Date.now(),
         name, subject,
+        // L'omissione resta documentata anche quando si modificano nome o carte.
+        ...(currentDeckIndex !== null && _deps.state.decks[currentDeckIndex].textOmitted
+            ? { textOmitted: { ..._deps.state.decks[currentDeckIndex].textOmitted } } : {}),
         text:       document.getElementById('deck-text').value,
         examDate:   document.getElementById('exam-date').value,
         examType:   document.getElementById('exam-type').value,
@@ -318,6 +321,16 @@ export async function editDeck(idx) {
     document.getElementById('deck-name').value    = d.name    || '';
     document.getElementById('deck-subject').value = d.subject || '';
     document.getElementById('deck-text').value    = d.text    || '';
+    // 15/10/2026 sera: materiale rimasto fuori dalla materia perché oltre il limite (modules/pdfToFlashcards.js,
+    // planMaterial): chi riapre la materia lo deve sapere, non trovare il campo vuoto senza spiegazioni.
+    const _hint = document.getElementById('material-input-hint');
+    if (_hint) {
+        if (!_hint.dataset.defaultText) _hint.dataset.defaultText = _hint.textContent;
+        const _om = d.textOmitted && Number(d.textOmitted.chars) > 0 ? d.textOmitted : null;
+        _hint.textContent = _om
+            ? `Il materiale importato con l’AI (${Number(_om.chars).toLocaleString('it-IT')} caratteri) non è stato salvato in questa materia: supera il limite di ${Number(_om.limit || 300000).toLocaleString('it-IT')} caratteri. Usa il file originale o il .txt scaricato, anche a parti.`
+            : _hint.dataset.defaultText;
+    }
     document.getElementById('exam-date').value    = d.examDate  || '';
     document.getElementById('exam-type').value    = d.examType  || '';
     document.getElementById('exam-topics').value  = d.examTopics || '';

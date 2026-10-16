@@ -79,7 +79,9 @@ const decksNamed = (decks, name) => decks.filter(d => (d.name || '').trim().toLo
 
 (async () => {
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM, args: ['--no-sandbox'] });
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  // 15/10/2026 sera: service worker bloccato. Con sw.js attivo le richieste passavano dal service worker e
+  // sfuggivano alle intercettazioni: lo scenario "ocr" caricava il Tesseract vero dalla CDN.
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
   let aiMode = 'ok', aiCalls = 0, ocrMode = 'ok';
   await ctx.route('**/*', async (r) => {
     const u = new URL(r.request().url());

@@ -379,7 +379,13 @@ export async function handleImageFile(file, idx = 1, total = 1) {
         if (window.showToast) window.showToast(t('ai_text_extracted'), 'success');
         window.addUploadedFileBadge?.(file.name, 'success');
     } catch (err) {
-        if (window.showToast) window.showToast('Errore OCR: ' + err.message, 'error');
+        // 15/10/2026 sera: Tesseract.js 5 rifiuta con una stringa ("Error: Error attempting to read image."), non
+        // con un Error: il messaggio era "Errore OCR: undefined". Verificato nel browser con lo script vero.
+        const raw = typeof err === 'string' ? err : String(err?.message || '');
+        const msg = !raw || /read image|attempting to read/i.test(raw)
+            ? 'immagine non leggibile: usa una foto JPG o PNG nitida, oppure incolla il testo'
+            : raw;
+        if (window.showToast) window.showToast('Errore OCR: ' + msg, 'error');
     } finally {
         if (statusBox) statusBox.classList.remove('visible');
     }
